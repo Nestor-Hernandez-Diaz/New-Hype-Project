@@ -1,0 +1,25 @@
+{
+  "name": "@monorepo/shared-api-client",
+  "version": "1.0.0",
+  "description": "Cliente API compartido basado en Axios",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "axios": "^1.12.2"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3"
+  }
+}

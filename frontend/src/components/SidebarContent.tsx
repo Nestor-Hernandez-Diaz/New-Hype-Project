@@ -1,0 +1,493 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import styled from 'styled-components';
+import { useAuth } from '../modules/auth/context/AuthContext';
+import { COLORS, COLOR_SCALES, SPACING, TYPOGRAPHY, TRANSITIONS } from '../styles/theme';
+
+const SidebarNav = styled.nav`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: ${SPACING.xl} 0;
+  
+  /* Estilos para el scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(30, 58, 138, 0.3);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.6);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.8);
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+`;
+
+const NavItem = styled.li<{ $isActive?: boolean }>`
+  margin-bottom: ${SPACING.xs};
+
+  a {
+    display: flex;
+    align-items: center;
+    padding: ${SPACING.lg} ${SPACING.xl};
+    color: ${props => props.$isActive ? COLORS.neutral.white : COLORS.neutral.white};
+    background-color: ${props => props.$isActive ? 'rgba(59, 130, 246, 0.6)' : 'transparent'};
+    transition: ${TRANSITIONS.default};
+    text-decoration: none;
+    border-radius: 0;
+    margin: 0;
+    border-left: ${props => props.$isActive ? `4px solid ${COLOR_SCALES.primary[500]}` : '4px solid transparent'};
+
+    &:hover {
+      background-color: ${props => props.$isActive ? 'rgba(59, 130, 246, 0.7)' : 'rgba(59, 130, 246, 0.3)'};
+      border-radius: 0;
+      margin: 0;
+    }
+
+    i {
+      margin-right: ${SPACING.lg};
+      font-size: ${TYPOGRAPHY.fontSize.lg};
+      width: 20px;
+      text-align: center;
+    }
+
+    span {
+      font-weight: ${TYPOGRAPHY.fontWeight.medium};
+    }
+  }
+`;
+
+const SubMenu = styled.div<{ $isOpen: boolean }>`
+  max-height: ${props => props.$isOpen ? '1000px' : '0'};
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+  background-color: rgba(30, 58, 138, 0.4);
+
+  a {
+    display: block;
+    text-decoration: none;
+    color: ${COLORS.neutral.white};
+    transition: ${TRANSITIONS.default};
+
+    &:hover h3 {
+      background-color: rgba(59, 130, 246, 0.4);
+    }
+  }
+
+  h3 {
+    padding: ${SPACING.lg} 40px;
+    font-size: ${TYPOGRAPHY.fontSize.sm};
+    font-weight: ${TYPOGRAPHY.fontWeight.medium};
+    cursor: pointer;
+    transition: ${TRANSITIONS.default};
+    margin: 0;
+    border-left: 3px solid transparent;
+    color: ${COLORS.neutral.white};
+
+    &:hover {
+      background-color: rgba(59, 130, 246, 0.3);
+    }
+  }
+`;
+
+const SubMenuItem = styled.div<{ $isActive?: boolean }>`
+  a {
+    display: block;
+    text-decoration: none;
+    color: #ffffff;
+    transition: all 0.3s ease;
+
+    h3 {
+      padding: 12px 20px 12px 40px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 0;
+      border-left: ${props => props.$isActive ? '4px solid #60a5fa' : '4px solid transparent'};
+      background-color: ${props => props.$isActive ? 'rgba(96, 165, 250, 0.4)' : 'transparent'};
+      color: ${props => props.$isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.9)'};
+      font-weight: ${props => props.$isActive ? '600' : '500'};
+
+      &:hover {
+        background-color: ${props => props.$isActive ? 'rgba(96, 165, 250, 0.5)' : 'rgba(59, 130, 246, 0.3)'};
+      }
+    }
+  }
+`;
+
+const LogoutSection = styled.div`
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(30, 58, 138, 0.3);
+  flex-shrink: 0;
+`;
+
+const SidebarWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+`;
+
+const LogoutButton = styled.button`
+  width: 100%;
+  padding: 15px 20px;
+  background-color: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: rgba(220, 53, 69, 0.3);
+    border-color: #dc3545;
+    color: #ffffff;
+  }
+
+  i {
+    font-size: 16px;
+  }
+`;
+
+interface SidebarContentProps {
+  onItemClick?: () => void;
+}
+
+const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
+  const location = useLocation();
+  const { logout } = useAuth();
+
+  // Función para determinar qué módulo debe estar abierto según la ruta actual
+  const getActiveModule = (pathname: string) => {
+    // Verificar reportes primero para evitar conflictos con otros módulos
+    if (pathname.includes('/reportes')) {
+      return 'reportes';
+    }
+    if (pathname.includes('/usuarios') || pathname.includes('/roles')) {
+      return 'usuarios';
+    }
+    if (pathname.includes('/auditoria')) {
+      return 'auditoria';
+    }
+    if (pathname.includes('/lista-entidades') || pathname.includes('/registrar-entidad')) {
+      return 'entidades_comerciales';
+    }
+    if (pathname.includes('/ventas') || pathname.includes('/gestion-caja') || pathname.includes('/historial-caja')) {
+      return 'ventas';
+    }
+    if (pathname.includes('/lista-productos')) {
+      return 'productos';
+    }
+    if (pathname.includes('/compras')) {
+      return 'compras';
+    }
+    if (pathname.includes('/inventario')) {
+      return 'inventario';
+    }
+    if (pathname.includes('/configuracion')) {
+      return 'configuracion';
+    }
+    return null;
+  };
+
+  // Calcular el módulo activo usando useMemo para evitar recálculos innecesarios
+  const activeModule = useMemo(() => getActiveModule(location.pathname), [location.pathname]);
+
+  // Inicializar el estado con el módulo activo ya abierto
+  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>(() => {
+    const initialState: { [key: string]: boolean } = {};
+    const currentActiveModule = getActiveModule(location.pathname);
+    if (currentActiveModule) {
+      initialState[currentActiveModule] = true;
+    }
+    return initialState;
+  });
+
+  // useEffect optimizado que solo actualiza cuando es necesario
+  useEffect(() => {
+    if (activeModule && !openMenus[activeModule]) {
+      setOpenMenus(prev => ({
+        ...prev,
+        [activeModule]: true
+      }));
+    }
+  }, [activeModule, openMenus]);
+
+  const toggleMenu = (menuKey: string) => {
+    setOpenMenus(prev => ({
+      ...prev,
+      [menuKey]: !prev[menuKey]
+    }));
+  };
+
+  const isActive = (path: string) => location.pathname === path;
+
+  const handleItemClick = () => {
+    if (onItemClick) {
+      onItemClick();
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/login';
+  };
+
+  return (
+    <SidebarWrapper>
+      <SidebarNav>
+        <ul>
+          <NavItem $isActive={isActive('/dashboard')}>
+            <Link to="/dashboard" onClick={handleItemClick}>
+              <i className="fas fa-chart-line"></i>
+              <span>Dashboard</span>
+            </Link>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/usuarios') || isActive('/usuarios/crear') || isActive('/roles')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('usuarios'); }}>
+              <i className="fas fa-user-friends"></i>
+              <span>Usuarios</span>
+            </a>
+            <SubMenu $isOpen={openMenus.usuarios}>
+              <SubMenuItem $isActive={isActive('/usuarios')}>
+                <Link to="/usuarios" onClick={handleItemClick}>
+                  <h3>Lista de Usuarios</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/roles')}>
+                <Link to="/roles" onClick={handleItemClick}>
+                  <h3>Roles y Permisos</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/lista-entidades') || isActive('/registrar-entidad')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('entidades_comerciales'); }}>
+              <i className="fas fa-users"></i>
+              <span>Entidades Comerciales</span>
+            </a>
+            <SubMenu $isOpen={openMenus.entidades_comerciales}>
+              <SubMenuItem $isActive={isActive('/lista-entidades')}>
+                <Link to="/lista-entidades" onClick={handleItemClick}>
+                  <h3>Lista de Entidades</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/gestion-caja') || isActive('/historial-caja') || isActive('/ventas/realizar') || isActive('/ventas/lista') || isActive('/ventas/cotizaciones') || isActive('/ventas/asistente-ia')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('ventas'); }}>
+              <i className="fas fa-cash-register"></i>
+              <span>Ventas</span>
+            </a>
+            <SubMenu $isOpen={openMenus.ventas}>
+              <SubMenuItem $isActive={isActive('/gestion-caja')}>
+                <Link to="/gestion-caja" onClick={handleItemClick}>
+                  <h3>Gestión de Caja</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/historial-caja')}>
+                <Link to="/historial-caja" onClick={handleItemClick}>
+                  <h3>Historial de Caja</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/ventas/realizar')}>
+                <Link to="/ventas/realizar" onClick={handleItemClick}>
+                  <h3>Realizar Venta</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/ventas/lista')}>
+                <Link to="/ventas/lista" onClick={handleItemClick}>
+                  <h3>Historial de Ventas</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/ventas/cotizaciones')}>
+                <Link to="/ventas/cotizaciones" onClick={handleItemClick}>
+                  <h3>Cotizaciones</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/ventas/asistente-ia')}>
+                <Link to="/ventas/asistente-ia" onClick={handleItemClick}>
+                  <h3>Asistente de Ventas IA</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/lista-productos')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('productos'); }}>
+              <i className="fas fa-cube"></i>
+              <span>Productos</span>
+            </a>
+            <SubMenu $isOpen={openMenus.productos}>
+              <SubMenuItem $isActive={isActive('/lista-productos')}>
+                <Link to="/lista-productos" onClick={handleItemClick}>
+                  <h3>Lista de Productos</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/inventario/stock') || isActive('/inventario/kardex') || isActive('/inventario/almacenes') || isActive('/inventario/motivos')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('inventario'); }}>
+              <i className="fas fa-boxes"></i>
+              <span>Inventario</span>
+            </a>
+            <SubMenu $isOpen={openMenus.inventario}>
+              <SubMenuItem $isActive={isActive('/inventario/stock')}>
+                <Link to="/inventario/stock" onClick={handleItemClick}>
+                  <h3>Stock</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/inventario/kardex')}>
+                <Link to="/inventario/kardex" onClick={handleItemClick}>
+                  <h3>Kardex</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/inventario/almacenes')}>
+                <Link to="/inventario/almacenes" onClick={handleItemClick}>
+                  <h3>Almacenes</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/inventario/motivos')}>
+                <Link to="/inventario/motivos" onClick={handleItemClick}>
+                  <h3>Motivos de Movimiento</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/compras')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('compras'); }}>
+              <i className="fas fa-receipt"></i>
+              <span>Compras</span>
+            </a>
+            <SubMenu $isOpen={openMenus.compras}>
+              <SubMenuItem $isActive={isActive('/compras/ordenes')}>
+                <Link to="/compras/ordenes" onClick={handleItemClick}>
+                  <h3>Órdenes de Compra</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/compras/recepciones')}>
+                <Link to="/compras/recepciones" onClick={handleItemClick}>
+                  <h3>Recepciones</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          
+
+          <NavItem $isActive={isActive('/configuracion/mi-perfil') || isActive('/configuracion/empresa') || isActive('/configuracion/comprobantes') || isActive('/configuracion/metodos-pago') || isActive('/configuracion/productos')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('configuracion'); }}>
+              <i className="fas fa-cogs"></i>
+              <span>Configuración</span>
+            </a>
+            <SubMenu $isOpen={openMenus.configuracion}>
+              <SubMenuItem $isActive={isActive('/configuracion/mi-perfil')}>
+                <Link to="/configuracion/mi-perfil" onClick={handleItemClick}>
+                  <h3>Mi Perfil</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/configuracion/empresa')}>
+                <Link to="/configuracion/empresa" onClick={handleItemClick}>
+                  <h3>Empresa</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/configuracion/comprobantes')}>
+                <Link to="/configuracion/comprobantes" onClick={handleItemClick}>
+                  <h3>Comprobantes</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/configuracion/metodos-pago')}>
+                <Link to="/configuracion/metodos-pago" onClick={handleItemClick}>
+                  <h3>Métodos de Pago</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/configuracion/productos')}>
+                <Link to="/configuracion/productos" onClick={handleItemClick}>
+                  <h3>Categorías y Unidades</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/reportes/ventas') || isActive('/reportes/compras') || isActive('/reportes/inventario') || isActive('/reportes/caja')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('reportes'); }}>
+              <i className="fas fa-chart-bar"></i>
+              <span>Reportes</span>
+            </a>
+            <SubMenu $isOpen={openMenus.reportes}>
+              <SubMenuItem $isActive={isActive('/reportes/ventas')}>
+                <Link to="/reportes/ventas" onClick={handleItemClick}>
+                  <h3>Ventas</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/reportes/compras')}>
+                <Link to="/reportes/compras" onClick={handleItemClick}>
+                  <h3>Compras</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/reportes/inventario')}>
+                <Link to="/reportes/inventario" onClick={handleItemClick}>
+                  <h3>Inventario</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/reportes/caja')}>
+                <Link to="/reportes/caja" onClick={handleItemClick}>
+                  <h3>Caja</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/auditoria')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('auditoria'); }}>
+              <i className="fas fa-search"></i>
+              <span>Auditoría y Logs</span>
+            </a>
+            <SubMenu $isOpen={openMenus.auditoria}>
+              <SubMenuItem $isActive={isActive('/auditoria')}>
+                <Link to="/auditoria" onClick={handleItemClick}>
+                  <h3>Logs del Sistema</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+        </ul>
+      </SidebarNav>
+
+      <LogoutSection>
+        <LogoutButton onClick={handleLogout}>
+          <i className="fas fa-sign-out-alt"></i>
+          <span>Cerrar Sesión</span>
+        </LogoutButton>
+      </LogoutSection>
+    </SidebarWrapper>
+  );
+};
+
+export default SidebarContent;

@@ -1,0 +1,22 @@
+{
+  "name": "@monorepo/shared-constants",
+  "version": "1.0.0",
+  "description": "Constantes compartidas para el monorepo",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3"
+  }
+}

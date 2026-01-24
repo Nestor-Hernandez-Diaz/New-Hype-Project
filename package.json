@@ -1,0 +1,27 @@
+{
+  "name": "@proyecto-monorepo/root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo Frontend con paquetes compartidos",
+  "workspaces": [
+    "frontend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "build:packages": "npm run build --workspace=packages/shared-types && npm run build --workspace=packages/shared-utils && npm run build --workspace=packages/shared-api-client && npm run build --workspace=packages/shared-constants",
+    "build:all": "npm run build:packages && npm run build",
+    "lint": "npm run lint --workspace=frontend",
+    "test": "npm run test --workspace=frontend",
+    "preview": "npm run preview --workspace=frontend",
+    "clean": "rm -rf node_modules frontend/node_modules packages/*/node_modules"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.10"
+  }
+}
