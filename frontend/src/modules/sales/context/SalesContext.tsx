@@ -1,903 +1,693 @@
-import React, { createContext, useState, useEffect } from 'react';
+/**
+ * ============================================
+ * SALES CONTEXT - Refactorizado con useReducer
+ * Patrón Frontend-First con Mock API
+ * ============================================
+ */
+
+import React, { createContext, useReducer, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { tokenUtils } from '../../../utils/api';
+import type {
+  Venta,
+  CrearVentaRequest,
+  CajaRegistradora,
+  SesionCaja,
+  MovimientoCaja,
+  ResumenCaja,
+  NotaCredito,
+  CrearNotaCreditoRequest,
+  Cotizacion,
+  VentasFilters,
+  SesionesCajaFilters,
+  TipoMovimientoCaja
+} from '@monorepo/shared-types';
 
-const API_URL = 'http://localhost:3001/api';
+// Import Mock API
+import * as ventasApi from '../services/ventasApi';
 
-// Interfaces actualizadas para coincidir con el backend
-export interface CashRegister {
-  id: string;
-  nombre: string;
-  ubicacion?: string;
-  activo: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+// ============================================
+// STATE & ACTIONS
+// ============================================
 
-export interface CashSession {
-  id: string;
-  cashRegisterId: string;
-  userId: string;
-  fechaApertura: string;
-  fechaCierre?: string;
-  montoApertura: number;
-  montoCierre?: number;
-  totalVentas: number;
-  diferencia?: number;
-  estado: 'Abierta' | 'Cerrada';
-  observaciones?: string;
-  createdAt: string;
-  updatedAt: string;
-  cashRegister?: CashRegister;
-  user?: {
-    id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-  };
-}
-
-export interface Sale {
-  id: string;
-  codigoVenta: string;
-  cashSessionId?: string;
-  clienteId?: string;
-  almacenId: string;
-  usuarioId: string;
-  fechaEmision: string;
-  tipoComprobante: 'Boleta' | 'Factura' | 'NotaVenta';
-  formaPago: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Yape' | 'Plin';
-  subtotal: number;
-  igv: number;
-  total: number;
-  estado: 'Pendiente' | 'Completada' | 'Cancelada'; // ✅ Simplificado a 3 estados
-  observaciones?: string;
+interface SalesState {
+  // Cajas Registradoras
+  cashRegisters: CajaRegistradora[];
   
-  // Campos de tracking de pago
-  montoRecibido?: number;
-  montoCambio?: number;
-  referenciaPago?: string;
-  fechaPago?: string;
+  // Sesiones de Caja
+  cashSessions: SesionCaja[];
+  activeCashSession: SesionCaja | null;
   
-  // 🆕 Pagos múltiples
-  payments?: Array<{
-    id: string;
-    metodoPago: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Yape' | 'Plin';
-    monto: number;
-    referencia?: string;
-    observaciones?: string;
-    orden: number;
-  }>;
+  // Movimientos de Caja
+  cashMovements: MovimientoCaja[];
+  cashSummary: ResumenCaja | null;
   
-  // Campos calculados (vienen del backend)
-  montoNotaCredito?: number; // Total de NCs aplicadas
-  montoEfectivo?: number; // total - montoNotaCredito
-  tieneNotaCredito?: boolean; // Indicador si tiene NC
+  // Ventas
+  sales: Venta[];
   
-  // ✅ Notas de Crédito asociadas (solo en getById)
-  creditNotes?: Array<{
-    id: string;
-    codigoVenta: string;
-    creditNoteReason: string;
-    creditNoteDescription?: string;
-    fechaEmision: string;
-    subtotal: number;
-    igv: number;
-    total: number;
-    items: SaleItem[];
-    usuario?: {
-      id: string;
-      nombre: string;
-    };
-  }>;
+  // Cotizaciones
+  quotes: Cotizacion[];
   
-  items: SaleItem[];
-  createdAt: string;
-  updatedAt: string;
-  cliente?: any;
-  almacen?: any;
+  // Loading & Error
+  loading: boolean;
+  error: string | null;
 }
 
-export interface SaleItem {
-  id: string;  // ✅ CRÍTICO: ID del SaleItem (necesario para NC)
-  productId: string;
-  nombreProducto: string;
-  cantidad: number;
-  precioUnitario: number;
-  subtotal: number;
+type SalesAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_CASH_REGISTERS'; payload: CajaRegistradora[] }
+  | { type: 'SET_CASH_SESSIONS'; payload: SesionCaja[] }
+  | { type: 'SET_ACTIVE_CASH_SESSION'; payload: SesionCaja | null }
+  | { type: 'ADD_CASH_SESSION'; payload: SesionCaja }
+  | { type: 'UPDATE_CASH_SESSION'; payload: SesionCaja }
+  | { type: 'SET_CASH_MOVEMENTS'; payload: MovimientoCaja[] }
+  | { type: 'SET_CASH_SUMMARY'; payload: ResumenCaja }
+  | { type: 'ADD_CASH_MOVEMENT'; payload: MovimientoCaja }
+  | { type: 'REMOVE_CASH_MOVEMENT'; payload: string }
+  | { type: 'SET_SALES'; payload: Venta[] }
+  | { type: 'ADD_SALE'; payload: Venta }
+  | { type: 'UPDATE_SALE'; payload: Venta }
+  | { type: 'SET_QUOTES'; payload: Cotizacion[] }
+  | { type: 'ADD_QUOTE'; payload: Cotizacion };
+
+// ============================================
+// REDUCER
+// ============================================
+
+const initialState: SalesState = {
+  cashRegisters: [],
+  cashSessions: [],
+  activeCashSession: null,
+  cashMovements: [],
+  cashSummary: null,
+  sales: [],
+  quotes: [],
+  loading: false,
+  error: null
+};
+
+function salesReducer(state: SalesState, action: SalesAction): SalesState {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+      
+    case 'SET_ERROR':
+      return { ...state, error: action.payload, loading: false };
+      
+    case 'SET_CASH_REGISTERS':
+      return { ...state, cashRegisters: action.payload };
+      
+    case 'SET_CASH_SESSIONS':
+      return { 
+        ...state, 
+        cashSessions: action.payload,
+        activeCashSession: action.payload.find(s => s.estado === 'Abierta') || null
+      };
+      
+    case 'SET_ACTIVE_CASH_SESSION':
+      return { ...state, activeCashSession: action.payload };
+      
+    case 'ADD_CASH_SESSION':
+      return {
+        ...state,
+        cashSessions: [...state.cashSessions, action.payload],
+        activeCashSession: action.payload
+      };
+      
+    case 'UPDATE_CASH_SESSION':
+      return {
+        ...state,
+        cashSessions: state.cashSessions.map(s =>
+          s.id === action.payload.id ? action.payload : s
+        ),
+        activeCashSession: action.payload.estado === 'Cerrada' ? null : state.activeCashSession
+      };
+      
+    case 'SET_CASH_MOVEMENTS':
+      return { ...state, cashMovements: action.payload };
+      
+    case 'SET_CASH_SUMMARY':
+      return { ...state, cashSummary: action.payload };
+      
+    case 'ADD_CASH_MOVEMENT':
+      return {
+        ...state,
+        cashMovements: [...state.cashMovements, action.payload]
+      };
+      
+    case 'REMOVE_CASH_MOVEMENT':
+      return {
+        ...state,
+        cashMovements: state.cashMovements.filter(m => m.id !== action.payload)
+      };
+      
+    case 'SET_SALES':
+      return { ...state, sales: action.payload };
+      
+    case 'ADD_SALE':
+      return {
+        ...state,
+        sales: [...state.sales, action.payload]
+      };
+      
+    case 'UPDATE_SALE':
+      return {
+        ...state,
+        sales: state.sales.map(s => s.id === action.payload.id ? action.payload : s)
+      };
+      
+    case 'SET_QUOTES':
+      return { ...state, quotes: action.payload };
+      
+    case 'ADD_QUOTE':
+      return {
+        ...state,
+        quotes: [...state.quotes, action.payload]
+      };
+      
+    default:
+      return state;
+  }
 }
 
-export interface CreateSaleInput {
-  cashSessionId?: string;
-  clienteId?: string;
-  almacenId: string;
-  tipoComprobante: 'Boleta' | 'Factura' | 'NotaVenta';
-  formaPago?: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Yape' | 'Plin'; // ✅ Opcional si usa payments
-  incluyeIGV?: boolean; // 🆕 Para indicar si se aplica IGV o no
-  comprobanteId?: string; // 🆕 ID del comprobante específico a usar
-  // 🆕 Pagos múltiples
-  payments?: Array<{
-    metodoPago: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Yape' | 'Plin';
-    monto: number;
-    referencia?: string;
-    observaciones?: string;
-  }>;
-  items: Array<{
-    productId: string;
-    nombreProducto?: string;
-    cantidad: number;
-    precioUnitario: number;
-  }>;
-  observaciones?: string;
-}
-
-// 🆕 Interfaces para Notas de Crédito
-export interface CreditNote {
-  id: string;
-  codigoVenta: string;
-  saleOriginId: string;
-  fechaEmision: string;
-  creditNoteReason: string;
-  creditNoteDescription?: string;
-  total: number;
-  subtotal: number;
-  igv: number;
-  items: SaleItem[];
-  usuario?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
-  saleOrigin?: {
-    id: string;
-    codigoVenta: string;
-    total: number;
-  };
-}
-
-export interface CreateCreditNoteInput {
-  saleId: string;
-  creditNoteReason: string;
-  descripcion?: string;
-  items: Array<{
-    saleItemId: string;
-    cantidad: number;
-  }>;
-  paymentMethod: 'Efectivo' | 'Transferencia' | 'Vale';
-  cashSessionId?: string;
-}
-
-// Nuevas interfaces para Cash Movements
-export interface CashMovement {
-  id: string;
-  cashSessionId: string;
-  tipo: 'INGRESO' | 'EGRESO';
-  monto: number | string; // Prisma Decimal viene como string desde el backend
-  motivo: string;
-  descripcion?: string;
-  usuarioId: string;
-  createdAt: string;
-  updatedAt: string;
-  usuario?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-}
-
-export interface CashSummary {
-  montoApertura: number | string; // Prisma Decimal viene como string
-  totalVentas: number | string; // Cambio: totalVentasEfectivo → totalVentas (todas las formas de pago)
-  totalIngresos: number | string;
-  totalEgresos: number | string;
-  totalEsperado: number | string;
-  movements?: CashMovement[];
-}
+// ============================================
+// CONTEXT TYPE
+// ============================================
 
 interface SalesContextType {
+  // State
+  cashRegisters: CajaRegistradora[];
+  cashSessions: SesionCaja[];
+  activeCashSession: SesionCaja | null;
+  cashMovements: MovimientoCaja[];
+  cashSummary: ResumenCaja | null;
+  sales: Venta[];
+  quotes: Cotizacion[];
+  loading: boolean;
+  error: string | null;
+  
   // Cash Registers
-  cashRegisters: CashRegister[];
   loadCashRegisters: () => Promise<void>;
   
   // Cash Sessions
-  cashSessions: CashSession[];
-  activeCashSession: CashSession | null;
-  openCashSession: (cashRegisterId: string, montoApertura: number, observaciones?: string) => Promise<CashSession>;
-  closeCashSession: (sessionId: string, montoCierre: number, observaciones?: string) => Promise<CashSession>;
-  loadCashSessions: () => Promise<void>;
+  loadCashSessions: (filters?: SesionesCajaFilters) => Promise<void>;
+  openCashSession: (cashRegisterId: string, montoApertura: number, observaciones?: string) => Promise<SesionCaja>;
+  closeCashSession: (sessionId: string, montoCierre: number, observaciones?: string) => Promise<SesionCaja>;
+  getClosedSessions: (filters?: SesionesCajaFilters) => Promise<SesionCaja[]>;
+  getSessionById: (sessionId: string) => Promise<SesionCaja>;
   
-  // 🆕 Cash Session History (Historial de Caja)
-  getClosedSessions: (filters?: { fechaInicio?: string; fechaFin?: string; userId?: string }) => Promise<CashSession[]>;
-  getSessionById: (sessionId: string) => Promise<CashSession>;
-  
-  // Cash Movements (NUEVO)
-  cashMovements: CashMovement[];
-  cashSummary: CashSummary | null;
-  createCashMovement: (tipo: 'INGRESO' | 'EGRESO', data: { cashSessionId: string; monto: number; motivo: string; descripcion?: string }) => Promise<CashMovement>;
+  // Cash Movements
+  createCashMovement: (tipo: TipoMovimientoCaja, data: { cashSessionId: string; monto: number; motivo: string; descripcion?: string }) => Promise<MovimientoCaja>;
   loadCashMovements: (sessionId: string) => Promise<void>;
   loadCashSummary: (sessionId: string) => Promise<void>;
   deleteCashMovement: (movementId: string) => Promise<void>;
   
   // Sales
-  sales: Sale[];
-  createSale: (saleData: CreateSaleInput) => Promise<Sale>;
-  confirmPayment: (saleId: string, paymentData: { montoRecibido: number; montoCambio?: number; referenciaPago?: string }) => Promise<Sale>; // 🆕
-  completeSale: (saleId: string) => Promise<Sale>;
-  cancelSale: (saleId: string, motivo: string) => Promise<Sale>;
-  getSaleById: (saleId: string) => Promise<Sale>;
-  loadSales: (filters?: any) => Promise<void>;
+  loadSales: (filters?: VentasFilters) => Promise<void>;
+  createSale: (saleData: CrearVentaRequest) => Promise<Venta>;
+  confirmPayment: (saleId: string, paymentData: { montoRecibido: number; montoCambio?: number; referenciaPago?: string }) => Promise<Venta>;
+  completeSale: (saleId: string) => Promise<Venta>;
+  cancelSale: (saleId: string, motivo: string) => Promise<Venta>;
+  getSaleById: (saleId: string) => Promise<Venta>;
   
-  // 🆕 Credit Notes (Notas de Crédito)
-  createCreditNote: (creditNoteData: CreateCreditNoteInput) => Promise<CreditNote>;
-  getCreditNotesBySale: (saleId: string) => Promise<CreditNote[]>;
+  // Credit Notes
+  createCreditNote: (creditNoteData: CrearNotaCreditoRequest) => Promise<NotaCredito>;
+  getCreditNotesBySale: (saleId: string) => Promise<NotaCredito[]>;
   
-  // Quotes (Cotizaciones) - NUEVO
-  createQuote: (quoteData: CreateSaleInput) => Promise<any>;
+  // Quotes
+  loadQuotes: () => Promise<void>;
+  createQuote: (quoteData: CrearVentaRequest) => Promise<Cotizacion>;
   
-  // Invoice
+  // Invoice (Mantener para compatibilidad, pero no implementado en Mocks)
   previewInvoice: (saleId: string) => void;
   downloadInvoice: (saleId: string) => void;
-  
-  // Loading states
-  loading: boolean;
-  error: string | null;
 }
+
+// ============================================
+// CONTEXT & PROVIDER
+// ============================================
 
 const SalesContext = createContext<SalesContextType | undefined>(undefined);
 
 export const SalesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [cashRegisters, setCashRegisters] = useState<CashRegister[]>([]);
-  const [cashSessions, setCashSessions] = useState<CashSession[]>([]);
-  const [activeCashSession, setActiveCashSession] = useState<CashSession | null>(null);
-  const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
-  const [cashSummary, setCashSummary] = useState<CashSummary | null>(null);
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Helper function para hacer fetch con autenticación
-  const fetchAPI = async (endpoint: string, options?: RequestInit) => {
-    const token = tokenUtils.getAccessToken();
-    
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        ...options?.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }));
-      
-      // 🐛 Debug: mostrar error completo del backend
-      console.error('❌ Error del backend:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: `${API_URL}${endpoint}`,
-        errorData: errorData
-      });
-      console.error('❌ ErrorData completo (JSON):', JSON.stringify(errorData, null, 2));
-      
-      throw new Error(errorData.message || `Error ${response.status}`);
-    }
-
-    return response.json();
-  };
-
+  const [state, dispatch] = useReducer(salesReducer, initialState);
+  
   // ==================== CASH REGISTERS ====================
-  const loadCashRegisters = async () => {
+  const loadCashRegisters = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchAPI('/cash-registers');
-      setCashRegisters(data.data || []);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+      
+      const data = await ventasApi.getCajasRegistradoras();
+      dispatch({ type: 'SET_CASH_REGISTERS', payload: data });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar cajas registradoras';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       console.error('Error loading cash registers:', err);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
+  }, []);
+  
   // ==================== CASH SESSIONS ====================
-  const loadCashSessions = async () => {
+  const loadCashSessions = useCallback(async (filters?: SesionesCajaFilters) => {
     try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchAPI('/cash-sessions');
-      setCashSessions(data.data || []);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      // Buscar sesión activa
-      const active = (data.data || []).find((session: CashSession) => session.estado === 'Abierta');
-      setActiveCashSession(active || null);
+      const data = await ventasApi.getSesionesCaja(filters);
+      dispatch({ type: 'SET_CASH_SESSIONS', payload: data });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar sesiones de caja';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       console.error('Error loading cash sessions:', err);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  const openCashSession = async (
+  }, []);
+  
+  const openCashSession = useCallback(async (
     cashRegisterId: string,
     montoApertura: number,
     observaciones?: string
-  ): Promise<CashSession> => {
+  ): Promise<SesionCaja> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      const data = await fetchAPI('/cash-sessions/open', {
-        method: 'POST',
-        body: JSON.stringify({ cashRegisterId, montoApertura, observaciones }),
-      });
-
-      const newSession = data.data;
-      setCashSessions(prev => [...prev, newSession]);
-      setActiveCashSession(newSession);
+      const newSession = await ventasApi.abrirSesionCaja(cashRegisterId, montoApertura, observaciones);
+      dispatch({ type: 'ADD_CASH_SESSION', payload: newSession });
       
       return newSession;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al abrir sesión de caja';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  const closeCashSession = async (
+  }, []);
+  
+  const closeCashSession = useCallback(async (
     sessionId: string,
     montoCierre: number,
     observaciones?: string
-  ): Promise<CashSession> => {
+  ): Promise<SesionCaja> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      const data = await fetchAPI(`/cash-sessions/${sessionId}/close`, {
-        method: 'POST',
-        body: JSON.stringify({ montoCierre, observaciones }),
-      });
-
-      const closedSession = data.data;
-      setCashSessions(prev => prev.map(s => s.id === sessionId ? closedSession : s));
-      setActiveCashSession(null);
+      const closedSession = await ventasApi.cerrarSesionCaja(sessionId, montoCierre, observaciones);
+      dispatch({ type: 'UPDATE_CASH_SESSION', payload: closedSession });
       
       return closedSession;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cerrar sesión de caja';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  // ==================== CASH SESSION HISTORY (HISTORIAL DE CAJA) ====================
+  }, []);
   
-  /**
-   * Obtener sesiones cerradas con filtros opcionales
-   */
-  const getClosedSessions = async (filters?: { 
-    fechaInicio?: string; 
-    fechaFin?: string; 
-    userId?: string;
-  }): Promise<CashSession[]> => {
+  const getClosedSessions = useCallback(async (filters?: SesionesCajaFilters): Promise<SesionCaja[]> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      // Construir query string
-      const queryParams = new URLSearchParams();
-      queryParams.append('estado', 'Cerrada'); // Solo sesiones cerradas
-      
-      if (filters?.fechaInicio) {
-        queryParams.append('fechaInicio', filters.fechaInicio);
-      }
-      if (filters?.fechaFin) {
-        queryParams.append('fechaFin', filters.fechaFin);
-      }
-      if (filters?.userId) {
-        queryParams.append('userId', filters.userId);
-      }
-      
-      const response = await fetchAPI(`/cash-sessions?${queryParams.toString()}`);
-      // Backend devuelve { success: true, data: [...] }
-      return response.data || response || [];
+      const sessions = await ventasApi.getSesionesCaja({ ...filters, estado: 'Cerrada' as any });
+      return sessions;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar historial de sesiones';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  /**
-   * Obtener detalle completo de una sesión por ID
-   */
-  const getSessionById = async (sessionId: string): Promise<CashSession> => {
+  }, []);
+  
+  const getSessionById = useCallback(async (sessionId: string): Promise<SesionCaja> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      const response = await fetchAPI(`/cash-sessions/${sessionId}`);
-      // Backend devuelve { success: true, data: {...} }
-      return response.data || response;
+      const session = await ventasApi.getSesionCajaById(sessionId);
+      return session;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar detalle de sesión';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
+  }, []);
+  
   // ==================== CASH MOVEMENTS ====================
-  const createCashMovement = async (
-    tipo: 'INGRESO' | 'EGRESO',
+  const createCashMovement = useCallback(async (
+    tipo: TipoMovimientoCaja,
     data: { cashSessionId: string; monto: number; motivo: string; descripcion?: string }
-  ): Promise<CashMovement> => {
+  ): Promise<MovimientoCaja> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      const endpoint = tipo === 'INGRESO' ? '/cash-movements/ingreso' : '/cash-movements/egreso';
-      const response = await fetchAPI(endpoint, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-
-      // Backend devuelve { message, movement }
-      const newMovement = response.movement;
-      setCashMovements(prev => [...prev, newMovement]);
+      const newMovement = await ventasApi.crearMovimientoCaja(tipo, data);
+      dispatch({ type: 'ADD_CASH_MOVEMENT', payload: newMovement });
       
       // Recargar resumen después de crear movimiento
       if (data.cashSessionId) {
-        await loadCashSummary(data.cashSessionId);
+        const summary = await ventasApi.getResumenCaja(data.cashSessionId);
+        dispatch({ type: 'SET_CASH_SUMMARY', payload: summary });
       }
       
       return newMovement;
     } catch (err) {
       const message = err instanceof Error ? err.message : `Error al registrar ${tipo.toLowerCase()}`;
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  const loadCashMovements = async (sessionId: string): Promise<void> => {
+  }, []);
+  
+  const loadCashMovements = useCallback(async (sessionId: string): Promise<void> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      // Backend devuelve array directamente
-      const movements = await fetchAPI(`/cash-movements?cashSessionId=${sessionId}`);
-      setCashMovements(movements);
+      const movements = await ventasApi.getMovimientosCaja(sessionId);
+      dispatch({ type: 'SET_CASH_MOVEMENTS', payload: movements });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar movimientos de caja';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       console.error('Error loading cash movements:', err);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  const loadCashSummary = async (sessionId: string): Promise<void> => {
+  }, []);
+  
+  const loadCashSummary = useCallback(async (sessionId: string): Promise<void> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      // Backend devuelve { montoApertura, totalVentasEfectivo, totalIngresos, totalEgresos, totalEsperado, movements }
-      const summary = await fetchAPI(`/cash-movements/summary/${sessionId}`);
-      setCashSummary(summary);
+      const summary = await ventasApi.getResumenCaja(sessionId);
+      dispatch({ type: 'SET_CASH_SUMMARY', payload: summary });
       
       // También actualizar movimientos si vienen en el resumen
       if (summary.movements) {
-        setCashMovements(summary.movements);
+        dispatch({ type: 'SET_CASH_MOVEMENTS', payload: summary.movements });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar resumen de caja';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       console.error('Error loading cash summary:', err);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  const deleteCashMovement = async (movementId: string): Promise<void> => {
+  }, []);
+  
+  const deleteCashMovement = useCallback(async (movementId: string): Promise<void> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      await fetchAPI(`/cash-movements/${movementId}`, {
-        method: 'DELETE',
-      });
-
-      setCashMovements(prev => prev.filter(m => m.id !== movementId));
+      await ventasApi.eliminarMovimientoCaja(movementId);
+      dispatch({ type: 'REMOVE_CASH_MOVEMENT', payload: movementId });
       
       // Recargar resumen si hay sesión activa
-      if (activeCashSession?.id) {
-        await loadCashSummary(activeCashSession.id);
+      if (state.activeCashSession?.id) {
+        const summary = await ventasApi.getResumenCaja(state.activeCashSession.id);
+        dispatch({ type: 'SET_CASH_SUMMARY', payload: summary });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al eliminar movimiento';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
+  }, [state.activeCashSession]);
+  
   // ==================== SALES ====================
-  const loadSales = async (filters?: any) => {
+  const loadSales = useCallback(async (filters?: VentasFilters) => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      const queryParams = new URLSearchParams();
-      if (filters?.estado) queryParams.append('estado', filters.estado);
-      if (filters?.fechaInicio) queryParams.append('fechaInicio', filters.fechaInicio);
-      if (filters?.fechaFin) queryParams.append('fechaFin', filters.fechaFin);
-      
-      const queryString = queryParams.toString();
-      const endpoint = queryString ? `/sales?${queryString}` : '/sales';
-      
-      const data = await fetchAPI(endpoint);
-      setSales(data.data || []);
+      const data = await ventasApi.getVentas(filters);
+      dispatch({ type: 'SET_SALES', payload: data });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar ventas';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       console.error('Error loading sales:', err);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  // ==================== QUOTES (Cotizaciones) ====================
-  const createQuote = async (quoteData: CreateSaleInput): Promise<any> => {
+  }, []);
+  
+  const createSale = useCallback(async (saleData: CrearVentaRequest): Promise<Venta> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      const quotePayload = {
-        ...quoteData,
-        validoHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días de validez
-      };
-      
-      // 🐛 Debug: mostrar datos enviados
-      console.log('🚀 Enviando cotización al backend:', quotePayload);
-      
-      const response = await fetchAPI('/quotes', {
-        method: 'POST',
-        body: JSON.stringify(quotePayload),
-      });
-
-      return response;
-    } catch (err: any) {
-      // 🐛 Mejorar logging de errores
-      console.error('❌ Error al crear cotización:', err);
-      console.error('❌ Detalles del error:', err.message);
-      if (err.response) {
-        console.error('❌ Respuesta del servidor:', await err.response.json().catch(() => err.response.text()));
-      }
-      
-      const message = err instanceof Error ? err.message : 'Error al crear cotización';
-      setError(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createSale = async (saleData: CreateSaleInput): Promise<Sale> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // 🐛 Debug: mostrar datos enviados
-      console.log('🚀 Enviando venta al backend:', saleData);
-      
-      const data = await fetchAPI('/sales', {
-        method: 'POST',
-        body: JSON.stringify(saleData),
-      });
-
-      const newSale = data.data;
-      setSales(prev => [...prev, newSale]);
+      const newSale = await ventasApi.crearVenta(saleData);
+      dispatch({ type: 'ADD_SALE', payload: newSale });
       
       return newSale;
-    } catch (err: any) {
-      // 🐛 Mejorar logging de errores
-      console.error('❌ Error al crear venta:', err);
-      console.error('❌ Detalles del error:', err.message);
-      if (err.response) {
-        console.error('❌ Respuesta del servidor:', await err.response.json().catch(() => err.response.text()));
-      }
-      
+    } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear venta';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  // 🆕 NUEVA FUNCIÓN: Confirmar pago de una venta
-  const confirmPayment = async (
+  }, []);
+  
+  const confirmPayment = useCallback(async (
     saleId: string,
-    paymentData: {
-      montoRecibido: number;
-      montoCambio?: number;
-      referenciaPago?: string;
-    }
-  ): Promise<Sale> => {
+    paymentData: { montoRecibido: number; montoCambio?: number; referenciaPago?: string }
+  ): Promise<Venta> => {
     try {
-      setLoading(true);
-      setError(null);
-
-      console.log('💰 Confirmando pago de venta:', { saleId, paymentData });
-
-      const data = await fetchAPI(`/sales/${saleId}/confirm-payment`, {
-        method: 'POST',
-        body: JSON.stringify(paymentData),
-      });
-
-      const updatedSale = data.data;
-      setSales(prev => prev.map(s => s.id === saleId ? updatedSale : s));
-
-      console.log('✅ Pago confirmado exitosamente:', updatedSale);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+      
+      const updatedSale = await ventasApi.confirmarPagoVenta(saleId, paymentData);
+      dispatch({ type: 'UPDATE_SALE', payload: updatedSale });
+      
       return updatedSale;
-    } catch (err: any) {
-      console.error('❌ Error al confirmar pago:', err);
+    } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al confirmar pago';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  const completeSale = async (saleId: string): Promise<Sale> => {
+  }, []);
+  
+  const completeSale = useCallback(async (saleId: string): Promise<Venta> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      const data = await fetchAPI(`/sales/${saleId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ estado: 'Completada' }),
-      });
-
-      const updatedSale = data.data;
-      setSales(prev => prev.map(s => s.id === saleId ? updatedSale : s));
+      const updatedSale = await ventasApi.completarVenta(saleId);
+      dispatch({ type: 'UPDATE_SALE', payload: updatedSale });
       
       return updatedSale;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al completar venta';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
-
-  const cancelSale = async (saleId: string, motivo: string): Promise<Sale> => {
+  }, []);
+  
+  const cancelSale = useCallback(async (saleId: string, motivo: string): Promise<Venta> => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
-      const data = await fetchAPI(`/sales/${saleId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ estado: 'Cancelada', observaciones: motivo }),
-      });
-
-      const canceledSale = data.data;
-      setSales(prev => prev.map(s => s.id === saleId ? canceledSale : s));
+      const canceledSale = await ventasApi.cancelarVenta(saleId, motivo);
+      dispatch({ type: 'UPDATE_SALE', payload: canceledSale });
       
       return canceledSale;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cancelar venta';
-      setError(message);
+      dispatch({ type: 'SET_ERROR', payload: message });
       throw err;
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const getSaleById = async (saleId: string): Promise<Sale> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const data = await fetchAPI(`/sales/${saleId}`);
-      return data.data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al obtener venta';
-      setError(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ==================== CREDIT NOTES ====================
-  const createCreditNote = async (creditNoteData: CreateCreditNoteInput): Promise<CreditNote> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const data = await fetchAPI('/credit-notes', {
-        method: 'POST',
-        body: JSON.stringify(creditNoteData),
-      });
-
-      // Recargar ventas para actualizar la lista
-      await loadSales();
-
-      return data.data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al crear nota de crédito';
-      setError(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getCreditNotesBySale = async (saleId: string): Promise<CreditNote[]> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const data = await fetchAPI(`/credit-notes/sale/${saleId}`);
-      return data.data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al obtener notas de crédito';
-      setError(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ==================== INVOICE ====================
-  const previewInvoice = async (saleId: string) => {
-    try {
-      const token = tokenUtils.getAccessToken();
-      const response = await fetch(`${API_URL}/sales/${saleId}/invoice/preview`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al generar vista previa de factura');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      // Abrir en nueva ventana y ejecutar impresión
-      const printWindow = window.open(url, '_blank');
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
-      } else {
-        // Fallback: iframe si el popup está bloqueado
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-        
-        iframe.onload = () => {
-          try {
-            iframe.contentWindow?.print();
-          } catch (e) {
-            console.error('Error al imprimir:', e);
-          }
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-            window.URL.revokeObjectURL(url);
-          }, 1000);
-        };
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al previsualizar factura';
-      setError(message);
-      console.error('Error previewing invoice:', err);
-    }
-  };
-
-  const downloadInvoice = async (saleId: string) => {
-    try {
-      const token = tokenUtils.getAccessToken();
-      const response = await fetch(`${API_URL}/sales/${saleId}/invoice/download`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al descargar factura');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `factura-${saleId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al descargar factura';
-      setError(message);
-      console.error('Error downloading invoice:', err);
-    }
-  };
-
-  // Cargar datos iniciales
-  useEffect(() => {
-    const token = tokenUtils.getAccessToken();
-    if (token) {
-      loadCashRegisters();
-      loadCashSessions();
-      loadSales();
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
-
+  
+  const getSaleById = useCallback(async (saleId: string): Promise<Venta> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+      
+      const sale = await ventasApi.getVentaById(saleId);
+      return sale;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al obtener venta';
+      dispatch({ type: 'SET_ERROR', payload: message });
+      throw err;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, []);
+  
+  // ==================== CREDIT NOTES ====================
+  const createCreditNote = useCallback(async (creditNoteData: CrearNotaCreditoRequest): Promise<NotaCredito> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+      
+      const creditNote = await ventasApi.crearNotaCredito(creditNoteData);
+      
+      // Recargar ventas para actualizar la lista
+      await loadSales();
+      
+      return creditNote;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al crear nota de crédito';
+      dispatch({ type: 'SET_ERROR', payload: message });
+      throw err;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [loadSales]);
+  
+  const getCreditNotesBySale = useCallback(async (saleId: string): Promise<NotaCredito[]> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+      
+      const creditNotes = await ventasApi.getNotasCreditoBySale(saleId);
+      return creditNotes;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al obtener notas de crédito';
+      dispatch({ type: 'SET_ERROR', payload: message });
+      throw err;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, []);
+  
+  // ==================== QUOTES (Cotizaciones) ====================
+  const loadQuotes = useCallback(async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+      
+      const data = await ventasApi.getCotizaciones();
+      dispatch({ type: 'SET_QUOTES', payload: data });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al cargar cotizaciones';
+      dispatch({ type: 'SET_ERROR', payload: message });
+      console.error('Error loading quotes:', err);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, []);
+  
+  const createQuote = useCallback(async (quoteData: CrearVentaRequest): Promise<Cotizacion> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+      
+      const newQuote = await ventasApi.crearCotizacion(quoteData);
+      dispatch({ type: 'ADD_QUOTE', payload: newQuote });
+      
+      return newQuote;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al crear cotización';
+      dispatch({ type: 'SET_ERROR', payload: message });
+      throw err;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, []);
+  
+  // ==================== INVOICE (No implementado en Mocks) ====================
+  const previewInvoice = useCallback((saleId: string) => {
+    console.warn('previewInvoice no implementado en Mock API. SaleID:', saleId);
+    alert('Vista previa de factura no disponible en modo Mock');
+  }, []);
+  
+  const downloadInvoice = useCallback((saleId: string) => {
+    console.warn('downloadInvoice no implementado en Mock API. SaleID:', saleId);
+    alert('Descarga de factura no disponible en modo Mock');
+  }, []);
+  
+  // ==================== INITIAL LOAD ====================
+  useEffect(() => {
+    loadCashRegisters();
+    loadCashSessions();
+    loadSales();
+    loadQuotes();
+  }, [loadCashRegisters, loadCashSessions, loadSales, loadQuotes]);
+  
+  // ==================== CONTEXT VALUE ====================
+  const value: SalesContextType = {
+    // State
+    cashRegisters: state.cashRegisters,
+    cashSessions: state.cashSessions,
+    activeCashSession: state.activeCashSession,
+    cashMovements: state.cashMovements,
+    cashSummary: state.cashSummary,
+    sales: state.sales,
+    quotes: state.quotes,
+    loading: state.loading,
+    error: state.error,
+    
+    // Cash Registers
+    loadCashRegisters,
+    
+    // Cash Sessions
+    loadCashSessions,
+    openCashSession,
+    closeCashSession,
+    getClosedSessions,
+    getSessionById,
+    
+    // Cash Movements
+    createCashMovement,
+    loadCashMovements,
+    loadCashSummary,
+    deleteCashMovement,
+    
+    // Sales
+    loadSales,
+    createSale,
+    confirmPayment,
+    completeSale,
+    cancelSale,
+    getSaleById,
+    
+    // Credit Notes
+    createCreditNote,
+    getCreditNotesBySale,
+    
+    // Quotes
+    loadQuotes,
+    createQuote,
+    
+    // Invoice
+    previewInvoice,
+    downloadInvoice
+  };
+  
   return (
-    <SalesContext.Provider
-      value={{
-        cashRegisters,
-        loadCashRegisters,
-        cashSessions,
-        activeCashSession,
-        openCashSession,
-        closeCashSession,
-        loadCashSessions,
-        getClosedSessions, // 🆕
-        getSessionById, // 🆕
-        cashMovements,
-        cashSummary,
-        createCashMovement,
-        loadCashMovements,
-        loadCashSummary,
-        deleteCashMovement,
-        sales,
-        createSale,
-        confirmPayment, // 🆕
-        completeSale,
-        cancelSale,
-        getSaleById,
-        loadSales,
-        createCreditNote, // 🆕
-        getCreditNotesBySale, // 🆕
-        createQuote,
-        previewInvoice,
-        downloadInvoice,
-        loading,
-        error,
-      }}
-    >
+    <SalesContext.Provider value={value}>
       {children}
     </SalesContext.Provider>
   );
 };
+
+// ============================================
+// HOOK
+// ============================================
 
 export const useSales = (): SalesContextType => {
   const context = React.useContext(SalesContext);
@@ -905,4 +695,21 @@ export const useSales = (): SalesContextType => {
     throw new Error('useSales must be used within a SalesProvider');
   }
   return context;
+};
+
+// ============================================
+// EXPORTS (Para compatibilidad con código existente)
+// ============================================
+
+export type {
+  Venta as Sale,
+  CrearVentaRequest as CreateSaleInput,
+  ItemVenta as SaleItem,
+  CajaRegistradora as CashRegister,
+  SesionCaja as CashSession,
+  MovimientoCaja as CashMovement,
+  ResumenCaja as CashSummary,
+  NotaCredito as CreditNote,
+  CrearNotaCreditoRequest as CreateCreditNoteInput,
+  Cotizacion
 };

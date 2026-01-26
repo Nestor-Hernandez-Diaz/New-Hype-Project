@@ -6,6 +6,7 @@ import { useSales } from '../context/SalesContext';
 import { useNotification } from '../../../context/NotificationContext';
 import { useClients } from '../../clients/context/ClientContext';
 import { ModalNotaCredito } from '../components/ModalNotaCredito';
+import type { Venta, PagoVenta } from '@monorepo/shared-types';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
 import { 
   Button as SharedButton,
@@ -500,13 +501,13 @@ const ListaVentas: React.FC = () => {
   };
 
   // ✅ Función para renderizar método(s) de pago
-  const renderPaymentMethods = (sale: Sale) => {
+  const renderPaymentMethods = (sale: Venta) => {
     if (sale.payments && sale.payments.length > 0) {
       // Tiene pagos múltiples
       if (sale.payments.length > 1) {
         return (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            {sale.payments.map((payment, index) => (
+            {sale.payments.map((payment: PagoVenta, index: number) => (
               <PaymentBadge key={payment.id || index} method={payment.metodoPago}>
                 {getPaymentText(payment.metodoPago)}
               </PaymentBadge>

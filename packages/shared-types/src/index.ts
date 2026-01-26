@@ -1,3 +1,7 @@
+// Re-export all module types
+export * from './inventory.types';
+export * from './sales.types';
+
 // User types
 export interface User {
   id: string;
