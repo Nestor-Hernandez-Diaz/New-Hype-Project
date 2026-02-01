@@ -1,161 +1,263 @@
 
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useReducer, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { apiService } from '../../../utils/api';
 import { useUI } from '../../../context/UIContext';
 import { useNotification } from '../../../context/NotificationContext';
+import type {
+  Producto,
+  ProductosPaginados,
+  CrearProductoDTO,
+  ActualizarProductoDTO,
+  ProductoFiltros,
+  Categoria,
+  UnidadMedida,
+} from '@monorepo/shared-types';
+import * as productosMockApi from '../services/productosMockApi';
 
-// Definición de la interfaz Product (movida desde AppContext)
-export interface Product {
-  id: string;
-  productCode: string;
-  productName: string;
-  descripcion?: string;
-  category: string;  // Campo legacy - mantener por compatibilidad
-  categoriaId?: string;  // FK a tabla maestra
-  categoria?: {  // Relación incluida desde backend
-    id: string;
-    codigo: string;
-    nombre: string;
-  };
-  price: number;
-  initialStock: number;
-  currentStock: number;
-  minStock?: number;
-  status: 'disponible' | 'agotado' | 'proximamente';
-  unit: string;  // Campo legacy - mantener por compatibilidad
-  unidadMedidaId?: string;  // FK a tabla maestra
-  unidadMedida?: {  // Relación incluida desde backend
-    id: string;
-    codigo: string;
-    nombre: string;
-  };
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+// ============= TIPOS DE ESTADO Y ACCIONES =============
+
+interface ProductosState {
+  productos: Producto[];
+  categorias: Categoria[];
+  unidadesMedida: UnidadMedida[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  } | null;
+  loading: boolean;
+  error: string | null;
 }
 
-interface PaginationMetadata {
-  page: number;
-  limit: number;
-  total: number;
-  pages: number;
+type ProductosAction =
+  | { type: 'FETCH_PRODUCTOS_START' }
+  | { type: 'FETCH_PRODUCTOS_SUCCESS'; payload: ProductosPaginados }
+  | { type: 'FETCH_PRODUCTOS_ERROR'; payload: string }
+  | { type: 'FETCH_CATEGORIAS_SUCCESS'; payload: Categoria[] }
+  | { type: 'FETCH_UNIDADES_SUCCESS'; payload: UnidadMedida[] }
+  | { type: 'CREATE_PRODUCTO_SUCCESS'; payload: Producto }
+  | { type: 'UPDATE_PRODUCTO_SUCCESS'; payload: Producto }
+  | { type: 'DELETE_PRODUCTO_SUCCESS'; payload: string };
+
+// ============= REDUCER =============
+
+const initialState: ProductosState = {
+  productos: [],
+  categorias: [],
+  unidadesMedida: [],
+  pagination: null,
+  loading: false,
+  error: null,
+};
+
+function productosReducer(state: ProductosState, action: ProductosAction): ProductosState {
+  switch (action.type) {
+    case 'FETCH_PRODUCTOS_START':
+      return { ...state, loading: true, error: null };
+
+    case 'FETCH_PRODUCTOS_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        productos: action.payload.productos,
+        pagination: action.payload.pagination,
+      };
+
+    case 'FETCH_PRODUCTOS_ERROR':
+      return { ...state, loading: false, error: action.payload };
+
+    case 'FETCH_CATEGORIAS_SUCCESS':
+      return { ...state, categorias: action.payload };
+
+    case 'FETCH_UNIDADES_SUCCESS':
+      return { ...state, unidadesMedida: action.payload };
+
+    case 'CREATE_PRODUCTO_SUCCESS':
+      return {
+        ...state,
+        productos: [...state.productos, action.payload],
+        pagination: state.pagination
+          ? { ...state.pagination, total: state.pagination.total + 1 }
+          : null,
+      };
+
+    case 'UPDATE_PRODUCTO_SUCCESS':
+      return {
+        ...state,
+        productos: state.productos.map(p =>
+          p.id === action.payload.id ? action.payload : p
+        ),
+      };
+
+    case 'DELETE_PRODUCTO_SUCCESS':
+      return {
+        ...state,
+        productos: state.productos.filter(p => p.id !== action.payload),
+        pagination: state.pagination
+          ? { ...state.pagination, total: state.pagination.total - 1 }
+          : null,
+      };
+
+    default:
+      return state;
+  }
 }
+
+// ============= CONTEXT TYPE =============
 
 interface ProductContextType {
-  products: Product[];
-  pagination: PaginationMetadata | null;
-  loadProducts: (params?: {
-    categoria?: string;
-    estado?: boolean;
-    unidadMedida?: string;
-    q?: string;
-    minPrecio?: number;
-    maxPrecio?: number;
-    minStock?: number;
-    maxStock?: number;
-    page?: number;
-    limit?: number;
-    signal?: AbortSignal;
-  }) => Promise<void>;
-  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
-  getProductById: (id: string) => Product | undefined;
+  // Estado
+  products: Producto[];
+  categorias: Categoria[];
+  unidadesMedida: UnidadMedida[];
+  pagination: ProductosState['pagination'];
+  loading: boolean;
+  error: string | null;
+
+  // Métodos
+  loadProducts: (filtros?: ProductoFiltros) => Promise<void>;
+  addProduct: (data: CrearProductoDTO) => Promise<void>;
+  updateProduct: (id: string, data: ActualizarProductoDTO) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  getProductById: (id: string) => Producto | undefined;
+  loadCategorias: () => Promise<void>;
+  loadUnidadesMedida: () => Promise<void>;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
+// ============= PROVIDER =============
+
 export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [pagination, setPagination] = useState<PaginationMetadata | null>(null);
+  const [state, dispatch] = useReducer(productosReducer, initialState);
   const { setIsLoading } = useUI();
   const { showSuccess, showError } = useNotification();
 
-  const loadProducts = useCallback(async (params?: any) => {
+  // ========== LOAD PRODUCTOS ==========
+  const loadProducts = useCallback(async (filtros?: ProductoFiltros) => {
     try {
+      dispatch({ type: 'FETCH_PRODUCTOS_START' });
       setIsLoading(true);
-      const { signal, ...filters } = params || {};
-      const response = await apiService.getProducts(filters, { signal });
-      if (response.success && response.data) {
-        const mapped = response.data.products.map((p: any) => ({
-          id: p.id || p._id || p.codigo || String(Date.now()), // ✅ Usar p.id primero (PRD-XXX)
-          productCode: p.codigo,
-          productName: p.nombre,
-          descripcion: p.descripcion || undefined,
-          category: p.categoria,
-          price: p.precioVenta,
-          initialStock: p.stock,
-          currentStock: p.stock,
-          minStock: p.minStock ?? undefined,
-          status: (typeof p.stock === 'number' && p.stock > 0) ? 'disponible' : 'agotado',
-          unit: p.unidadMedida,
-          isActive: !!p.estado,
-          createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
-          updatedAt: p.updatedAt ? new Date(p.updatedAt) : new Date(),
-        } as Product));
-        setProducts(mapped);
-        
-        // Actualizar metadata de paginación si existe
-        if (response.data.pagination) {
-          setPagination(response.data.pagination);
-        }
-      } else {
-        showError(response.message || 'Error al cargar los productos');
-      }
+
+      const response = await productosMockApi.getProductos(filtros);
+      dispatch({ type: 'FETCH_PRODUCTOS_SUCCESS', payload: response });
     } catch (error) {
-      if ((error as any)?.name === 'AbortError') {
-        // request cancelado, no mostrar error
-      } else {
-        console.error('Error loading products:', error);
-        showError('Error al cargar los productos');
-      }
+      const mensaje = error instanceof Error ? error.message : 'Error al cargar productos';
+      dispatch({ type: 'FETCH_PRODUCTOS_ERROR', payload: mensaje });
+      showError(mensaje);
     } finally {
       setIsLoading(false);
     }
   }, [setIsLoading, showError]);
 
-  const addProduct = (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newProduct: Product = {
-      ...productData,
-      id: Date.now().toString(),
-      currentStock: productData.initialStock,
-      isActive: productData.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setProducts(prev => [...prev, newProduct]);
-    showSuccess(`El producto ${productData.productName} ha sido registrado exitosamente.`);
-  };
+  // ========== CREATE PRODUCTO ==========
+  const addProduct = useCallback(async (data: CrearProductoDTO) => {
+    try {
+      setIsLoading(true);
+      const nuevoProducto = await productosMockApi.crearProducto(data);
+      dispatch({ type: 'CREATE_PRODUCTO_SUCCESS', payload: nuevoProducto });
+      showSuccess(`Producto ${data.nombreProducto} creado exitosamente`);
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al crear producto';
+      showError(mensaje);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setIsLoading, showSuccess, showError]);
 
-  const updateProduct = (id: string, productData: Partial<Product>) => {
-    setProducts(prev => prev.map(p => 
-      p.id === id ? { ...p, ...productData, updatedAt: new Date() } : p
-    ));
-  };
+  // ========== UPDATE PRODUCTO ==========
+  const updateProduct = useCallback(async (id: string, data: ActualizarProductoDTO) => {
+    try {
+      setIsLoading(true);
+      const productoActualizado = await productosMockApi.actualizarProducto(id, data);
+      dispatch({ type: 'UPDATE_PRODUCTO_SUCCESS', payload: productoActualizado });
+      showSuccess('Producto actualizado exitosamente');
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al actualizar producto';
+      showError(mensaje);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setIsLoading, showSuccess, showError]);
 
-  const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-  };
+  // ========== DELETE PRODUCTO ==========
+  const deleteProduct = useCallback(async (id: string) => {
+    try {
+      setIsLoading(true);
+      await productosMockApi.eliminarProducto(id);
+      dispatch({ type: 'DELETE_PRODUCTO_SUCCESS', payload: id });
+      showSuccess('Producto eliminado exitosamente');
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al eliminar producto';
+      showError(mensaje);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setIsLoading, showSuccess, showError]);
 
-  const getProductById = (id: string) => {
-    return products.find(p => p.id === id);
-  };
+  // ========== GET BY ID ==========
+  const getProductById = useCallback((id: string) => {
+    return state.productos.find(p => p.id === id);
+  }, [state.productos]);
 
+  // ========== LOAD CATEGORIAS ==========
+  const loadCategorias = useCallback(async () => {
+    try {
+      const categorias = await productosMockApi.getCategorias();
+      dispatch({ type: 'FETCH_CATEGORIAS_SUCCESS', payload: categorias });
+    } catch (error) {
+      console.error('Error cargando categorías:', error);
+    }
+  }, []);
+
+  // ========== LOAD UNIDADES ==========
+  const loadUnidadesMedida = useCallback(async () => {
+    try {
+      const unidades = await productosMockApi.getUnidadesMedida();
+      dispatch({ type: 'FETCH_UNIDADES_SUCCESS', payload: unidades });
+    } catch (error) {
+      console.error('Error cargando unidades:', error);
+    }
+  }, []);
+
+  // ========== INICIALIZACIÓN ==========
   useEffect(() => {
     const token = localStorage.getItem('authToken') || localStorage.getItem('alexatech_token');
     if (token) {
       loadProducts();
+      loadCategorias();
+      loadUnidadesMedida();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Solo cargar al montar el componente
+  }, [loadProducts, loadCategorias, loadUnidadesMedida]);
 
   return (
-    <ProductContext.Provider value={{ products, pagination, loadProducts, addProduct, updateProduct, deleteProduct, getProductById }}>
+    <ProductContext.Provider
+      value={{
+        products: state.productos,
+        categorias: state.categorias,
+        unidadesMedida: state.unidadesMedida,
+        pagination: state.pagination,
+        loading: state.loading,
+        error: state.error,
+        loadProducts,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        getProductById,
+        loadCategorias,
+        loadUnidadesMedida,
+      }}
+    >
       {children}
     </ProductContext.Provider>
   );
 };
+
+// ============= HOOK =============
 
 export const useProducts = (): ProductContextType => {
   const context = React.useContext(ProductContext);

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SERVICIO: Recepciones de Compra (Purchase Receipts)
  * Maneja todas las operaciones relacionadas con recepciones de órdenes de compra

@@ -68,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     <SidebarContainer className={className}>
       <SidebarHeader>
         <TitleLink to="/dashboard">
-          <h2>AlexaTech</h2>
+          <h2>New Hype</h2>
         </TitleLink>
       </SidebarHeader>
       <SidebarContent />

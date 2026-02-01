@@ -1,6 +1,10 @@
 // Re-export all module types
 export * from './inventory.types';
 export * from './sales.types';
+export * from './domain/productos';
+export * from './domain/usuarios';
+export * from './domain/entidades';
+export * from './domain/compras';
 
 // User types
 export interface User {

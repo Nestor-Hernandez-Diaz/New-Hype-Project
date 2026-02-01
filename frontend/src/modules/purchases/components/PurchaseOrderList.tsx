@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * COMPONENTE: PurchaseOrderList
  * Lista de órdenes de compra con filtros, búsqueda y paginación

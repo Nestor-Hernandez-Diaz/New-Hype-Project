@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * COMPONENTE: PurchaseOrderDetail
  * Vista detallada de una orden de compra

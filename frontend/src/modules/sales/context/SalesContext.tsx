@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import type {
   Venta,
   CrearVentaRequest,
+  ItemVenta,
   CajaRegistradora,
   SesionCaja,
   MovimientoCaja,

@@ -3,9 +3,10 @@ import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { useAuth } from '../../auth/context/AuthContext';
 import { useNotification } from '../../../context/NotificationContext';
-import { apiService } from '../../../utils/api';
+import { useUsers } from '../context/UsersContext';
 import NuevoUsuarioModal from '../components/NuevoUsuarioModal';
 import EditarUsuarioModal from '../components/EditarUsuarioModal';
+import type { Usuario } from '@monorepo/shared-types';
 
 // ============================================================================
 // IMPORTS DEL SISTEMA DE DISEÑO UNIFICADO
@@ -45,33 +46,21 @@ import {
 
 interface Role {
   id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-  isActive: boolean;
-}
-
-interface ExtendedUser {
-  id: string;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  isActive: boolean;
-  lastAccess?: string;
-  createdAt: string;
-  updatedAt: string;
-  roleId: string;
-  role?: Role;
+  codigoRol: string;
+  nombreRol: string;
+  descripcion?: string;
+  permisos: string[];
+  activo: boolean;
 }
 
 interface UserFormData {
-  username: string;
+  usuario: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  isActive: boolean;
-  roleId: string;
+  nombres: string;
+  apellidos: string;
+  password?: string;
+  activo: boolean;
+  rolId: string;
 }
 
 // ============================================================================
@@ -207,47 +196,28 @@ const ListaUsuarios: React.FC = () => {
   const { user: currentUser } = useAuth();
   const { showError, showInfo } = useNotification();
   
+  // ✅ USAR CONTEXT EN LUGAR DE apiService
+  const { 
+    users: usuarios, 
+    loading, 
+    pagination,
+    loadUsers, 
+    addUser, 
+    updateUser, 
+    deleteUser, 
+    changeUserStatus 
+  } = useUsers();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('activo');
   const [isNuevoUsuarioModalOpen, setIsNuevoUsuarioModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<ExtendedUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<ExtendedUser | null>(null);
+  const [userToDelete, setUserToDelete] = useState<Usuario | null>(null);
   
-  // Estados para datos del backend
-  const [users, setUsers] = useState<ExtendedUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalUsers, setTotalUsers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(0);
-
-  // Cargar usuarios del backend
-  const loadUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.getUsers({
-        page: currentPage,
-        limit: pageSize,
-        search: searchTerm || undefined,
-        status: statusFilter || undefined
-      });
-      
-      const usersData = response.data?.users || [];
-      console.log('📥 [ListaUsuarios] Users loaded:', usersData.length, 'usuarios');
-      console.log('🔍 [ListaUsuarios] First user sample:', usersData[0]);
-      
-      setUsers(usersData);
-      setTotalUsers(response.data?.pagination?.totalUsers || 0);
-      setTotalPages(response.data?.pagination?.totalPages || 0);
-    } catch (error) {
-      console.error('Error loading users:', error);
-      showError('Error al cargar los usuarios');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Resetear a página 1 cuando cambian los filtros de búsqueda
   useEffect(() => {
@@ -255,12 +225,17 @@ const ListaUsuarios: React.FC = () => {
   }, [searchTerm, statusFilter]);
 
   useEffect(() => {
-    loadUsers();
-  }, [currentPage, pageSize, searchTerm, statusFilter]);
+    loadUsers({
+      page: currentPage,
+      limit: pageSize,
+      q: searchTerm || undefined,
+      estadoUsuario: statusFilter === 'activo' ? 'ACTIVO' : statusFilter === 'inactivo' ? 'INACTIVO' : undefined
+    });
+  }, [currentPage, pageSize, searchTerm, statusFilter, loadUsers]);
 
   // Funciones de paginación
   const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
+    if (pagination && page >= 1 && page <= pagination.totalPages) {
       setCurrentPage(page);
     }
   };
@@ -272,18 +247,19 @@ const ListaUsuarios: React.FC = () => {
 
 
 
-  const filteredUsers = users; // Los filtros se aplican en el backend
+  const filteredUsers = usuarios || []; // Los filtros se aplican en el backend
 
   const stats = useMemo(() => {
-    const activeUsers = users.filter(user => user.isActive).length;
-    const inactiveUsers = users.filter(user => !user.isActive).length;
+    const totalUsers = pagination?.total || 0;
+    const activeUsers = (usuarios || []).filter(user => user.activo).length;
+    const inactiveUsers = (usuarios || []).filter(user => !user.activo).length;
 
     return {
       totalUsers,
       activeUsers,
       inactiveUsers
     };
-  }, [users, totalUsers]);
+  }, [usuarios, pagination]);
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
@@ -306,14 +282,14 @@ const ListaUsuarios: React.FC = () => {
   };
 
   const handleEditUser = (userId: string) => {
-    const user = users.find(u => u.id === userId);
+    const user = usuarios.find(u => u.id === userId);
     if (user) {
       console.log('✏️ [ListaUsuarios] Editing user:', {
         id: user.id,
-        username: user.username,
-        roleId: user.roleId,
-        hasRole: !!user.role,
-        roleName: user.role?.name
+        usuario: user.usuario,
+        rolId: user.rolId,
+        hasRole: !!user.rol,
+        roleName: user.rol?.nombreRol
       });
       setSelectedUser(user);
       setIsEditModalOpen(true);
@@ -323,20 +299,16 @@ const ListaUsuarios: React.FC = () => {
   const handleSaveUser = async (userData: UserFormData) => {
     try {
       if (selectedUser) {
-        // Preparar datos para el backend (RBAC: incluir roleId)
-        const backendUserData: any = {};
-        
-        if (userData.username) backendUserData.username = userData.username;
-        if (userData.email) backendUserData.email = userData.email;
-        if (userData.firstName) backendUserData.firstName = userData.firstName;
-        if (userData.lastName) backendUserData.lastName = userData.lastName;
-        if (userData.isActive !== undefined) backendUserData.isActive = userData.isActive;
-        if (userData.roleId) backendUserData.roleId = userData.roleId; // ✅ RBAC
-
-        console.log('💾 [ListaUsuarios] Updating user:', selectedUser.id, backendUserData);
-        await apiService.updateUser(selectedUser.id, backendUserData);
+        console.log('💾 [ListaUsuarios] Updating user:', selectedUser.id, userData);
+        await updateUser(selectedUser.id, {
+          usuario: userData.usuario,
+          email: userData.email,
+          nombres: userData.nombres,
+          apellidos: userData.apellidos,
+          activo: userData.activo,
+          rolId: userData.rolId
+        });
         showInfo('Usuario actualizado exitosamente');
-        loadUsers(); // Recargar la lista
       }
     } catch (error) {
       console.error('Error updating user:', error);
@@ -347,7 +319,7 @@ const ListaUsuarios: React.FC = () => {
     }
   };
 
-  const handleDeleteClick = (user: ExtendedUser) => {
+  const handleDeleteClick = (user: Usuario) => {
     setUserToDelete(user);
     setIsDeleteConfirmOpen(true);
   };
@@ -356,11 +328,10 @@ const ListaUsuarios: React.FC = () => {
     if (!userToDelete) return;
 
     try {
-      await apiService.deleteUser(userToDelete.id);
+      await deleteUser(userToDelete.id);
       showInfo('Usuario eliminado exitosamente');
       setIsDeleteConfirmOpen(false);
       setUserToDelete(null);
-      loadUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
       showError('No se pudo eliminar el usuario');
@@ -374,9 +345,8 @@ const ListaUsuarios: React.FC = () => {
 
   const handleActivateUser = async (userId: string) => {
     try {
-      await apiService.updateUserStatus(userId, true);
+      await changeUserStatus(userId, true);
       showInfo('Usuario activado exitosamente');
-      loadUsers();
     } catch (error) {
       console.error('Error activating user:', error);
       showError('No se pudo activar el usuario');
@@ -385,29 +355,21 @@ const ListaUsuarios: React.FC = () => {
 
   const handleCreateUser = async (userData: any) => {
     try {
-      // Filtrar solo las propiedades que acepta la API
-      const backendUserData: any = {};
-      
-      if (userData.username) backendUserData.username = userData.username;
-      if (userData.email) backendUserData.email = userData.email;
-      if (userData.password) backendUserData.password = userData.password;
-      if (userData.firstName) backendUserData.firstName = userData.firstName;
-      if (userData.lastName) backendUserData.lastName = userData.lastName;
-      if (userData.isActive !== undefined) backendUserData.isActive = userData.isActive;
-      
-      // ✅ RBAC: roleId es OBLIGATORIO
-      if (userData.roleId) {
-        backendUserData.roleId = userData.roleId;
-      } else {
+      if (!userData.rolId) {
         throw new Error('Debe seleccionar un rol para el usuario');
       }
       
-      const resp = await apiService.createUser(backendUserData);
-      if (!resp.success) {
-        throw new Error(resp.message || 'Error al crear el usuario');
-      }
+      await addUser({
+        usuario: userData.usuario,
+        email: userData.email,
+        password: userData.password,
+        nombres: userData.nombres,
+        apellidos: userData.apellidos,
+        activo: userData.activo !== undefined ? userData.activo : true,
+        rolId: userData.rolId
+      });
+      
       showInfo('Usuario creado exitosamente');
-      loadUsers(); // Recargar la lista
       setIsNuevoUsuarioModalOpen(false);
     } catch (error: any) {
       console.error('Error creating user:', error);
@@ -487,7 +449,7 @@ const ListaUsuarios: React.FC = () => {
               <EmptyIcon>👥</EmptyIcon>
               <EmptyTitle>No se encontraron usuarios</EmptyTitle>
               <EmptyText>
-                {users.length === 0 
+                {(usuarios || []).length === 0 
                   ? 'Aún no se han registrado usuarios en el sistema.'
                   : 'No hay usuarios que coincidan con los filtros aplicados.'
                 }
@@ -509,25 +471,25 @@ const ListaUsuarios: React.FC = () => {
                     <Td>
                       <UserInfo>
                         <UserAvatar>
-                          {getInitials(user.firstName, user.lastName)}
+                          {getInitials(user.nombres, user.apellidos)}
                         </UserAvatar>
                         <div>
-                          <UserName>{user.firstName} {user.lastName}</UserName>
+                          <UserName>{user.nombres} {user.apellidos}</UserName>
                           <UserEmail>{user.email}</UserEmail>
-                          <UserEmail>@{user.username}</UserEmail>
+                          <UserEmail>@{user.usuario}</UserEmail>
                         </div>
                       </UserInfo>
                     </Td>
                     <Td>
                       <StatusBadge 
-                        variant={user.isActive ? 'success' : 'danger'} 
+                        variant={user.activo ? 'success' : 'danger'} 
                         dot
                       >
-                        {user.isActive ? 'Activo' : 'Inactivo'}
+                        {user.activo ? 'Activo' : 'Inactivo'}
                       </StatusBadge>
                     </Td>
                     <Td>
-                      {formatLastAccess(user.lastAccess)}
+                      {formatLastAccess(user.ultimoAcceso)}
                     </Td>
                     <Td>
                       <ButtonGroup>
@@ -538,7 +500,7 @@ const ListaUsuarios: React.FC = () => {
                           Editar
                         </ActionButton>
                         {user.id !== currentUser?.id && (
-                          user.isActive ? (
+                          user.activo ? (
                             <ActionButton 
                               $variant="delete"
                               onClick={() => handleDeleteClick(user)}
@@ -563,10 +525,10 @@ const ListaUsuarios: React.FC = () => {
           )}
           
           {/* Controles de paginación */}
-          {filteredUsers.length > 0 && (
+          {filteredUsers.length > 0 && pagination && (
             <PaginationContainer>
               <PaginationInfo>
-                Mostrando {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalUsers)} de {totalUsers} resultados
+                Mostrando {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, pagination.total)} de {pagination.total} resultados
               </PaginationInfo>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.md }}>
@@ -589,14 +551,14 @@ const ListaUsuarios: React.FC = () => {
                     Anterior
                   </PageButton>
                   
-                  {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                  {Array.from({ length: Math.min(3, pagination.totalPages) }, (_, i) => {
                     let pageNum;
-                    if (totalPages <= 3) {
+                    if (pagination.totalPages <= 3) {
                       pageNum = i + 1;
                     } else if (currentPage <= 2) {
                       pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 1) {
-                      pageNum = totalPages - 2 + i;
+                    } else if (currentPage >= pagination.totalPages - 1) {
+                      pageNum = pagination.totalPages - 2 + i;
                     } else {
                       pageNum = currentPage - 1 + i;
                     }
@@ -613,7 +575,7 @@ const ListaUsuarios: React.FC = () => {
                   
                   <PageButton
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages || totalPages === 0}
+                    disabled={currentPage === pagination.totalPages || pagination.totalPages === 0}
                   >
                     Siguiente
                   </PageButton>
@@ -645,7 +607,7 @@ const ListaUsuarios: React.FC = () => {
           <DeleteConfirmContent onClick={(e) => e.stopPropagation()}>
             <DeleteConfirmTitle>Confirmar Eliminación</DeleteConfirmTitle>
             <DeleteConfirmMessage>
-              ¿Está seguro que desea eliminar al usuario {userToDelete?.username}?
+              ¿Está seguro que desea eliminar al usuario {userToDelete?.usuario}?
               Esta acción desactivará el usuario.
             </DeleteConfirmMessage>
             <DeleteConfirmActions>

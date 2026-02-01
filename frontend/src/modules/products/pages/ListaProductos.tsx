@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
-import { useProducts, type Product } from '../context/ProductContext';
+import { useProducts } from '../context/ProductContext';
+import type { Producto } from '@monorepo/shared-types';
 import { useNotification } from '../../../context/NotificationContext';
 import { useModal } from '../../../context/ModalContext';
 import NuevoProductoModal from '../components/NuevoProductoModal';
@@ -272,7 +273,7 @@ const ListaProductos: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Producto | null>(null);
   
   // Debounce para búsqueda
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -317,12 +318,7 @@ const ListaProductos: React.FC = () => {
   // Obtener categorías únicas para el filtro (de los productos actuales)
   const categories = Array.from(
     new Set(
-      products.map(product => {
-        // Extraer nombre de categoría: priorizar relación FK, luego campo legacy
-        const catName = product.categoria?.nombre || product.category;
-        // Si category es objeto (no debería, pero por seguridad), extraer nombre
-        return typeof catName === 'string' ? catName : (catName as any)?.nombre || '';
-      }).filter(Boolean)
+      products.map(product => product.categoria?.nombreCategoria || '').filter(Boolean)
     )
   ).sort();
 
@@ -338,7 +334,7 @@ const ListaProductos: React.FC = () => {
 
   
 
-  const handleDeleteClick = (product: Product) => {
+  const handleDeleteClick = (product: Producto) => {
     setProductToDelete(product);
     setIsDeleteConfirmOpen(true);
   };
@@ -367,9 +363,9 @@ const ListaProductos: React.FC = () => {
     setProductToDelete(null);
   };
 
-  const handleActivateProduct = async (product: Product) => {
+  const handleActivateProduct = async (product: Producto) => {
     try {
-      const response = await apiService.updateProductStatus(product.productCode, true);
+      const response = await apiService.updateProductStatus(product.codigoProducto, true);
       if (!response.success) {
         throw new Error(response.message || 'Error al activar el producto');
       }
@@ -401,9 +397,9 @@ const ListaProductos: React.FC = () => {
   // Estadísticas calculadas
   const stats = useMemo(() => {
     const total = pagination?.total || products.length;
-    const activos = products.filter(p => p.isActive).length;
-    const inactivos = products.filter(p => !p.isActive).length;
-    const stockBajo = products.filter(p => p.minStock && p.initialStock <= p.minStock).length;
+    const activos = products.filter(p => p.activo).length;
+    const inactivos = products.filter(p => !p.activo).length;
+    const stockBajo = products.filter(p => p.stockMinimo && p.stockActual <= p.stockMinimo).length;
     return { total, activos, inactivos, stockBajo };
   }, [products, pagination]);
 
@@ -521,26 +517,20 @@ const ListaProductos: React.FC = () => {
           <Tbody>
             {products.length > 0 ? (
               products.map((product) => (
-                <Tr key={product.productCode}>
-                  <Td>{product.productCode}</Td>
-                  <Td>{product.productName}</Td>
+                <Tr key={product.codigoProducto}>
+                  <Td>{product.codigoProducto}</Td>
+                  <Td>{product.nombreProducto}</Td>
+                  <Td>{product.categoria?.nombreCategoria || '-'}</Td>
+                  <Td>{formatPrice(product.precioVenta)}</Td>
+                  <Td>{product.stockActual}</Td>
+                  <Td>{product.stockMinimo ?? '-'}</Td>
                   <Td>
-                    {product.categoria?.nombre || 
-                     (typeof product.category === 'string' ? product.category : (product.category as any)?.nombre) ||
-                     '-'}
-                  </Td>
-                  <Td>{formatPrice(product.price)}</Td>
-                  <Td>{product.initialStock}</Td>
-                  <Td>{product.minStock ?? '-'}</Td>
-                  <Td>
-                    <StatusBadge variant={product.isActive ? 'success' : 'default'}>
-                      {product.isActive ? 'Activo' : 'Inactivo'}
+                    <StatusBadge variant={product.activo ? 'success' : 'default'}>
+                      {product.activo ? 'Activo' : 'Inactivo'}
                     </StatusBadge>
                   </Td>
                   <Td>
-                    {product.unidadMedida?.nombre || 
-                     (typeof product.unit === 'string' ? product.unit : (product.unit as any)?.nombre) || 
-                     '-'}
+                    {product.unidadMedida?.nombreUnidadMedida || '-'}
                   </Td>
                   <Td>
                     <ActionButton 
@@ -549,16 +539,16 @@ const ListaProductos: React.FC = () => {
                     >
                       Editar
                     </ActionButton>
-                    {product.isActive ? (
+                    {product.activo ? (
                       <ActionButton 
-                        onClick={() => handleDeleteClick(product as Product)}
+                        onClick={() => handleDeleteClick(product)}
                         $variant="delete"
                       >
                         Eliminar
                       </ActionButton>
                     ) : (
                       <ActionButton 
-                        onClick={() => handleActivateProduct(product as Product)}
+                        onClick={() => handleActivateProduct(product)}
                         $variant="activate"
                       >
                         Activar
@@ -585,56 +575,46 @@ const ListaProductos: React.FC = () => {
         <MobileCardContainer>
           {products.length > 0 ? (
             products.map((product) => (
-              <MobileCard key={product.productCode}>
+              <MobileCard key={product.codigoProducto}>
                 <MobileCardHeader>
-                  <MobileCardTitle>{product.productName}</MobileCardTitle>
-                  <MobileCardCode>{product.productCode}</MobileCardCode>
+                  <MobileCardTitle>{product.nombreProducto}</MobileCardTitle>
+                  <MobileCardCode>{product.codigoProducto}</MobileCardCode>
                 </MobileCardHeader>
                 
                 <MobileCardBody>
                   <MobileCardField>
                     <MobileCardLabel>Categoría</MobileCardLabel>
-                    <MobileCardValue>
-                      {product.categoria?.nombre || 
-                       (typeof product.category === 'string' ? product.category : (product.category as any)?.nombre) ||
-                       '-'}
-                    </MobileCardValue>
+                    <MobileCardValue>{product.categoria?.nombreCategoria || '-'}</MobileCardValue>
                   </MobileCardField>
                   
                   <MobileCardField>
                     <MobileCardLabel>Precio</MobileCardLabel>
-                    <MobileCardValue>{formatPrice(product.price)}</MobileCardValue>
+                    <MobileCardValue>{formatPrice(product.precioVenta)}</MobileCardValue>
                   </MobileCardField>
                   
                   <MobileCardField>
-                    <MobileCardLabel>Stock Inicial</MobileCardLabel>
-                    <MobileCardValue>{product.initialStock}</MobileCardValue>
+                    <MobileCardLabel>Stock</MobileCardLabel>
+                    <MobileCardValue>{product.stockActual}</MobileCardValue>
                   </MobileCardField>
                   
                   <MobileCardField>
                     <MobileCardLabel>Stock Mín.</MobileCardLabel>
-                    <MobileCardValue>{product.minStock ?? '-'}</MobileCardValue>
+                    <MobileCardValue>{product.stockMinimo ?? '-'}</MobileCardValue>
                   </MobileCardField>
                   
                   <MobileCardField>
                     <MobileCardLabel>Estado</MobileCardLabel>
                     <MobileCardValue>
-                      <StatusBadge variant={product.isActive ? 'success' : 'default'}>
-                        {product.isActive ? 'Activo' : 'Inactivo'}
+                      <StatusBadge variant={product.activo ? 'success' : 'default'}>
+                        {product.activo ? 'Activo' : 'Inactivo'}
                       </StatusBadge>
                     </MobileCardValue>
                   </MobileCardField>
                   
                   <MobileCardField>
                     <MobileCardLabel>Unidad</MobileCardLabel>
-                    <MobileCardValue>
-                      {product.unidadMedida?.nombre || 
-                       (typeof product.unit === 'string' ? product.unit : (product.unit as any)?.nombre) || 
-                       '-'}
-                    </MobileCardValue>
+                    <MobileCardValue>{product.unidadMedida?.nombreUnidadMedida || '-'}</MobileCardValue>
                   </MobileCardField>
-
-
                 </MobileCardBody>
                 
                 <MobileCardActions>
@@ -644,16 +624,16 @@ const ListaProductos: React.FC = () => {
                   >
                     Editar
                   </ActionButton>
-                  {product.isActive ? (
+                  {product.activo ? (
                     <ActionButton 
-                      onClick={() => handleDeleteClick(product as Product)}
+                      onClick={() => handleDeleteClick(product)}
                       $variant="delete"
                     >
                       Eliminar
                     </ActionButton>
                   ) : (
                     <ActionButton 
-                      onClick={() => handleActivateProduct(product as Product)}
+                      onClick={() => handleActivateProduct(product)}
                       $variant="activate"
                     >
                       Activar
@@ -743,7 +723,7 @@ const ListaProductos: React.FC = () => {
             <DeleteConfirmTitle>¿Eliminar Producto?</DeleteConfirmTitle>
             <DeleteConfirmMessage>
               ¿Estás seguro de que deseas eliminar el producto{' '}
-              <strong>{productToDelete.productName}</strong>? Esta acción marcará el producto como inactivo.
+              <strong>{productToDelete.nombreProducto}</strong>? Esta acción marcará el producto como inactivo.
             </DeleteConfirmMessage>
             <DeleteConfirmActions>
               <Button $variant="outline" onClick={handleCancelDelete}>

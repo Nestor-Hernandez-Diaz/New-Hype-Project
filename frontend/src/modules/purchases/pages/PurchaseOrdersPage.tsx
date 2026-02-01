@@ -1,16 +1,10 @@
 /**
- * PÁGINA: PurchaseOrdersPage
- * Gestión completa de Órdenes de Compra
- * Fase 5 - Task 12
+ * 📦 PÁGINA: PurchaseOrdersPage - ÓRDENES DE COMPRA
  * 
- * Características:
- * - Layout completo con título y breadcrumb
- * - Lista de órdenes (PurchaseOrderList)
- * - Modal crear/editar orden (PurchaseOrderForm)
- * - Modal detalle orden (PurchaseOrderDetail)
- * - Integración con usePurchaseOrders hook
- * - Manejo de estados (loading, error, success)
- * - Notificaciones de acciones
+ * Gestión completa de Órdenes de Compra refactorizada con Context
+ * Conectado a PurchasesContext con useReducer y Mock API
+ * 
+ * @packageDocumentation
  */
 
 import React, { useState, useEffect } from 'react';
@@ -20,9 +14,9 @@ import { COLOR_SCALES, SPACING, BORDER_RADIUS } from '../../../styles/theme';
 import Layout from '../../../components/Layout';
 import Modal from '../../../components/Modal';
 import { PurchaseOrderList, PurchaseOrderForm, PurchaseOrderDetail } from '../components';
-import { usePurchaseOrders } from '../hooks';
+import { usePurchases } from '../context/PurchasesContext';
 import { useNotification } from '../../../context/NotificationContext';
-import type { PurchaseOrder } from '../types/purchases.types';
+import type { OrdenCompra } from '@monorepo/shared-types';
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -44,34 +38,24 @@ const ErrorContainer = styled.div`
 const PurchaseOrdersPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: urlOrderId } = useParams<{ id?: string }>();
-  const { showNotification } = useNotification();
+  const { notify } = useNotification();
 
-  // ==================== HOOKS ====================
+  // Context
+  const { ordenes, loading, error, loadOrdenes, getOrdenById, crearOrden, actualizarOrden, eliminarOrden, cambiarEstadoOrden } = usePurchases();
 
-  const {
-    error,
-    refetch,
-  } = usePurchaseOrders({
-    autoFetch: true,
-    onSuccess: () => {
-      // Success handled in individual operations
-    },
-    onError: (err) => {
-      showNotification('error', 'Error al Cargar', err.message);
-    },
-  });
-
-  // ==================== ESTADOS LOCALES ====================
-
+  // Local state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrdenCompra | null>(null);
 
-  // ==================== EFFECTS ====================
+  // Auto-load órdenes
+  useEffect(() => {
+    loadOrdenes();
+  }, [loadOrdenes]);
 
-  // Abrir detalle si viene ID en URL
+  // Abrir detalle desde URL
   useEffect(() => {
     if (urlOrderId) {
       handleView(urlOrderId);
@@ -80,111 +64,72 @@ const PurchaseOrdersPage: React.FC = () => {
 
   // ==================== HANDLERS ====================
 
-  /**
-   * Abrir modal crear
-   */
   const handleCreate = () => {
     setSelectedOrder(null);
     setShowCreateModal(true);
   };
 
-  /**
-   * Abrir modal editar
-   */
-  const handleEdit = (order: PurchaseOrder) => {
-    console.log('📝 [PurchaseOrdersPage] handleEdit called:', { orderId: order.id, estado: order.estado });
+  const handleEdit = (order: OrdenCompra) => {
     setSelectedOrder(order);
     setShowEditModal(true);
-    console.log('📝 [PurchaseOrdersPage] Modal opened for order:', order.codigo);
   };
 
-  /**
-   * Abrir modal editar desde detalle (recibe solo orderId)
-   */
-  const handleEditFromDetail = async (orderId: string) => {
-    try {
-      // Necesitamos obtener la orden completa para el formulario de edición
-      const { purchaseOrderService } = await import('../services');
-      const response = await purchaseOrderService.getPurchaseOrderById(orderId);
-      if (response && response.data) {
-        handleEdit(response.data);
-        setShowDetailModal(false);
-      }
-    } catch (err) {
-      console.error('Error al cargar orden para editar:', err);
-      showNotification('error', 'Error', 'No se pudo cargar la orden para editar');
-    }
-  };
-
-  /**
-   * Abrir modal detalle
-   */
   const handleView = (orderId: string) => {
     setSelectedOrderId(orderId);
     setShowDetailModal(true);
   };
 
-  /**
-   * Callback de eliminación del hijo (List ya ejecutó el DELETE)
-   */
-  const handleDelete = async (_orderId: string) => {
-    // ✅ El hijo (PurchaseOrderList) ya ejecutó el DELETE exitosamente
-    // Este callback solo debe actualizar el estado del padre si es necesario
-    // NO ejecutar deleteOrder() de nuevo para evitar doble petición
-    
-    // El hijo ya notificó al usuario y actualizó su lista local
-    // Solo hacemos refetch si el padre mantiene estado adicional
-    // (en este caso no es necesario porque el hijo maneja su propio estado)
+  const handleDelete = async (orderId: string) => {
+    await eliminarOrden(orderId);
+    notify({ 
+      type: 'success', 
+      message: 'Orden eliminada correctamente',
+      title: 'Éxito'
+    });
   };
 
-  /**
-   * Refrescar lista
-   */
-  const handleRefresh = () => {
-    refetch();
-    showNotification('info', 'Lista Actualizada', 'Los datos se han recargado correctamente');
+  const handleRefresh = async () => {
+    await loadOrdenes();
+    notify({ type: 'info', message: 'Lista actualizada', title: 'Éxito' });
   };
 
-  /**
-   * Success al crear
-   */
-  const handleCreateSuccess = () => {
+  const handleCreateSuccess = async () => {
     setShowCreateModal(false);
-    showNotification('success', 'Orden Creada', 'La orden de compra se ha registrado correctamente');
-    refetch();
+    await loadOrdenes();
+    notify({ 
+      type: 'success', 
+      message: 'Orden creada correctamente',
+      title: 'Éxito'
+    });
   };
 
-  /**
-   * Success al editar
-   */
-  const handleEditSuccess = () => {
+  const handleEditSuccess = async () => {
     setShowEditModal(false);
-    showNotification('success', 'Orden Actualizada', 'Los cambios se han guardado correctamente');
-    refetch();
+    await loadOrdenes();
   };
 
-  /**
-   * Cancelar modales
-   */
   const handleCancel = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
     setShowDetailModal(false);
     setSelectedOrder(null);
     setSelectedOrderId(null);
-    
-    // Limpiar URL si hay ID
     if (urlOrderId) {
       navigate('/compras/ordenes', { replace: true });
     }
   };
 
-  /**
-   * Crear recepción desde detalle
-   */
   const handleCreateReceipt = (orderId: string) => {
     setShowDetailModal(false);
     navigate(`/compras/recepciones/crear?ordenId=${orderId}`);
+  };
+
+  const handleEditFromDetail = (orderId: string) => {
+    const orden = getOrdenById(orderId);
+    if (orden) {
+      handleEdit(orden);
+      setShowDetailModal(false);
+    }
   };
 
   // ==================== RENDER ====================
@@ -192,14 +137,12 @@ const PurchaseOrdersPage: React.FC = () => {
   return (
     <Layout title="Órdenes de Compra">
       <Container>
-        {/* Error global */}
         {error && (
           <ErrorContainer>
-            <strong>Error:</strong> {error.message}
+            <strong>Error:</strong> {error}
           </ErrorContainer>
         )}
 
-        {/* Lista de órdenes */}
         <PurchaseOrderList
           onEdit={handleEdit}
           onView={handleView}
@@ -208,7 +151,6 @@ const PurchaseOrdersPage: React.FC = () => {
           onCreate={handleCreate}
         />
 
-        {/* Modal Crear */}
         <Modal
           isOpen={showCreateModal}
           onClose={handleCancel}
@@ -221,7 +163,6 @@ const PurchaseOrdersPage: React.FC = () => {
           />
         </Modal>
 
-        {/* Modal Editar */}
         <Modal
           isOpen={showEditModal}
           onClose={handleCancel}
@@ -237,7 +178,6 @@ const PurchaseOrdersPage: React.FC = () => {
           )}
         </Modal>
 
-        {/* Modal Detalle */}
         <Modal
           isOpen={showDetailModal}
           onClose={handleCancel}

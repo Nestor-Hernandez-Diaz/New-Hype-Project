@@ -323,7 +323,7 @@ const Login: React.FC = () => {
   return (
     <LoginContainer>
       <LoginBox>
-        <LogoText>AlexaTech</LogoText>
+        <LogoText>New Hype</LogoText>
         <Subtitle>Inicia sesión en tu cuenta</Subtitle>
         <LoginForm onSubmit={handleSubmit}>
           <div className="form-group">

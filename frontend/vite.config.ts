@@ -1,12 +1,21 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
   ],
+  resolve: {
+    alias: {
+      '@monorepo/shared-types': path.resolve(__dirname, '../packages/shared-types/dist'),
+      '@monorepo/shared-utils': path.resolve(__dirname, '../packages/shared-utils/dist'),
+      '@monorepo/shared-api-client': path.resolve(__dirname, '../packages/shared-api-client/dist'),
+      '@monorepo/shared-constants': path.resolve(__dirname, '../packages/shared-constants/dist'),
+    },
+  },
   server: {
     port: 5173,
     host: true,

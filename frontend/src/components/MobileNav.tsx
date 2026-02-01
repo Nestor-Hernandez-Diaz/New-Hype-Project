@@ -130,7 +130,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ children }) => {
       <MobileNavContainer>
         <MobileNavHeader>
           <TitleLink to="/dashboard">
-            <Logo>AlexaTech</Logo>
+            <Logo>New Hype</Logo>
           </TitleLink>
           <MenuButton onClick={toggleMenu}>
             <i className="fas fa-bars"></i>

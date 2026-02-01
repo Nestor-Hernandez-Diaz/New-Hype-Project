@@ -15,6 +15,7 @@ import { SalesProvider } from './modules/sales/context/SalesContext';
 import { QuotesProvider } from './modules/sales/context/QuotesContext';
 import { ProductProvider } from './modules/products/context/ProductContext';
 import { ClientProvider } from './modules/clients/context/ClientContext';
+import { PurchasesProvider } from './modules/purchases/context/PurchasesContext';
 
 // Lazy loading de páginas desde módulos
 const Login = lazy(() => import('./modules/auth/pages/Login'));
@@ -88,23 +89,24 @@ function App() {
                 <SalesProvider>
                   <QuotesProvider>
                     <InventoryProvider>
-                    <ConfiguracionProvider>
-                    <Router>
-                      <AppContent />
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <Routes>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/login" element={<Login />} />
-                  {/* 🎨 Template UI - Solo para desarrollo */}
-                  <Route path="/template-ui" element={<TemplateUI />} />
-                  <Route 
-                    path="/dashboard" 
-                    element={
-                      <ProtectedRoute requiredPermission="dashboard.read">
-                        <Dashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
+                      <ConfiguracionProvider>
+                        <PurchasesProvider>
+                          <Router>
+                            <AppContent />
+                            <Suspense fallback={<LoadingSpinner />}>
+                              <Routes>
+                                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                                <Route path="/login" element={<Login />} />
+                                {/* 🎨 Template UI - Solo para desarrollo */}
+                                <Route path="/template-ui" element={<TemplateUI />} />
+                                <Route 
+                                  path="/dashboard" 
+                                  element={
+                                    <ProtectedRoute requiredPermission="dashboard.read">
+                                      <Dashboard />
+                                    </ProtectedRoute>
+                                  } 
+                                />
                   <Route 
                     path="/gestion-caja" 
                     element={
@@ -302,14 +304,15 @@ function App() {
                     </ProtectedRoute>
                   } />
                 </Routes>
-                </Suspense>
-              </Router>
-            </ConfiguracionProvider>
-            </InventoryProvider>
-          </QuotesProvider>
-        </SalesProvider>
-      </ProductProvider>
-    </ClientProvider>
+                            </Suspense>
+                          </Router>
+                        </PurchasesProvider>
+                      </ConfiguracionProvider>
+                    </InventoryProvider>
+                  </QuotesProvider>
+                </SalesProvider>
+              </ProductProvider>
+            </ClientProvider>
           </ModalProvider>
         </NotificationProvider>
       </AppProvider>

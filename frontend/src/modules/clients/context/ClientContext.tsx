@@ -1,183 +1,252 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-import type { ReactNode } from 'react';
-import { apiService } from '../../../utils/api';
-import { useUI } from '../../../context/UIContext';
-import { useNotification } from '../../../context/NotificationContext';
+/**
+ * 🏢 CLIENTS CONTEXT - GESTIÓN DE ENTIDADES COMERCIALES
+ * 
+ * Context refactorizado con useReducer para gestión de clientes y proveedores.
+ * Conectado a Mock API local (entidadesMockApi.ts)
+ * 
+ * @packageDocumentation
+ */
 
-// Definición de la interfaz Client (movida desde AppContext)
-export interface Client {
-  tipoEntidad: 'Cliente' | 'Proveedor' | 'Ambos';
-  id: string;
-  nombres?: string;
-  apellidos?: string;
-  razonSocial?: string;
-  email: string;
-  telefono: string;
-  tipoDocumento: 'DNI' | 'CE' | 'RUC';
-  numeroDocumento: string;
-  direccion: string;
-  // Campos de Ubigeo
-  departamentoId: string;
-  provinciaId: string;
-  distritoId: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+import React, { createContext, useReducer, useEffect, useCallback, useContext } from 'react';
+import type { ReactNode } from 'react';
+import { useNotification } from '../../../context/NotificationContext';
+import type {
+  Entidad,
+  EntidadesPaginadas,
+  CrearEntidadDTO,
+  ActualizarEntidadDTO,
+  EntidadFiltros
+} from '@monorepo/shared-types';
+import * as entidadesMockApi from '../services/entidadesMockApi';
+
+// ============= TIPOS DE ESTADO Y ACCIONES =============
+
+interface ClientsState {
+  entidades: Entidad[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  } | null;
+  loading: boolean;
+  error: string | null;
 }
 
-interface ClientContextType {
-  clients: Client[];
-  clientsPagination: {
-    currentPage: number;
-    totalPages: number;
-    totalClients: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-  };
-  loadClients: (params?: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    tipoEntidad?: 'Cliente' | 'Proveedor' | 'Ambos';
-    tipoDocumento?: string;
-    fechaDesde?: string;
-    fechaHasta?: string;
-    departamentoId?: string;
-    provinciaId?: string;
-    distritoId?: string;
-  }) => Promise<void>;
-  addClient: (client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateClient: (id: string, client: Partial<Client>) => Promise<void>;
+type ClientsAction =
+  | { type: 'FETCH_ENTIDADES_START' }
+  | { type: 'FETCH_ENTIDADES_SUCCESS'; payload: EntidadesPaginadas }
+  | { type: 'FETCH_ENTIDADES_ERROR'; payload: string }
+  | { type: 'CREATE_ENTIDAD_SUCCESS'; payload: Entidad }
+  | { type: 'UPDATE_ENTIDAD_SUCCESS'; payload: Entidad }
+  | { type: 'DELETE_ENTIDAD_SUCCESS'; payload: string }
+  | { type: 'CHANGE_ESTADO_SUCCESS'; payload: Entidad };
+
+// ============= REDUCER =============
+
+const initialState: ClientsState = {
+  entidades: [],
+  pagination: null,
+  loading: false,
+  error: null,
+};
+
+function clientsReducer(state: ClientsState, action: ClientsAction): ClientsState {
+  switch (action.type) {
+    case 'FETCH_ENTIDADES_START':
+      return { ...state, loading: true, error: null };
+
+    case 'FETCH_ENTIDADES_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        entidades: action.payload.entidades,
+        pagination: action.payload.pagination,
+      };
+
+    case 'FETCH_ENTIDADES_ERROR':
+      return { ...state, loading: false, error: action.payload };
+
+    case 'CREATE_ENTIDAD_SUCCESS':
+      return {
+        ...state,
+        entidades: [...state.entidades, action.payload],
+        pagination: state.pagination
+          ? { ...state.pagination, total: state.pagination.total + 1 }
+          : null,
+      };
+
+    case 'UPDATE_ENTIDAD_SUCCESS':
+      return {
+        ...state,
+        entidades: state.entidades.map(e =>
+          e.id === action.payload.id ? action.payload : e
+        ),
+      };
+
+    case 'CHANGE_ESTADO_SUCCESS':
+      return {
+        ...state,
+        entidades: state.entidades.map(e =>
+          e.id === action.payload.id ? action.payload : e
+        ),
+      };
+
+    case 'DELETE_ENTIDAD_SUCCESS':
+      return {
+        ...state,
+        entidades: state.entidades.filter(e => e.id !== action.payload),
+        pagination: state.pagination
+          ? { ...state.pagination, total: state.pagination.total - 1 }
+          : null,
+      };
+
+    default:
+      return state;
+  }
+}
+
+// ============= CONTEXT TYPE =============
+
+interface ClientsContextType {
+  // Estado
+  clients: Entidad[];
+  loading: boolean;
+  pagination: ClientsState['pagination'];
+  error: string | null;
+
+  // Métodos
+  loadClients: (filtros?: EntidadFiltros) => Promise<void>;
+  addClient: (data: CrearEntidadDTO) => Promise<void>;
+  updateClient: (id: string, data: ActualizarEntidadDTO) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
   reactivateClient: (id: string) => Promise<void>;
-  getClientById: (id: string) => Client | undefined;
+  getClientById: (id: string) => Entidad | undefined;
 }
 
-const ClientContext = createContext<ClientContextType | undefined>(undefined);
+const ClientContext = createContext<ClientsContextType | undefined>(undefined);
+
+// ============= PROVIDER =============
 
 export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [clientsPagination, setClientsPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalClients: 0,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
-  const { setIsLoading } = useUI();
+  const [state, dispatch] = useReducer(clientsReducer, initialState);
   const { showSuccess, showError } = useNotification();
 
-  const loadClients = useCallback(async (params?: any) => {
+  // ========== LOAD ENTIDADES ==========
+  const loadClients = useCallback(async (filtros?: EntidadFiltros) => {
     try {
-      setIsLoading(true);
-      const response = await apiService.getClients(params);
-      if (response.success && response.data) {
-        setClients(response.data.clients.map((c: any) => ({ ...c, createdAt: new Date(c.createdAt), updatedAt: new Date(c.updatedAt) })));
-        setClientsPagination(response.data.pagination);
-      } else {
-        showError('Error al cargar los clientes');
-      }
+      dispatch({ type: 'FETCH_ENTIDADES_START' });
+
+      const response = await entidadesMockApi.getEntidades(filtros);
+      dispatch({ type: 'FETCH_ENTIDADES_SUCCESS', payload: response });
     } catch (error) {
-      console.error('Error loading clients:', error);
-      showError('Error al cargar los clientes');
-    } finally {
-      setIsLoading(false);
+      const mensaje = error instanceof Error ? error.message : 'Error al cargar entidades';
+      dispatch({ type: 'FETCH_ENTIDADES_ERROR', payload: mensaje });
+      showError(mensaje);
     }
-  }, [setIsLoading, showError]);
+  }, [showError]);
 
-  const addClient = async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
+  // ========== CREATE ENTIDAD ==========
+  const addClient = useCallback(async (data: CrearEntidadDTO) => {
     try {
-      setIsLoading(true);
-      const response = await apiService.createClient(clientData);
-      if (!response.success) throw new Error(response.message || 'Error al registrar el cliente');
-      showSuccess(`Cliente registrado exitosamente`);
-      await loadClients();
-    } catch (error: any) {
-      console.error('Error creating client:', error);
-      showError(error.message || 'Error al registrar el cliente');
-      throw error; // Re-throw para que el modal pueda manejarlo
-    } finally {
-      setIsLoading(false);
+      const nuevaEntidad = await entidadesMockApi.crearEntidad(data);
+      dispatch({ type: 'CREATE_ENTIDAD_SUCCESS', payload: nuevaEntidad });
+      showSuccess('Entidad registrada exitosamente');
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al crear entidad';
+      showError(mensaje);
+      throw error;
     }
-  };
+  }, [showSuccess, showError]);
 
-  const updateClient = async (id: string, clientData: Partial<Client>) => {
+  // ========== UPDATE ENTIDAD ==========
+  const updateClient = useCallback(async (id: string, data: ActualizarEntidadDTO) => {
     try {
-      setIsLoading(true);
-      const response = await apiService.updateClient(id, clientData);
-      if (response.success) {
-        showSuccess('Cliente actualizado exitosamente');
-        await loadClients();
-      } else {
-        showError(response.message || 'Error al actualizar el cliente');
+      const entidadActualizada = await entidadesMockApi.actualizarEntidad(id, data);
+      if (!entidadActualizada) {
+        throw new Error('Entidad no encontrada');
       }
-    } catch (error: any) {
-      console.error('Error updating client:', error);
-      showError(error.message || 'Error al actualizar el cliente');
-    } finally {
-      setIsLoading(false);
+      dispatch({ type: 'UPDATE_ENTIDAD_SUCCESS', payload: entidadActualizada });
+      showSuccess('Entidad actualizada exitosamente');
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al actualizar entidad';
+      showError(mensaje);
+      throw error;
     }
-  };
+  }, [showSuccess, showError]);
 
-  const deleteClient = async (id: string) => {
+  // ========== DELETE ENTIDAD ==========
+  const deleteClient = useCallback(async (id: string) => {
     try {
-      setIsLoading(true);
-      const response = await apiService.deleteClient(id);
-      if (response.success) {
-        showSuccess('Cliente eliminado exitosamente');
-        await loadClients();
-      } else {
-        showError(response.message || 'Error al eliminar el cliente');
+      const success = await entidadesMockApi.eliminarEntidad(id);
+      if (!success) {
+        throw new Error('No se pudo eliminar la entidad');
       }
-    } catch (error: any) {
-      console.error('Error deleting client:', error);
-      showError(error.message || 'Error al eliminar el cliente');
-    } finally {
-      setIsLoading(false);
+      dispatch({ type: 'DELETE_ENTIDAD_SUCCESS', payload: id });
+      showSuccess('Entidad eliminada exitosamente');
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al eliminar entidad';
+      showError(mensaje);
+      throw error;
     }
-  };
+  }, [showSuccess, showError]);
 
-  const reactivateClient = async (id: string) => {
+  // ========== REACTIVATE ENTIDAD ==========
+  const reactivateClient = useCallback(async (id: string) => {
     try {
-      setIsLoading(true);
-      const response = await apiService.reactivateClient(id);
-      if (response.success) {
-        showSuccess('Cliente reactivado exitosamente');
-        await loadClients();
-      } else {
-        showError(response.message || 'Error al reactivar el cliente');
+      const entidadActualizada = await entidadesMockApi.cambiarEstadoEntidad(id, true);
+      if (!entidadActualizada) {
+        throw new Error('Entidad no encontrada');
       }
-    } catch (error: any) {
-      console.error('Error reactivating client:', error);
-      showError(error.message || 'Error al reactivar el cliente');
-    } finally {
-      setIsLoading(false);
+      dispatch({ type: 'CHANGE_ESTADO_SUCCESS', payload: entidadActualizada });
+      showSuccess('Entidad reactivada exitosamente');
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al reactivar entidad';
+      showError(mensaje);
+      throw error;
     }
-  };
+  }, [showSuccess, showError]);
 
-  const getClientById = (id: string) => {
-    return clients.find(c => c.id === id);
-  };
+  // ========== GET BY ID ==========
+  const getClientById = useCallback((id: string) => {
+    return state.entidades.find(e => e.id === id);
+  }, [state.entidades]);
 
+  // ========== INICIALIZACIÓN ==========
   useEffect(() => {
     const token = localStorage.getItem('authToken') || localStorage.getItem('alexatech_token');
     if (token) {
       loadClients();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Solo cargar al montar el componente
+  }, [loadClients]);
 
   return (
-    <ClientContext.Provider value={{ clients, clientsPagination, loadClients, addClient, updateClient, deleteClient, reactivateClient, getClientById }}>
+    <ClientContext.Provider
+      value={{
+        clients: state.entidades,
+        loading: state.loading,
+        pagination: state.pagination,
+        error: state.error,
+        loadClients,
+        addClient,
+        updateClient,
+        deleteClient,
+        reactivateClient,
+        getClientById,
+      }}
+    >
       {children}
     </ClientContext.Provider>
   );
 };
 
-export const useClients = (): ClientContextType => {
-  const context = React.useContext(ClientContext);
-  if (context === undefined) {
-    throw new Error('useClients must be used within a ClientProvider');
+// ============= HOOK =============
+
+export const useClients = (): ClientsContextType => {
+  const context = useContext(ClientContext);
+  if (!context) {
+    throw new Error('useClients debe ser usado dentro de ClientProvider');
   }
   return context;
 };
+

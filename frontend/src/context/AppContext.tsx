@@ -8,6 +8,7 @@ import { ProductProvider } from '../modules/products/context/ProductContext';
 import { ClientProvider } from '../modules/clients/context/ClientContext';
 import { SalesProvider } from '../modules/sales/context/SalesContext';
 import { InventoryProvider } from '../modules/inventory/context/InventoryContext';
+import { UsersProvider } from '../modules/users/context/UsersContext';
 
 /**
  * AppProvider es un componente que anida todos los proveedores de contexto de la aplicación.
@@ -21,11 +22,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           <UIProvider>
             <ProductProvider>
               <ClientProvider>
-                <InventoryProvider>
-                  <SalesProvider>
-                    {children}
-                  </SalesProvider>
-                </InventoryProvider>
+                <UsersProvider>
+                  <InventoryProvider>
+                    <SalesProvider>
+                      {children}
+                    </SalesProvider>
+                  </InventoryProvider>
+                </UsersProvider>
               </ClientProvider>
             </ProductProvider>
           </UIProvider>

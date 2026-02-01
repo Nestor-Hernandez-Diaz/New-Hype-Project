@@ -3,9 +3,10 @@ import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { useAuth } from '../../auth/context/AuthContext';
 import { useNotification } from '../../../context/NotificationContext';
-import { apiService } from '../../../utils/api';
+import { useUsers } from '../context/UsersContext';
 import NuevoRolModal from '../components/NuevoRolModal';
 import EditarRolModal from '../components/EditarRolModal';
+import type { Rol } from '@monorepo/shared-types';
 import { TYPOGRAPHY, COLORS, BORDER_RADIUS, SHADOWS, SPACING } from '../../../styles/theme';
 import {
   Button,
@@ -33,24 +34,10 @@ import {
 // INTERFACES
 // ============================================================================
 
-interface Role {
-  id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-  isActive: boolean;
-  isSystem: boolean;
-  createdAt: string;
-  updatedAt: string;
-  _count?: {
-    users: number;
-  };
-}
-
 interface RoleFormData {
-  name: string;
-  description: string;
-  permissions: string[];
+  nombreRol: string;
+  descripcion?: string;
+  permisos: string[];
 }
 
 interface RoleStats {
@@ -188,168 +175,102 @@ const DeleteConfirmActions = styled.div`
 const ListaRoles: React.FC = () => {
   const { showSuccess, showError } = useNotification();
   const { hasPermission } = useAuth();
+  const { roles, loading, loadRoles, addRole, updateRole } = useUsers();
 
-  // Estados
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [stats, setStats] = useState<RoleStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Estados locales
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [filterType, setFilterType] = useState<'all' | 'system' | 'custom'>('all');
   const [showNewModal, setShowNewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [selectedRole, setSelectedRole] = useState<Rol | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
+  const [roleToDelete, setRoleToDelete] = useState<Rol | null>(null);
 
   // Permisos
   const canCreate = hasPermission('users.create');
   const canUpdate = hasPermission('users.update');
 
-  // Cargar roles y estadísticas
+  // Cargar roles al montar (el Context ya lo hace en useEffect, esto es redundante pero por si acaso)
   useEffect(() => {
-    loadRoles();
-    loadStats();
+    if (!roles || roles.length === 0) {
+      loadRoles();
+    }
   }, []);
-
-  const loadRoles = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.get<{ data: Role[] }>('/roles?includeInactive=true');
-      const data = response.data as any;
-      setRoles(data?.data || data || []);
-    } catch (error: any) {
-      console.error('Error cargando roles:', error);
-      showError('Error al cargar los roles');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      const response = await apiService.get<{ data: RoleStats }>('/roles/stats');
-      const data = response.data as any;
-      setStats(data?.data || data || null);
-    } catch (error: any) {
-      console.error('Error cargando estadísticas:', error);
-    }
-  };
 
   // Filtrado de roles
   const filteredRoles = useMemo(() => {
-    return roles.filter(role => {
+    return (roles || []).filter(role => {
       // Filtro de búsqueda
       const matchesSearch =
-        role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        role.description.toLowerCase().includes(searchTerm.toLowerCase());
+        role.nombreRol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (role.descripcion && role.descripcion.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      // Filtro de estado
+      // Filtro de estado (activo es boolean en el tipo Rol)
       const matchesStatus =
         filterStatus === 'all' ||
-        (filterStatus === 'active' && role.isActive) ||
-        (filterStatus === 'inactive' && !role.isActive);
+        (filterStatus === 'active' && role.activo) ||
+        (filterStatus === 'inactive' && !role.activo);
 
-      // Filtro de tipo
+      // Filtro de tipo (Rol no tiene isSystem, vamos a considerar todos como custom por ahora)
       const matchesType =
         filterType === 'all' ||
-        (filterType === 'system' && role.isSystem) ||
-        (filterType === 'custom' && !role.isSystem);
+        (filterType === 'custom'); // Por ahora todos los roles mock son custom
 
       return matchesSearch && matchesStatus && matchesType;
     });
   }, [roles, searchTerm, filterStatus, filterType]);
 
+  // Calcular estadísticas desde roles
+  const stats = useMemo(() => {
+    const total = roles?.length || 0;
+    const active = (roles || []).filter(r => r.activo).length;
+    const inactive = total - active;
+    
+    return {
+      total,
+      active,
+      inactive,
+      system: 0, // No tenemos esta info en el mock
+      custom: total,
+      totalUsers: 0, // No tenemos esta info disponible aquí
+      usersWithoutRole: 0
+    };
+  }, [roles]);
+
   // Handlers
   const handleCreateRole = async (roleData: RoleFormData) => {
     try {
-      await apiService.post('/roles', roleData);
-      showSuccess('Rol creado exitosamente');
+      await addRole(roleData);
       setShowNewModal(false);
-      loadRoles();
-      loadStats();
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Error al crear el rol';
-      showError(message);
+      // El error ya fue mostrado por el Context
       throw error;
     }
   };
 
   const handleEditRole = async (roleId: string, roleData: Partial<RoleFormData>) => {
     try {
-      const role = roles.find(r => r.id === roleId);
-      if (role?.isSystem) {
-        // Para roles del sistema, solo actualizar permisos
-        await apiService.patch(`/roles/${roleId}/permissions`, { permissions: roleData.permissions });
-      } else {
-        // Para roles personalizados, actualizar todo
-        await apiService.put(`/roles/${roleId}`, roleData);
-      }
-      showSuccess('Rol actualizado exitosamente');
+      await updateRole(roleId, roleData);
       setShowEditModal(false);
       setSelectedRole(null);
-      loadRoles();
-      loadStats();
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Error al actualizar el rol';
-      showError(message);
+      // El error ya fue mostrado por el Context
       throw error;
     }
   };
 
-  const handleToggleStatus = async (role: Role) => {
-    const action = role.isActive ? 'desactivar' : 'activar';
-    try {
-      const endpoint = role.isActive ? 'deactivate' : 'activate';
-      await apiService.patch(`/roles/${role.id}/${endpoint}`, {});
-      showSuccess(`Rol ${action === 'desactivar' ? 'desactivado' : 'activado'} exitosamente`);
-      loadRoles();
-      loadStats();
-    } catch (error: any) {
-      const message = error.response?.data?.message || `Error al ${action} el rol`;
-      showError(message);
-    }
+  const handleDeleteClick = (role: Rol) => {
+    // Por ahora no implementado, marcar como inactivo sería changeUserStatus pero para roles
+    showError('Función de eliminar rol aún no implementada');
   };
 
-  const handleDeleteClick = (role: Role) => {
-    setRoleToDelete(role);
-    setIsDeleteConfirmOpen(true);
+  const handleActivateRole = async (role: Rol) => {
+    // Por ahora no implementado
+    showError('Función de activar rol aún no implementada');
   };
 
-  const handleConfirmDelete = async () => {
-    if (!roleToDelete) return;
-
-    try {
-      await apiService.patch(`/roles/${roleToDelete.id}/deactivate`, {});
-      showSuccess('Rol eliminado exitosamente');
-      setIsDeleteConfirmOpen(false);
-      setRoleToDelete(null);
-      loadRoles();
-      loadStats();
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Error al eliminar el rol';
-      showError(message);
-    }
-  };
-
-  const handleCancelDelete = () => {
-    setIsDeleteConfirmOpen(false);
-    setRoleToDelete(null);
-  };
-
-  const handleActivateRole = async (role: Role) => {
-    try {
-      await apiService.patch(`/roles/${role.id}/activate`, {});
-      showSuccess('Rol activado exitosamente');
-      loadRoles();
-      loadStats();
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Error al activar el rol';
-      showError(message);
-    }
-  };
-
-  const openEditModal = (role: Role) => {
+  const openEditModal = (role: Rol) => {
     setSelectedRole(role);
     setShowEditModal(true);
   };
@@ -454,21 +375,21 @@ const ListaRoles: React.FC = () => {
                 {filteredRoles.map(role => (
                   <Tr key={role.id}>
                     <Td>
-                      <strong>{role.name}</strong>
+                      <strong>{role.nombreRol}</strong>
                     </Td>
                     <Td>
-                      <TypeBadge $isSystem={role.isSystem}>
-                        {role.isSystem ? 'Sistema' : 'Personalizado'}
+                      <TypeBadge $isSystem={false}>
+                        {'Personalizado'}
                       </TypeBadge>
                     </Td>
-                    <Td>{role.description}</Td>
+                    <Td>{role.descripcion || 'Sin descripción'}</Td>
                     <Td>
-                      <PermissionCount>{role.permissions.length} permisos</PermissionCount>
+                      <PermissionCount>{role.permisos.length} permisos</PermissionCount>
                     </Td>
-                    <Td>{role._count?.users || 0} usuarios</Td>
+                    <Td>0 usuarios</Td>
                     <Td>
-                      <StatusBadge variant={role.isActive ? 'success' : 'danger'} dot>
-                        {role.isActive ? 'Activo' : 'Inactivo'}
+                      <StatusBadge variant={role.activo ? 'success' : 'danger'} dot>
+                        {role.activo ? 'Activo' : 'Inactivo'}
                       </StatusBadge>
                     </Td>
                     <Td>
@@ -480,8 +401,8 @@ const ListaRoles: React.FC = () => {
                           >
                             Editar
                           </ActionButton>
-                          {!role.isSystem && (
-                            role.isActive ? (
+                          {(
+                            role.activo ? (
                               <ActionButton
                                 $variant="delete"
                                 onClick={() => handleDeleteClick(role)}
@@ -533,14 +454,14 @@ const ListaRoles: React.FC = () => {
               <DeleteConfirmTitle>¿Eliminar Rol?</DeleteConfirmTitle>
               <DeleteConfirmMessage>
                 ¿Estás seguro de que deseas eliminar el rol{' '}
-                <strong>{roleToDelete.name}</strong>?
+                <strong>{roleToDelete.nombreRol}</strong>?
                 Esta acción marcará el rol como inactivo.
               </DeleteConfirmMessage>
               <DeleteConfirmActions>
-                <Button $variant="outline" onClick={handleCancelDelete}>
+                <Button $variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
                   Cancelar
                 </Button>
-                <Button $variant="danger" onClick={handleConfirmDelete}>
+                <Button $variant="danger" onClick={() => setIsDeleteConfirmOpen(false)}>
                   Eliminar
                 </Button>
               </DeleteConfirmActions>

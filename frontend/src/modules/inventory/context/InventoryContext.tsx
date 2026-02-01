@@ -1,25 +1,120 @@
-import React, { createContext, useState, useCallback } from 'react';
+/**
+ * ============================================
+ * INVENTORY CONTEXT - Refactorizado
+ * Usa useReducer + Mock API
+ * ============================================
+ */
+
+import React, { createContext, useReducer, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import type { 
-  StockItem, 
-  MovimientoKardex, 
-  PaginationData, 
-  StockFilters, 
-  KardexFilters, 
-  AjusteData,
-  StockStats
-} from '../types/inventario';
-import { inventarioApi } from '../services/inventarioApi';
+import type {
+  StockItem,
+  MovimientoKardex,
+  PaginationData,
+  StockFilters,
+  KardexFilters,
+  AjusteInventarioRequest,
+  StockStats,
+  AlertasStock,
+} from '@monorepo/shared-types';
+import { inventoryMockApi } from '../services/inventoryMockApi';
 import { useAuth } from '../../auth/context/AuthContext';
+
+// ========== TIPOS DEL ESTADO ==========
+
+interface InventoryState {
+  // Datos
+  stockItems: StockItem[];
+  movimientos: MovimientoKardex[];
+  alertas: AlertasStock;
+  
+  // UI
+  loading: boolean;
+  error: string | null;
+  
+  // Paginación
+  pagination: {
+    stock: PaginationData | null;
+    kardex: PaginationData | null;
+  };
+}
+
+// ========== ACCIONES ==========
+
+type InventoryAction =
+  | { type: 'FETCH_STOCK_START' }
+  | { type: 'FETCH_STOCK_SUCCESS'; payload: { data: StockItem[]; pagination: PaginationData } }
+  | { type: 'FETCH_STOCK_ERROR'; payload: string }
+  | { type: 'FETCH_KARDEX_START' }
+  | { type: 'FETCH_KARDEX_SUCCESS'; payload: { data: MovimientoKardex[]; pagination: PaginationData } }
+  | { type: 'FETCH_KARDEX_ERROR'; payload: string }
+  | { type: 'FETCH_ALERTAS_SUCCESS'; payload: AlertasStock }
+  | { type: 'CLEAR_ERROR' };
+
+// ========== REDUCER ==========
+
+const initialState: InventoryState = {
+  stockItems: [],
+  movimientos: [],
+  alertas: { stockBajo: [], stockCritico: [] },
+  loading: false,
+  error: null,
+  pagination: {
+    stock: null,
+    kardex: null,
+  },
+};
+
+function inventoryReducer(state: InventoryState, action: InventoryAction): InventoryState {
+  switch (action.type) {
+    case 'FETCH_STOCK_START':
+      return { ...state, loading: true, error: null };
+      
+    case 'FETCH_STOCK_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        stockItems: action.payload.data,
+        pagination: { ...state.pagination, stock: action.payload.pagination },
+      };
+      
+    case 'FETCH_STOCK_ERROR':
+      return { ...state, loading: false, error: action.payload };
+      
+    case 'FETCH_KARDEX_START':
+      return { ...state, loading: true, error: null };
+      
+    case 'FETCH_KARDEX_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        movimientos: action.payload.data,
+        pagination: { ...state.pagination, kardex: action.payload.pagination },
+      };
+      
+    case 'FETCH_KARDEX_ERROR':
+      return { ...state, loading: false, error: action.payload };
+      
+    case 'FETCH_ALERTAS_SUCCESS':
+      return { ...state, alertas: action.payload };
+      
+    case 'CLEAR_ERROR':
+      return { ...state, error: null };
+      
+    default:
+      return state;
+  }
+}
+
+// ========== CONTEXT TYPE ==========
+
+// ========== CONTEXT TYPE ==========
 
 export interface InventoryContextType {
   // Estado
   stockItems: StockItem[];
   movimientos: MovimientoKardex[];
-  alertas: {
-    stockBajo: StockItem[];
-    stockCritico: StockItem[];
-  };
+  alertas: AlertasStock;
   loading: boolean;
   error: string | null;
   pagination: {
@@ -28,10 +123,10 @@ export interface InventoryContextType {
   };
   canUpdateInventory: boolean;
 
-  // Funciones
+  // Acciones
   fetchStock: (filters?: StockFilters) => Promise<void>;
   fetchKardex: (filters: KardexFilters) => Promise<void>;
-  crearAjuste: (data: AjusteData) => Promise<void>;
+  crearAjuste: (data: AjusteInventarioRequest) => Promise<void>;
   fetchAlertas: () => Promise<void>;
   clearError: () => void;
   getStockStats: () => StockStats;
@@ -39,231 +134,173 @@ export interface InventoryContextType {
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
+// ========== PROVIDER ==========
+
 interface InventoryProviderProps {
   children: ReactNode;
 }
 
 export const InventoryProvider: React.FC<InventoryProviderProps> = ({ children }) => {
-  const { hasPermission, isAuthenticated, user } = useAuth();
-  
-  // Estado
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [movimientos, setMovimientos] = useState<MovimientoKardex[]>([]);
-  const [alertas, setAlertas] = useState<{
-    stockBajo: StockItem[];
-    stockCritico: StockItem[];
-  }>({
-    stockBajo: [],
-    stockCritico: []
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<{
-    stock: PaginationData | null;
-    kardex: PaginationData | null;
-  }>({
-    stock: null,
-    kardex: null
-  });
+  const { hasPermission } = useAuth();
+  const [state, dispatch] = useReducer(inventoryReducer, initialState);
 
-  // Permisos
-  const canUpdateInventory = hasPermission('inventory.update');
+  // Permiso calculado
+  const canUpdateInventory = useMemo(
+    () => hasPermission('inventory.update'),
+    [hasPermission]
+  );
 
-  // Función para verificar autenticación antes de hacer llamadas
-  const checkAuthentication = (): boolean => {
-    if (!isAuthenticated || !user) {
-      setError('Debes iniciar sesión para acceder al inventario');
-      return false;
-    }
-    
-    if (!hasPermission('inventory.read')) {
-      setError('No tienes permisos para acceder al inventario');
-      return false;
-    }
-    
-    return true;
-  };
+  // ========== ACCIONES ==========
 
-  // Función para obtener stock
+  /**
+   * Cargar stock
+   */
   const fetchStock = useCallback(async (filters: StockFilters = {}) => {
-    if (!checkAuthentication()) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    
     try {
+      dispatch({ type: 'FETCH_STOCK_START' });
+      
       console.log('🔍 [InventoryContext] Fetching stock with filters:', filters);
-      console.log('🔍 [InventoryContext] User authenticated:', isAuthenticated);
-      console.log('🔍 [InventoryContext] User permissions:', user?.role?.permissions);
       
-      const response = await inventarioApi.getStock(filters);
-      console.log('✅ [InventoryContext] getStock response:', response);
-      console.log('✅ [InventoryContext] Response data type:', typeof response.data);
-      console.log('✅ [InventoryContext] Response data length:', Array.isArray(response.data) ? response.data.length : 'Not array');
+      const response = await inventoryMockApi.getStock(filters);
       
-      setStockItems(Array.isArray(response.data) ? response.data : []);
-      setPagination(prev => ({
-        ...prev,
-        stock: response.pagination
-      }));
+      console.log('✅ [InventoryContext] Stock response:', response);
       
-      console.log('✅ [InventoryContext] Stock items set:', Array.isArray(response.data) ? response.data.length : 0, 'items');
+      dispatch({
+        type: 'FETCH_STOCK_SUCCESS',
+        payload: {
+          data: response.data,
+          pagination: response.pagination,
+        },
+      });
     } catch (error: any) {
+      const message = error?.message || 'Error al cargar el stock';
       console.error('❌ [InventoryContext] Error fetching stock:', error);
-      console.error('❌ [InventoryContext] Error message:', error?.message);
-      console.error('❌ [InventoryContext] Error response:', error?.response?.data);
       
-      // Manejar errores específicos de autenticación
-      if (error?.message?.includes('Token de acceso requerido') || 
-          error?.message?.includes('401') ||
-          error?.message?.includes('Unauthorized')) {
-        setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-        // Limpiar tokens y redirigir
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('alexatech_token');
-        localStorage.removeItem('alexatech_refresh_token');
-        window.location.href = '/login';
-      } else {
-        setError(error?.message || 'Error al cargar el stock');
+      dispatch({ type: 'FETCH_STOCK_ERROR', payload: message });
+      
+      if (window.showToast) {
+        window.showToast(message, 'error');
       }
-    } finally {
-      setLoading(false);
     }
-  }, [isAuthenticated, user, hasPermission]);
+  }, []);
 
-  // Función para obtener kardex
+  /**
+   * Cargar kardex
+   */
   const fetchKardex = useCallback(async (filters: KardexFilters) => {
-    if (!checkAuthentication()) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    
     try {
+      dispatch({ type: 'FETCH_KARDEX_START' });
+      
       console.log('🔍 [InventoryContext] Fetching kardex with filters:', filters);
-      console.log('🔍 [InventoryContext] User authenticated:', isAuthenticated);
-      console.log('🔍 [InventoryContext] User permissions:', user?.role?.permissions);
       
-      const response = await inventarioApi.getKardex(filters);
-      console.log('✅ [InventoryContext] getKardex response:', response);
-      console.log('✅ [InventoryContext] Response data type:', typeof response.data);
-      console.log('✅ [InventoryContext] Response data length:', Array.isArray(response.data) ? response.data.length : 'Not array');
+      const response = await inventoryMockApi.getKardex(filters);
       
-      setMovimientos(Array.isArray(response.data) ? response.data : []);
-      setPagination(prev => ({
-        ...prev,
-        kardex: response.pagination
-      }));
+      console.log('✅ [InventoryContext] Kardex response:', response);
       
-      console.log('✅ [InventoryContext] Kardex movements set:', Array.isArray(response.data) ? response.data.length : 0, 'items');
+      dispatch({
+        type: 'FETCH_KARDEX_SUCCESS',
+        payload: {
+          data: response.data,
+          pagination: response.pagination,
+        },
+      });
     } catch (error: any) {
+      const message = error?.message || 'Error al cargar kardex';
       console.error('❌ [InventoryContext] Error fetching kardex:', error);
-      console.error('❌ [InventoryContext] Error message:', error?.message);
-      console.error('❌ [InventoryContext] Error response:', error?.response?.data);
       
-      // Manejar errores específicos de autenticación
-      if (error?.message?.includes('Token de acceso requerido') || 
-          error?.message?.includes('401') ||
-          error?.message?.includes('Unauthorized')) {
-        setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-        // Limpiar tokens y redirigir
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('alexatech_token');
-        localStorage.removeItem('alexatech_refresh_token');
-        window.location.href = '/login';
-      } else {
-        setError(error?.message || 'Error al cargar el kardex');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, user, hasPermission]);
-
-  // Función para crear ajuste
-  const crearAjuste = useCallback(async (data: AjusteData) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await inventarioApi.createAjuste(data);
+      dispatch({ type: 'FETCH_KARDEX_ERROR', payload: message });
       
-      // Mostrar notificación de éxito
       if (window.showToast) {
-        window.showToast(response.message || 'Ajuste creado exitosamente', 'success');
+        window.showToast(message, 'error');
       }
-      
-      // Refrescar datos
-      await Promise.all([
-        fetchStock(), // Refrescar stock
-        fetchKardex({ warehouseId: data.warehouseId }) // Refrescar kardex del almacén
-      ]);
-      
-    } catch (error: any) {
-      console.error('Error creating adjustment:', error);
-      const errorMessage = error?.message || 'Error al crear el ajuste';
-      setError(errorMessage);
-      
-      // Mostrar notificación de error
-      if (window.showToast) {
-        window.showToast(errorMessage, 'error');
-      }
-      
-      throw error; // Re-lanzar para que el componente pueda manejarlo
-    } finally {
-      setLoading(false);
     }
-  }, [fetchStock, fetchKardex]);
+  }, []);
 
-  // Función para obtener alertas
+  /**
+   * Crear ajuste de inventario
+   */
+  const crearAjuste = useCallback(
+    async (data: AjusteInventarioRequest) => {
+      try {
+        console.log('📝 [InventoryContext] Creating adjustment:', data);
+        
+        const response = await inventoryMockApi.createAjuste(data);
+        
+        if (window.showToast) {
+          window.showToast(response.message, 'success');
+        }
+
+        // Recargar datos
+        await fetchStock();
+        await fetchKardex({ warehouseId: data.warehouseId });
+      } catch (error: any) {
+        const message = error?.message || 'Error al crear ajuste';
+        console.error('❌ [InventoryContext] Error creating adjustment:', error);
+        
+        if (window.showToast) {
+          window.showToast(message, 'error');
+        }
+        throw error;
+      }
+    },
+    [fetchStock, fetchKardex]
+  );
+
+  /**
+   * Cargar alertas
+   */
   const fetchAlertas = useCallback(async () => {
     try {
-      const response = await inventarioApi.getAlertas();
-      setAlertas(response);
-    } catch (error: any) {
-      console.error('Error fetching alerts:', error);
-      // No establecer error global para alertas, ya que es información secundaria
+      const alertas = await inventoryMockApi.getAlertas();
+      dispatch({ type: 'FETCH_ALERTAS_SUCCESS', payload: alertas });
+    } catch (error) {
+      // No afectar el estado global de error
+      console.error('Error al cargar alertas:', error);
     }
   }, []);
 
-  // Función para limpiar errores
+  /**
+   * Limpiar error
+   */
   const clearError = useCallback(() => {
-    setError(null);
+    dispatch({ type: 'CLEAR_ERROR' });
   }, []);
 
-  // Función para calcular estadísticas de stock
+  /**
+   * Calcular estadísticas de stock
+   */
   const getStockStats = useCallback((): StockStats => {
-    const items = Array.isArray(stockItems) ? stockItems : [];
+    const items = Array.isArray(state.stockItems) ? state.stockItems : [];
     const totalProductos = items.length;
     const stockBajo = items.filter(item => item.estado === 'BAJO').length;
     const stockCritico = items.filter(item => item.estado === 'CRITICO').length;
-    
+
     return {
       totalProductos,
       stockBajo,
-      stockCritico
+      stockCritico,
     };
-  }, [stockItems]);
+  }, [state.stockItems]);
+
+  // ========== CONTEXT VALUE ==========
 
   const value: InventoryContextType = {
     // Estado
-    stockItems,
-    movimientos,
-    alertas,
-    loading,
-    error,
-    pagination,
+    stockItems: state.stockItems,
+    movimientos: state.movimientos,
+    alertas: state.alertas,
+    loading: state.loading,
+    error: state.error,
+    pagination: state.pagination,
     canUpdateInventory,
 
-    // Funciones
+    // Acciones
     fetchStock,
     fetchKardex,
     crearAjuste,
     fetchAlertas,
     clearError,
-    getStockStats
+    getStockStats,
   };
 
   return (
@@ -274,6 +311,16 @@ export const InventoryProvider: React.FC<InventoryProviderProps> = ({ children }
 };
 
 export default InventoryContext;
+
+// ========== HOOK ==========
+
+export const useInventory = (): InventoryContextType => {
+  const context = React.useContext(InventoryContext);
+  if (context === undefined) {
+    throw new Error('useInventory must be used within an InventoryProvider');
+  }
+  return context;
+};
 
 declare global {
   interface Window {

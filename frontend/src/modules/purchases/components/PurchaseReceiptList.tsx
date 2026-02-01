@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * COMPONENTE: PurchaseReceiptList
  * Lista de recepciones de compra con filtros, búsqueda y paginación

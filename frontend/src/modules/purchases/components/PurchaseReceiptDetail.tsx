@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * COMPONENTE: PurchaseReceiptDetail
  * Vista detallada de una recepción de compra

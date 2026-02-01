@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import type { User } from '@alexa-tech/shared';
+import type { Usuario } from '@monorepo/shared-types';
 
 const BASE_URL = 'http://localhost:3001/api';
 
@@ -55,7 +55,7 @@ export const mockUsers = {
     ],
     createdAt: new Date(),
     updatedAt: new Date(),
-  } as any as User,
+  } as any as Usuario,
   vendedor: {
     id: '2',
     username: 'vendedor',
@@ -72,7 +72,7 @@ export const mockUsers = {
     permissions: ['dashboard.read', 'sales.read', 'sales.create', 'products.read'],
     createdAt: new Date(),
     updatedAt: new Date(),
-  } as any as User,
+  } as any as Usuario,
 };
 
 export const mockProducts = [

@@ -1,0 +1,200 @@
+/**
+ * ============================================
+ * TEST SCRIPT - Verificación de Mock API
+ * ============================================
+ * 
+ * Este script prueba que el mock API funcione correctamente
+ * Ejecutar en la consola del navegador o desde DevTools
+ */
+
+import { inventoryMockApi } from './services/inventoryMockApi';
+import type { StockFilters, KardexFilters, AjusteInventarioRequest } from '@monorepo/shared-types';
+
+/**
+ * Prueba 1: Obtener stock completo
+ */
+export async function testGetStock() {
+  console.log('🧪 TEST 1: Obtener stock completo');
+  console.log('─'.repeat(50));
+  
+  try {
+    const response = await inventoryMockApi.getStock();
+    console.log('✅ Stock obtenido:', response);
+    console.log(`   Total de items: ${response.data.length}`);
+    console.log(`   Paginación:`, response.pagination);
+    return response;
+  } catch (error) {
+    console.error('❌ Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Prueba 2: Filtrar stock por almacén
+ */
+export async function testGetStockByWarehouse() {
+  console.log('\n🧪 TEST 2: Filtrar stock por almacén');
+  console.log('─'.repeat(50));
+  
+  const filters: StockFilters = {
+    almacenId: 'WH-PRINCIPAL',
+    page: 1,
+    limit: 10
+  };
+  
+  try {
+    const response = await inventoryMockApi.getStock(filters);
+    console.log('✅ Stock filtrado:', response);
+    console.log(`   Items del Almacén Principal: ${response.data.length}`);
+    return response;
+  } catch (error) {
+    console.error('❌ Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Prueba 3: Buscar productos
+ */
+export async function testSearchProducts() {
+  console.log('\n🧪 TEST 3: Buscar productos');
+  console.log('─'.repeat(50));
+  
+  const query = 'laptop';
+  
+  try {
+    const results = await inventoryMockApi.searchProducts(query);
+    console.log(`✅ Resultados para "${query}":`, results);
+    console.log(`   Productos encontrados: ${results.length}`);
+    return results;
+  } catch (error) {
+    console.error('❌ Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Prueba 4: Obtener movimientos kardex
+ */
+export async function testGetKardex() {
+  console.log('\n🧪 TEST 4: Obtener movimientos kardex');
+  console.log('─'.repeat(50));
+  
+  const filters: KardexFilters = {
+    warehouseId: 'WH-PRINCIPAL',
+    page: 1,
+    pageSize: 20
+  };
+  
+  try {
+    const response = await inventoryMockApi.getKardex(filters);
+    console.log('✅ Kardex obtenido:', response);
+    console.log(`   Movimientos: ${response.data.length}`);
+    response.data.slice(0, 3).forEach(mov => {
+      console.log(`   - ${mov.fecha}: ${mov.tipo} ${mov.cantidad} ${mov.nombre}`);
+    });
+    return response;
+  } catch (error) {
+    console.error('❌ Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Prueba 5: Crear ajuste de inventario
+ */
+export async function testCreateAjuste() {
+  console.log('\n🧪 TEST 5: Crear ajuste de inventario');
+  console.log('─'.repeat(50));
+  
+  const ajusteData: AjusteInventarioRequest = {
+    productId: 'PRD-003',
+    warehouseId: 'WH-PRINCIPAL',
+    cantidadAjuste: 5,
+    reasonId: 'REASON-001',
+    observaciones: 'Ajuste de prueba desde test script'
+  };
+  
+  try {
+    const response = await inventoryMockApi.createAjuste(ajusteData);
+    console.log('✅ Ajuste creado:', response);
+    
+    // Verificar que el stock se actualizó
+    const stock = await inventoryMockApi.getStock({ q: 'TEC-001' });
+    console.log('   Stock actualizado:', stock.data[0]);
+    
+    return response;
+  } catch (error) {
+    console.error('❌ Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Prueba 6: Obtener alertas de stock
+ */
+export async function testGetAlertas() {
+  console.log('\n🧪 TEST 6: Obtener alertas de stock');
+  console.log('─'.repeat(50));
+  
+  try {
+    const alertas = await inventoryMockApi.getAlertas();
+    console.log('✅ Alertas obtenidas:', alertas);
+    console.log(`   Stock Bajo: ${alertas.stockBajo.length} productos`);
+    console.log(`   Stock Crítico: ${alertas.stockCritico.length} productos`);
+    
+    if (alertas.stockCritico.length > 0) {
+      console.log('\n   ⚠️ Productos con stock crítico:');
+      alertas.stockCritico.forEach(item => {
+        console.log(`      - ${item.codigo}: ${item.nombre} (${item.cantidad}/${item.stockMinimo})`);
+      });
+    }
+    
+    return alertas;
+  } catch (error) {
+    console.error('❌ Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Ejecutar todas las pruebas
+ */
+export async function runAllTests() {
+  console.log('🚀 EJECUTANDO TODAS LAS PRUEBAS DEL MOCK API');
+  console.log('═'.repeat(50));
+  
+  try {
+    await testGetStock();
+    await testGetStockByWarehouse();
+    await testSearchProducts();
+    await testGetKardex();
+    await testCreateAjuste();
+    await testGetAlertas();
+    
+    console.log('\n✅ TODAS LAS PRUEBAS COMPLETADAS EXITOSAMENTE');
+    console.log('═'.repeat(50));
+  } catch (error) {
+    console.error('\n❌ ERROR EN LAS PRUEBAS');
+    console.error('═'.repeat(50));
+    throw error;
+  }
+}
+
+// Auto-ejecutar si se importa directamente
+if (typeof window !== 'undefined') {
+  (window as any).inventoryTests = {
+    testGetStock,
+    testGetStockByWarehouse,
+    testSearchProducts,
+    testGetKardex,
+    testCreateAjuste,
+    testGetAlertas,
+    runAllTests
+  };
+  
+  console.log('📦 Tests de Inventario cargados. Ejecuta:');
+  console.log('   inventoryTests.runAllTests() - Para ejecutar todas las pruebas');
+  console.log('   inventoryTests.testGetStock() - Para probar obtener stock');
+  console.log('   ... etc.');
+}

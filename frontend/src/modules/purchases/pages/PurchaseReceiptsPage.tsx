@@ -1,16 +1,10 @@
 /**
- * PÁGINA: PurchaseReceiptsPage
- * Gestión completa de Recepciones de Compra
- * Fase 5 - Task 13
+ * 📬 PÁGINA: PurchaseReceiptsPage - RECEPCIONES DE COMPRA
  * 
- * Características:
- * - Layout completo con título
- * - Lista de recepciones (PurchaseReceiptList)
- * - Modal crear recepción (PurchaseReceiptForm)
- * - Modal detalle recepción (PurchaseReceiptDetail)
- * - Integración con usePurchaseReceipts hook
- * - Manejo de confirmación/anulación
- * - Notificaciones de acciones
+ * Gestión completa de Recepciones de Compra refactorizada con Context
+ * Conectado a PurchasesContext con useReducer y Mock API
+ * 
+ * @packageDocumentation
  */
 
 import React, { useState, useEffect } from 'react';
@@ -20,9 +14,9 @@ import { COLOR_SCALES, SPACING, BORDER_RADIUS } from '../../../styles/theme';
 import Layout from '../../../components/Layout';
 import Modal from '../../../components/Modal';
 import { PurchaseReceiptList, PurchaseReceiptForm, PurchaseReceiptDetail } from '../components';
-import { usePurchaseReceipts } from '../hooks';
+import { usePurchases } from '../context/PurchasesContext';
 import { useNotification } from '../../../context/NotificationContext';
-import { useAuth } from '../../auth/context/AuthContext';
+import type { Recepcion } from '@monorepo/shared-types';
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -45,41 +39,25 @@ const PurchaseReceiptsPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: urlReceiptId } = useParams<{ id?: string }>();
   const [searchParams] = useSearchParams();
-  const { showNotification } = useNotification();
-  const { user } = useAuth();
+  const { notify } = useNotification();
+
+  // Context
+  const { recepciones, loading, error, loadRecepciones, getRecepcionById, crearRecepcion, actualizarRecepcion, eliminarRecepcion, cambiarEstadoRecepcion } = usePurchases();
 
   // Query params
   const preselectedOrderId = searchParams.get('ordenId') || undefined;
 
-  // ==================== HOOKS ====================
-
-  const {
-    receipts,
-    isLoading,
-    error,
-    fetchReceipts,
-    confirmReceipt,
-    cancelReceipt,
-    refetch,
-  } = usePurchaseReceipts({
-    autoFetch: true,
-    onSuccess: () => {
-      // Success handled in individual operations
-    },
-    onError: (err) => {
-      showNotification('error', 'Error al Cargar', err.message);
-    },
-  });
-
-  // ==================== ESTADOS LOCALES ====================
-
+  // Local state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedReceiptId, setSelectedReceiptId] = useState<string | null>(null);
 
-  // ==================== EFFECTS ====================
+  // Auto-load recepciones
+  useEffect(() => {
+    loadRecepciones();
+  }, [loadRecepciones]);
 
-  // Abrir detalle si viene ID en URL
+  // Abrir detalle desde URL
   useEffect(() => {
     if (urlReceiptId) {
       handleView(urlReceiptId);
@@ -95,54 +73,37 @@ const PurchaseReceiptsPage: React.FC = () => {
 
   // ==================== HANDLERS ====================
 
-  /**
-   * Abrir modal crear
-   */
   const handleCreate = () => {
     setShowCreateModal(true);
   };
 
-  /**
-   * Abrir modal detalle
-   */
   const handleView = (receiptId: string) => {
     setSelectedReceiptId(receiptId);
     setShowDetailModal(true);
   };
 
-  /**
-   * Callback cuando se confirma una recepción (desde PurchaseReceiptList)
-   * La confirmación ya fue realizada por el componente hijo
-   */
-  const handleConfirm = async () => {
-    // Solo refrescar datos - la confirmación ya fue hecha por el componente hijo
-    refetch();
+  const handleDelete = async (receiptId: string) => {
+    await eliminarRecepcion(receiptId);
+    notify({ 
+      type: 'success', 
+      message: 'Recepción eliminada correctamente',
+      title: 'Éxito'
+    });
   };
 
-  /**
-   * Callback cuando se anula una recepción (desde PurchaseReceiptList)
-   * La anulación ya fue realizada por el componente hijo
-   */
-  const handleCancel = async () => {
-    // Solo refrescar datos - la anulación ya fue hecha por el componente hijo
-    refetch();
+  const handleRefresh = async () => {
+    await loadRecepciones();
+    notify({ type: 'info', message: 'Lista actualizada', title: 'Éxito' });
   };
 
-  /**
-   * Refrescar lista
-   */
-  const handleRefresh = () => {
-    refetch();
-    showNotification('info', 'Lista Actualizada', 'Los datos se han recargado correctamente');
-  };
-
-  /**
-   * Success al crear
-   */
-  const handleCreateSuccess = () => {
+  const handleCreateSuccess = async () => {
     setShowCreateModal(false);
-    showNotification('success', 'Recepción Creada', 'La recepción de compra se ha registrado correctamente');
-    refetch();
+    await loadRecepciones();
+    notify({ 
+      type: 'success', 
+      message: 'Recepción creada correctamente',
+      title: 'Éxito'
+    });
     
     // Limpiar query params
     if (preselectedOrderId) {
@@ -150,10 +111,7 @@ const PurchaseReceiptsPage: React.FC = () => {
     }
   };
 
-  /**
-   * Cancelar modales
-   */
-  const handleCancelModal = () => {
+  const handleCancel = () => {
     setShowCreateModal(false);
     setShowDetailModal(false);
     setSelectedReceiptId(null);
@@ -169,49 +127,43 @@ const PurchaseReceiptsPage: React.FC = () => {
   return (
     <Layout title="Recepciones de Compra">
       <Container>
-        {/* Error global */}
         {error && (
           <ErrorContainer>
-            <strong>Error:</strong> {error.message}
+            <strong>Error:</strong> {error}
           </ErrorContainer>
         )}
 
-        {/* Lista de recepciones */}
         <PurchaseReceiptList
           onCreate={handleCreate}
           onView={handleView}
-          onConfirm={handleConfirm}
-          onCancel={handleCancel}
+          onDelete={handleDelete}
           onRefresh={handleRefresh}
         />
 
-        {/* Modal Crear */}
         <Modal
           isOpen={showCreateModal}
-          onClose={handleCancelModal}
+          onClose={handleCancel}
           title="Nueva Recepción de Compra"
           size="large"
         >
           <PurchaseReceiptForm
             preselectedOrderId={preselectedOrderId}
             onSuccess={handleCreateSuccess}
-            onCancel={handleCancelModal}
+            onCancel={handleCancel}
           />
         </Modal>
 
-        {/* Modal Detalle */}
         <Modal
           isOpen={showDetailModal}
-          onClose={handleCancelModal}
+          onClose={handleCancel}
           title="Detalle de Recepción de Compra"
           size="large"
         >
           {selectedReceiptId && (
             <PurchaseReceiptDetail
               receiptId={selectedReceiptId}
-              onConfirm={handleConfirm}
-              onCancel={handleCancel}
-              onClose={handleCancelModal}
+              onConfirm={handleRefresh}
+              onClose={handleCancel}
             />
           )}
         </Modal>

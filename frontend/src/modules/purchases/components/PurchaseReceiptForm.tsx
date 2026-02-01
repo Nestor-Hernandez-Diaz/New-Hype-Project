@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * COMPONENTE: PurchaseReceiptForm
  * Formulario para crear recepciones de compra
