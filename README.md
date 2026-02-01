@@ -130,7 +130,24 @@ El proyecto sigue una arquitectura modular donde cada funcionalidad está conten
 - **React Router** - Enrutamiento
 - **Axios** - Cliente HTTP
 
-## 📝 Notas
+## � Guías y Protocolos
+
+### Para Nuevos Miembros del Equipo
+- **[Onboarding para nuevos miembros](./ONBOARDING.md)** - Setup completo en <30 minutos
+
+### Para Refactorización Frontend
+- **[Flujo de trabajo y convenciones](./WORKFLOW.md)** - Cómo refactorizar módulos con mocks
+- **[Protocolo de QA obligatorio](./QA-PROTOCOL.md)** - Verificación pre-PR
+
+### Troubleshooting
+- **[Troubleshooting común](./TROUBLESHOOTING.md)** - Solución de errores frecuentes
+### Plan de Limpieza de Configuración (Feb 2026)
+- **[Validación Final - Proyecto en Orden](./VALIDACION_FINAL_ORDEN.md)** - 10/10 checks ✅
+- **[Índice de Reportes](./REPORTES_INDICE.md)** - Navegación a reportes de limpieza (Fase 1-3)
+- **[Fase 3: Reporte Final](./FASE3_VERIFICACION_FINAL_REPORTE.md)** - Status y verificaciones (5/5 checks ✅)
+---
+
+## �📝 Notas
 
 - Node.js >= 18.0.0 requerido
 - npm >= 9.0.0 requerido
