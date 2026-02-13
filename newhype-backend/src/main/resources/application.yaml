@@ -1,0 +1,46 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  NewHype Backend — Spring Boot 4.0.2 / Java 17             ║
+# ║  ERP SaaS Multi-Tenant para Tienda de Ropa (Perú)          ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+spring:
+  application:
+    name: NewHype Backend
+
+  # ── Datasource (MySQL XAMPP) ──────────────────────────────────
+  datasource:
+    url: jdbc:mysql://localhost:3306/newhype_dev?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Lima
+    username: root
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # ── JPA / Hibernate ──────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# ── Server ─────────────────────────────────────────────────────
+server:
+  port: 8080
+
+# ── SpringDoc / Swagger UI ─────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+
+# ── JWT (propiedades custom de la app) ─────────────────────────
+app:
+  jwt:
+    secret: CAMBIAR_EN_PRODUCCION_newhype_256bit_secret_key_dev_2026_jwt
+    expiration-ms: 86400000       # 24 horas
+    refresh-expiration-ms: 604800000  # 7 días
