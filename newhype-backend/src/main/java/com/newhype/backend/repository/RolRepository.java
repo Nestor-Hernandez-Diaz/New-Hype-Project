@@ -10,5 +10,9 @@ public interface RolRepository extends JpaRepository<Rol, Long> {
 
     Optional<Rol> findByTenantIdAndNombre(Long tenantId, String nombre);
 
+    Optional<Rol> findByIdAndTenantId(Long id, Long tenantId);
+
     List<Rol> findByTenantId(Long tenantId);
+
+    List<Rol> findByTenantIdAndEstadoTrue(Long tenantId);
 }
