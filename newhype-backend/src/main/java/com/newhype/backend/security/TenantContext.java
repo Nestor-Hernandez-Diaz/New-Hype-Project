@@ -42,4 +42,8 @@ public final class TenantContext {
     public static boolean isTenantScope() {
         return "tenant".equals(getCurrentScope());
     }
+
+    public static boolean isStorefrontScope() {
+        return "storefront".equals(getCurrentScope());
+    }
 }

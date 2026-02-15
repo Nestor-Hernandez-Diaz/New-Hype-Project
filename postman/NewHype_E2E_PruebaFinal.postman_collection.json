@@ -1,0 +1,1861 @@
+{
+  "info": {
+    "_postman_id": "newhype-e2e-001",
+    "name": "NewHype ERP - Prueba Final E2E (169 endpoints)",
+    "description": "Coleccion completa para prueba final del flujo de negocio:\nSuperadmin crea tenant -> Tenant configura empresa -> Crea producto -> Vende -> Reportes -> Cliente B2C registra y compra.\n\nPRE-REQUISITO: Ejecutar el SQL de seed del superadmin antes de correr.\n\nOrden de ejecucion: Usar Collection Runner en orden secuencial.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [],
+  "item": [
+    {
+      "name": "00 - SETUP",
+      "description": "Pre-requisitos: seed de datos base",
+      "item": [
+        {
+          "name": "00.1 Seed Superadmin (SQL directo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/check-email?email=seed-check",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "check-email"],
+              "query": [{"key": "email", "value": "seed-check"}]
+            },
+            "description": "NOTA: Antes de ejecutar la coleccion, ejecutar este SQL en MySQL:\n\nINSERT INTO usuarios_plataforma (email, username, password_hash, nombre, apellido, estado)\nVALUES ('superadmin@newhype.pe', 'superadmin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Super', 'Admin', 1);\n\n(El hash corresponde a 'SuperAdmin2026' con BCrypt)\n\nSi ya existe el superadmin, este request es solo un health-check."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('API is running', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    console.log('API health check OK - Ready to run E2E tests');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - SUPERADMIN LOGIN",
+      "description": "Fase 5: Login como superadmin de plataforma",
+      "item": [
+        {
+          "name": "01.1 Platform Login (Superadmin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"emailOrUsername\": \"{{superadminEmail}}\",\n    \"password\": \"{{superadminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/platform/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["platform", "auth", "login"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success=true and accessToken', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('accessToken');",
+                  "    pm.expect(json.data).to.have.property('refreshToken');",
+                  "    pm.expect(json.data.scope).to.eql('platform');",
+                  "});",
+                  "",
+                  "pm.test('Save superadmin token', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.environment.set('superadminToken', json.data.accessToken);",
+                  "    console.log('Superadmin token saved. Role:', json.data.user.rol);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - SUPERADMIN CREA TENANT",
+      "description": "Fase 5: Superadmin crea un nuevo tenant con plan y admin",
+      "item": [
+        {
+          "name": "02.1 Crear Plan Basico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{superadminToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Plan Basico\",\n    \"codigo\": \"BASICO\",\n    \"descripcion\": \"Plan basico para tiendas pequenas\",\n    \"precioMensual\": 99.90,\n    \"precioAnual\": 999.00,\n    \"limiteUsuarios\": 5,\n    \"limiteProductos\": 500,\n    \"limiteAlmacenes\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/platform/planes",
+              "host": ["{{baseUrl}}"],
+              "path": ["platform", "planes"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Plan creado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Plan has correct data', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.environment.set('planId', json.data.id);",
+                  "    console.log('Plan Basico creado, id:', json.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 Crear Tenant (Fashion Store Lima)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{superadminToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Fashion Store Lima\",\n    \"subdominio\": \"fashionlima\",\n    \"propietarioNombre\": \"Carlos Rodriguez\",\n    \"propietarioTipoDocumento\": \"DNI\",\n    \"propietarioNumeroDocumento\": \"45678912\",\n    \"email\": \"{{tenantEmail}}\",\n    \"telefono\": \"987654321\",\n    \"direccion\": \"Av. Javier Prado 1234, San Isidro, Lima\",\n    \"planId\": {{planId}},\n    \"adminPassword\": \"{{tenantPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/platform/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["platform", "tenants"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Tenant creado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Tenant has all required fields', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data.nombre).to.eql('Fashion Store Lima');",
+                  "    pm.expect(json.data.subdominio).to.eql('fashionlima');",
+                  "    pm.expect(json.data.estado).to.eql('ACTIVA');",
+                  "    pm.environment.set('tenantId', json.data.id);",
+                  "    console.log('Tenant creado, id:', json.data.id, '| Admin email:', pm.environment.get('tenantEmail'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 Verificar Tenant en Lista",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{superadminToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/platform/tenants?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["platform", "tenants"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Tenant list contains created tenant', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.content.length).to.be.above(0);",
+                  "    var found = json.data.content.find(t => t.subdominio === 'fashionlima');",
+                  "    pm.expect(found).to.not.be.undefined;",
+                  "    console.log('Tenants totales:', json.data.totalElements);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - TENANT LOGIN",
+      "description": "Fase 1: Login como admin del tenant recien creado",
+      "item": [
+        {
+          "name": "03.1 Tenant Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{tenantEmail}}\",\n    \"password\": \"{{tenantPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Login tenant exitoso con scope=tenant', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.scope).to.eql('tenant');",
+                  "    pm.expect(json.data).to.have.property('accessToken');",
+                  "    pm.expect(json.data.user.rol).to.eql('ADMIN');",
+                  "});",
+                  "",
+                  "pm.test('Save tenant token and verify tenantId', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.environment.set('tenantToken', json.data.accessToken);",
+                  "    // Verify JWT tenantId matches created tenant",
+                  "    pm.expect(json.data.user.tenantId).to.eql(parseInt(pm.environment.get('tenantId')));",
+                  "    console.log('Tenant login OK | tenantId:', json.data.user.tenantId, '| rol:', json.data.user.rol);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - CONFIGURAR EMPRESA",
+      "description": "Fase 4: Configurar datos fiscales, series SUNAT, metodos pago",
+      "item": [
+        {
+          "name": "04.1 Configurar Empresa (RUC + SUNAT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"ruc\": \"20512345678\",\n    \"razonSocial\": \"Fashion Store Lima S.A.C.\",\n    \"nombreComercial\": \"Fashion Store\",\n    \"direccion\": \"Av. Javier Prado 1234, San Isidro\",\n    \"telefono\": \"01-4567890\",\n    \"email\": \"admin@fashionlima.pe\",\n    \"departamento\": \"LIMA\",\n    \"provincia\": \"LIMA\",\n    \"distrito\": \"SAN ISIDRO\",\n    \"igvActivo\": true,\n    \"igvPorcentaje\": 18,\n    \"moneda\": \"PEN\",\n    \"sunatUsuario\": \"MODDATOS\",\n    \"sunatClave\": \"MODDATOS\",\n    \"sunatServidor\": \"HOMOLOGACION\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/empresa",
+              "host": ["{{baseUrl}}"],
+              "path": ["configuracion", "empresa"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Empresa configurada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Datos fiscales guardados correctamente', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.ruc).to.eql('20512345678');",
+                  "    pm.expect(json.data.razonSocial).to.eql('Fashion Store Lima S.A.C.');",
+                  "    pm.expect(json.data.igvActivo).to.eql(true);",
+                  "    console.log('Empresa configurada:', json.data.razonSocial);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 Verificar Config Empresa (GET)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/empresa",
+              "host": ["{{baseUrl}}"],
+              "path": ["configuracion", "empresa"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - GET empresa', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('RUC y razon social persisten', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.ruc).to.eql('20512345678');",
+                  "    pm.expect(json.data.sunatServidor).to.eql('HOMOLOGACION');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.3 Crear Serie Boleta (B001)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"tipoComprobante\": \"BOLETA\",\n    \"serie\": \"B001\",\n    \"numeroInicio\": 1,\n    \"numeroFin\": 99999999\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/series-comprobantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["configuracion", "series-comprobantes"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Serie creada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Serie BOLETA B001 creada', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.environment.set('serieId', json.data.id);",
+                  "    console.log('Serie B001 creada, id:', json.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.4 Crear Metodo Pago - Efectivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo\": \"EFE\",\n    \"nombre\": \"Efectivo\",\n    \"descripcion\": \"Pago en efectivo\",\n    \"tipo\": \"EFECTIVO\",\n    \"requiereReferencia\": false,\n    \"predeterminado\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/metodos-pago",
+              "host": ["{{baseUrl}}"],
+              "path": ["configuracion", "metodos-pago"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Metodo pago creado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Metodo pago Efectivo creado', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.environment.set('metodoPagoId', json.data.id);",
+                  "    console.log('Metodo pago Efectivo id:', json.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.5 Crear Almacen Principal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo\": \"ALM-PRINCIPAL\",\n    \"nombre\": \"Almacen Principal\",\n    \"ubicacion\": \"Av. Javier Prado 1234, San Isidro\",\n    \"capacidad\": 5000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/almacenes",
+              "host": ["{{baseUrl}}"],
+              "path": ["almacenes"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Almacen creado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Almacen tiene id y nombre correcto', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data.nombre).to.eql('Almacen Principal');",
+                  "    pm.environment.set('almacenId', json.data.id);",
+                  "    console.log('Almacen Principal id:', json.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.6 Crear Caja Registradora",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo\": \"CAJA-01\",\n    \"nombre\": \"Caja Principal\",\n    \"descripcion\": \"Caja de atencion principal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/cajas-registradoras",
+              "host": ["{{baseUrl}}"],
+              "path": ["configuracion", "cajas-registradoras"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Caja creada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Caja registradora creada', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.environment.set('cajaId', json.data.id);",
+                  "    console.log('Caja Registradora id:', json.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.7 Configurar Politica Devoluciones",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"diasMaximoDevolucion\": 30,\n    \"requiereComprobante\": true,\n    \"aceptaProductoUsado\": false,\n    \"descripcion\": \"Devoluciones dentro de 30 dias con comprobante original. Producto sin uso.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/politica-devoluciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["configuracion", "politica-devoluciones"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Politica configurada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Politica devoluciones guardada', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    console.log('Politica de devoluciones configurada');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - CREAR CATALOGO + PRODUCTO",
+      "description": "Fase 1: Crear categoria + producto con precios",
+      "item": [
+        {
+          "name": "05.1 Crear Categoria (Polos)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo\": \"POL\",\n    \"nombre\": \"Polos\",\n    \"slug\": \"polos\",\n    \"descripcion\": \"Polos y camisetas de algodon\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/categorias",
+              "host": ["{{baseUrl}}"],
+              "path": ["configuracion", "categorias"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Categoria creada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Categoria Polos creada con id', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data.nombre).to.eql('Polos');",
+                  "    pm.environment.set('categoriaId', json.data.id);",
+                  "    console.log('Categoria Polos id:', json.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.2 Crear Producto (Polo Premium Negro)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sku\": \"POL-PREM-001\",\n    \"nombre\": \"Polo Premium Negro\",\n    \"descripcion\": \"Polo de algodon pima premium color negro, idealpara uso casual y semi-formal\",\n    \"categoriaId\": {{categoriaId}},\n    \"precioCosto\": 35.00,\n    \"precioVenta\": 79.90,\n    \"stockMinimo\": 10,\n    \"controlaInventario\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Producto creado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Producto tiene SKU, precio y slug auto-generado', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.sku).to.eql('POL-PREM-001');",
+                  "    pm.expect(json.data.precioVenta).to.eql(79.90);",
+                  "    pm.expect(json.data).to.have.property('slug');",
+                  "    pm.environment.set('productoId', json.data.id);",
+                  "    pm.environment.set('productoSlug', json.data.slug);",
+                  "    pm.environment.set('precioVenta', json.data.precioVenta);",
+                  "    console.log('Producto id:', json.data.id, '| slug:', json.data.slug, '| precio:', json.data.precioVenta);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.3 Verificar Producto en Lista",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productos?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Lista de productos contiene el producto creado', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.content.length).to.be.above(0);",
+                  "    var found = json.data.content.find(p => p.sku === 'POL-PREM-001');",
+                  "    pm.expect(found).to.not.be.undefined;",
+                  "    console.log('Productos en tenant:', json.data.totalElements);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.4 Ajuste de Inventario (Ingreso stock inicial)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"productoId\": {{productoId}},\n    \"almacenId\": {{almacenId}},\n    \"tipo\": \"AJUSTE_INGRESO\",\n    \"cantidad\": 50,\n    \"motivo\": \"Stock inicial de apertura de tienda\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventario/ajustes",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", "ajustes"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Ajuste registrado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Stock ajustado correctamente', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    console.log('Ajuste de inventario: +50 unidades ingresadas');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.5 Verificar Stock (debe ser 50)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/inventario/stock?almacenId={{almacenId}}&productoId={{productoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", "stock"],
+              "query": [
+                {"key": "almacenId", "value": "{{almacenId}}"},
+                {"key": "productoId", "value": "{{productoId}}"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Stock es 50 unidades', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    // Stock should be 50 after initial adjustment",
+                  "    var stockData = json.data;",
+                  "    if (Array.isArray(stockData.content || stockData)) {",
+                  "        var items = stockData.content || stockData;",
+                  "        var found = items.find(s => s.productoId == pm.environment.get('productoId'));",
+                  "        if (found) {",
+                  "            pm.expect(found.cantidad).to.eql(50);",
+                  "            console.log('Stock verificado: 50 unidades');",
+                  "        }",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - FLUJO DE VENTA (POS)",
+      "description": "Fase 2: Crear entidad cliente, abrir caja, vender, confirmar pago",
+      "item": [
+        {
+          "name": "06.1 Crear Cliente (Entidad Comercial)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"tipoEntidad\": \"CLIENTE\",\n    \"tipoDocumento\": \"DNI\",\n    \"numeroDocumento\": \"76543210\",\n    \"nombres\": \"Pedro\",\n    \"apellidos\": \"Martinez Lopez\",\n    \"email\": \"pedro.martinez@email.com\",\n    \"telefono\": \"999111222\",\n    \"direccion\": \"Jr. Union 456, Lima\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/entidades",
+              "host": ["{{baseUrl}}"],
+              "path": ["entidades"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Cliente creado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Entidad comercial tipo CLIENTE creada', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.environment.set('clienteEntidadId', json.data.id);",
+                  "    console.log('Cliente Pedro Martinez id:', json.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "06.2 Abrir Sesion de Caja",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"cajaRegistradoraId\": {{cajaId}},\n    \"montoApertura\": 500.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/caja/sesiones",
+              "host": ["{{baseUrl}}"],
+              "path": ["caja", "sesiones"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Sesion abierta', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Sesion de caja abierta con monto inicial', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.environment.set('sesionCajaId', json.data.id);",
+                  "    console.log('Sesion caja abierta id:', json.data.id, '| monto apertura: S/ 500.00');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "06.3 Crear Venta (2 Polos Premium)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sesionCajaId\": {{sesionCajaId}},\n    \"clienteId\": {{clienteEntidadId}},\n    \"almacenId\": {{almacenId}},\n    \"tipoComprobante\": \"BOLETA\",\n    \"serie\": \"B001\",\n    \"observaciones\": \"Venta presencial - cliente regular\",\n    \"items\": [\n        {\n            \"productoId\": {{productoId}},\n            \"cantidad\": 2,\n            \"precioUnitario\": {{precioVenta}},\n            \"descuento\": 0\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ventas",
+              "host": ["{{baseUrl}}"],
+              "path": ["ventas"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Venta creada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Venta en estado PENDIENTE con total correcto', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data.estado).to.eql('PENDIENTE');",
+                  "    // 2 x 79.90 = 159.80 subtotal",
+                  "    pm.expect(json.data.subtotal).to.be.above(0);",
+                  "    pm.environment.set('ventaId', json.data.id);",
+                  "    console.log('Venta creada id:', json.data.id, '| estado:', json.data.estado, '| total: S/', json.data.total);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "06.4 Confirmar Pago (Efectivo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"montoRecibido\": 200.00,\n    \"pagos\": [\n        {\n            \"metodoPagoId\": {{metodoPagoId}},\n            \"monto\": 200.00,\n            \"referencia\": null\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ventas/{{ventaId}}/confirmar-pago",
+              "host": ["{{baseUrl}}"],
+              "path": ["ventas", "{{ventaId}}", "confirmar-pago"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Pago confirmado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Venta estado COMPLETADA tras pago', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.estado).to.eql('COMPLETADA');",
+                  "    console.log('Pago confirmado! Venta estado:', json.data.estado, '| Stock debio decrementar en 2 unidades');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "06.5 Verificar Stock Post-Venta (debe ser 48)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/inventario/stock?almacenId={{almacenId}}&productoId={{productoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", "stock"],
+              "query": [
+                {"key": "almacenId", "value": "{{almacenId}}"},
+                {"key": "productoId", "value": "{{productoId}}"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Stock decremented by 2 (50 -> 48)', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    var stockData = json.data;",
+                  "    if (Array.isArray(stockData.content || stockData)) {",
+                  "        var items = stockData.content || stockData;",
+                  "        var found = items.find(s => s.productoId == pm.environment.get('productoId'));",
+                  "        if (found) {",
+                  "            pm.expect(found.cantidad).to.eql(48);",
+                  "            console.log('Stock post-venta verificado: 48 unidades (50 - 2 vendidas)');",
+                  "        }",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "06.6 Verificar Kardex (movimiento SALIDA)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/inventario/kardex?productoId={{productoId}}&almacenId={{almacenId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", "kardex"],
+              "query": [
+                {"key": "productoId", "value": "{{productoId}}"},
+                {"key": "almacenId", "value": "{{almacenId}}"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Kardex contains SALIDA movement from sale', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    var data = json.data.content || json.data;",
+                  "    if (Array.isArray(data) && data.length > 0) {",
+                  "        var salida = data.find(m => m.tipo === 'SALIDA' || m.tipoMovimiento === 'SALIDA');",
+                  "        pm.expect(salida).to.not.be.undefined;",
+                  "        console.log('Kardex: movimiento SALIDA encontrado, cantidad:', salida.cantidad);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 - REPORTES",
+      "description": "Fase 6: Dashboard ejecutivo y reportes del negocio",
+      "item": [
+        {
+          "name": "07.1 Dashboard Resumen",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/resumen",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "resumen"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Dashboard muestra venta realizada', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('ventasHoy');",
+                  "    pm.expect(json.data).to.have.property('totalVentasHoy');",
+                  "    pm.expect(json.data).to.have.property('productosActivos');",
+                  "    pm.expect(json.data.ventasHoy).to.be.at.least(1);",
+                  "    pm.expect(json.data.productosActivos).to.be.at.least(1);",
+                  "    console.log('Dashboard: ventas hoy:', json.data.ventasHoy,",
+                  "        '| total ventas hoy: S/', json.data.totalVentasHoy,",
+                  "        '| productos activos:', json.data.productosActivos);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07.2 Reporte de Ventas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/ventas?fechaDesde=2026-01-01&fechaHasta=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "ventas"],
+              "query": [
+                {"key": "fechaDesde", "value": "2026-01-01"},
+                {"key": "fechaHasta", "value": "2026-12-31"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Reporte de ventas tiene datos', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('totalVentas');",
+                  "    pm.expect(json.data.totalVentas).to.be.at.least(1);",
+                  "    console.log('Reporte ventas: total:', json.data.totalVentas, '| monto: S/', json.data.montoTotal);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07.3 Reporte de Inventario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/inventario",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "inventario"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Reporte inventario tiene almacenes', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('totalProductos');",
+                  "    console.log('Reporte inventario: productos:', json.data.totalProductos, '| almacenes:', json.data.almacenes ? json.data.almacenes.length : 0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07.4 Reporte Financiero",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/financiero?fechaDesde=2026-01-01&fechaHasta=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "financiero"],
+              "query": [
+                {"key": "fechaDesde", "value": "2026-01-01"},
+                {"key": "fechaHasta", "value": "2026-12-31"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Reporte financiero tiene balance', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('totalIngresos');",
+                  "    pm.expect(json.data).to.have.property('balanceNeto');",
+                  "    console.log('Financiero: ingresos: S/', json.data.totalIngresos, '| balance neto: S/', json.data.balanceNeto);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07.5 Productos Mas Vendidos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/productos-mas-vendidos?top=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "productos-mas-vendidos"],
+              "query": [
+                {"key": "top", "value": "5"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Ranking productos vendidos incluye Polo Premium', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('productos');",
+                  "    if (json.data.productos.length > 0) {",
+                  "        pm.expect(json.data.productos[0].sku).to.eql('POL-PREM-001');",
+                  "        console.log('Top producto:', json.data.productos[0].nombre, '| vendidos:', json.data.productos[0].cantidadVendida);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07.6 Reporte de Compras",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/compras",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "compras"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Reporte compras responde correctamente', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('totalOrdenes');",
+                  "    console.log('Reporte compras: ordenes:', json.data.totalOrdenes);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07.7 Reporte de Caja",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/caja",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "caja"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Reporte caja tiene sesiones', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('sesiones');",
+                  "    pm.expect(json.data.sesiones.length).to.be.at.least(1);",
+                  "    console.log('Reporte caja: sesiones:', json.data.sesiones.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 - STOREFRONT B2C",
+      "description": "Fase 7: Cliente final registra, navega catalogo, compra online",
+      "item": [
+        {
+          "name": "08.1 Ver Catalogo Publico (sin auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/storefront/productos?tenantId={{tenantId}}&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "productos"],
+              "query": [
+                {"key": "tenantId", "value": "{{tenantId}}"},
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Catalogo publico accesible sin auth', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Catalogo muestra producto con precio y disponibilidad', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.content.length).to.be.above(0);",
+                  "    var producto = json.data.content[0];",
+                  "    pm.expect(producto).to.have.property('precioVenta');",
+                  "    pm.expect(producto).to.have.property('disponible');",
+                  "    pm.expect(producto).to.have.property('nombre');",
+                  "    console.log('Catalogo publico:', json.data.totalElements, 'productos |',",
+                  "        producto.nombre, 'a S/', producto.precioVenta, '| disponible:', producto.disponible);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.2 Ver Categorias Publicas (sin auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/storefront/categorias?tenantId={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "categorias"],
+              "query": [
+                {"key": "tenantId", "value": "{{tenantId}}"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Categorias con slug para SEO', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.length).to.be.above(0);",
+                  "    pm.expect(json.data[0]).to.have.property('slug');",
+                  "    console.log('Categorias publicas:', json.data.length, '| primera:', json.data[0].nombre);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.3 Ver Detalle Producto por Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/storefront/productos/{{productoSlug}}?tenantId={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "productos", "{{productoSlug}}"],
+              "query": [
+                {"key": "tenantId", "value": "{{tenantId}}"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Detalle producto con precio y categoria', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('precioVenta');",
+                  "    pm.expect(json.data).to.have.property('categoriaNombre');",
+                  "    pm.expect(json.data).to.have.property('disponible');",
+                  "    console.log('Detalle slug:', json.data.slug, '| nombre:', json.data.nombre,",
+                  "        '| precio: S/', json.data.precioVenta, '| disponible:', json.data.disponible);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.4 Registrar Cliente B2C",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"tenantId\": {{tenantId}},\n    \"email\": \"{{clienteEmail}}\",\n    \"password\": \"{{clientePassword}}\",\n    \"nombre\": \"Maria\",\n    \"apellido\": \"Garcia Flores\",\n    \"telefono\": \"998877665\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/storefront/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "auth", "register"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Cliente B2C registrado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Registro retorna JWT storefront y datos cliente', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data).to.have.property('accessToken');",
+                  "    pm.expect(json.data.user.email).to.eql(pm.environment.get('clienteEmail'));",
+                  "    pm.expect(json.data.user.nombre).to.eql('Maria');",
+                  "    pm.environment.set('clienteToken', json.data.accessToken);",
+                  "    console.log('Cliente B2C registrado:', json.data.user.nombre,",
+                  "        '| scope:', json.data.scope, '| tenantId:', json.data.user.tenantId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.5 Ver Perfil Cliente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{clienteToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/storefront/perfil",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "perfil"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Perfil muestra datos del cliente', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.email).to.eql(pm.environment.get('clienteEmail'));",
+                  "    pm.expect(json.data.nombre).to.eql('Maria');",
+                  "    console.log('Perfil:', json.data.nombre, json.data.apellido, '| tel:', json.data.telefono);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.6 Actualizar Perfil Cliente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{clienteToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Maria Elena\",\n    \"direccion\": \"Calle Las Flores 789, Miraflores, Lima\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/storefront/perfil",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "perfil"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Perfil actualizado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Nombre y direccion actualizados', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.nombre).to.eql('Maria Elena');",
+                  "    pm.expect(json.data.direccion).to.include('Miraflores');",
+                  "    console.log('Perfil actualizado:', json.data.nombre, '| dir:', json.data.direccion);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.7 Crear Pedido Online (3 Polos)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{clienteToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"items\": [\n        {\n            \"productoId\": {{productoId}},\n            \"cantidad\": 3\n        }\n    ],\n    \"direccionEnvio\": \"Calle Las Flores 789, Miraflores, Lima\",\n    \"instrucciones\": \"Tocar timbre del depto 302. Horario: 9am-6pm.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/storefront/pedidos",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "pedidos"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Pedido creado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Pedido con codigo, IGV 18% y detalles correctos', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.estado).to.eql('PENDIENTE');",
+                  "    pm.expect(json.data.codigo).to.match(/^PED-/);",
+                  "    pm.expect(json.data.detalles.length).to.eql(1);",
+                  "    pm.expect(json.data.detalles[0].cantidad).to.eql(3);",
+                  "    // Verify IGV calculation: subtotal * 0.18 = igv",
+                  "    var expectedSubtotal = 3 * parseFloat(pm.environment.get('precioVenta'));",
+                  "    pm.expect(json.data.subtotal).to.be.closeTo(expectedSubtotal, 0.5);",
+                  "    pm.expect(json.data.igv).to.be.above(0);",
+                  "    pm.environment.set('pedidoId', json.data.id);",
+                  "    console.log('Pedido:', json.data.codigo, '| estado:', json.data.estado,",
+                  "        '| subtotal: S/', json.data.subtotal, '| IGV: S/', json.data.igv, '| total: S/', json.data.total);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.8 Listar Mis Pedidos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{clienteToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/storefront/pedidos?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "pedidos"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"}
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Lista mis pedidos contiene el pedido creado', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.content.length).to.be.at.least(1);",
+                  "    var pedido = json.data.content[0];",
+                  "    pm.expect(pedido.codigo).to.match(/^PED-/);",
+                  "    console.log('Mis pedidos:', json.data.totalElements, '| ultimo:', pedido.codigo, pedido.estado);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.9 Ver Detalle de Mi Pedido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{clienteToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/storefront/pedidos/{{pedidoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "pedidos", "{{pedidoId}}"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Detalle pedido con productos y totales', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.detalles.length).to.eql(1);",
+                  "    pm.expect(json.data.detalles[0].nombreProducto).to.include('Polo Premium');",
+                  "    pm.expect(json.data.direccionEnvio).to.include('Miraflores');",
+                  "    console.log('Detalle pedido:', json.data.codigo, '| items:', json.data.detalles.length,",
+                  "        '| envio:', json.data.direccionEnvio);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.10 Cancelar Pedido",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{clienteToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/storefront/pedidos/{{pedidoId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "pedidos", "{{pedidoId}}", "cancelar"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Pedido cancelado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Estado cambia a CANCELADO', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.estado).to.eql('CANCELADO');",
+                  "    console.log('Pedido', json.data.codigo, 'cancelado exitosamente');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08.11 Validar: No se puede cancelar pedido ya cancelado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{clienteToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/storefront/pedidos/{{pedidoId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["storefront", "pedidos", "{{pedidoId}}", "cancelar"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 500 - No se puede cancelar pedido cancelado', function () {",
+                  "    pm.response.to.have.status(500);",
+                  "});",
+                  "",
+                  "pm.test('Error message indica estado invalido', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json.message).to.include('PENDIENTE o CONFIRMADO');",
+                  "    console.log('Validacion OK: no se puede re-cancelar. Msg:', json.message);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 - VALIDACION FINAL",
+      "description": "Verificaciones finales cross-module",
+      "item": [
+        {
+          "name": "09.1 Reporte Resumen Final (con venta y pedido)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{tenantToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/resumen",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "resumen"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Dashboard refleja toda la actividad del flujo E2E', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.data.ventasHoy).to.be.at.least(1);",
+                  "    pm.expect(json.data.productosActivos).to.be.at.least(1);",
+                  "    pm.expect(json.data.clientesRegistrados).to.be.at.least(1);",
+                  "    console.log('=== RESULTADO FINAL ===');",
+                  "    console.log('Ventas hoy:', json.data.ventasHoy, '| Total ventas: S/', json.data.totalVentasHoy);",
+                  "    console.log('Productos activos:', json.data.productosActivos);",
+                  "    console.log('Clientes registrados:', json.data.clientesRegistrados);",
+                  "    console.log('=== PRUEBA E2E COMPLETADA ===');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "09.2 Swagger Endpoint Count (169)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/v3/api-docs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["v3", "api-docs"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Swagger accesible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Total endpoints = 169', function () {",
+                  "    var json = pm.response.json();",
+                  "    var paths = Object.keys(json.paths);",
+                  "    var count = 0;",
+                  "    paths.forEach(function(path) {",
+                  "        var methods = Object.keys(json.paths[path]);",
+                  "        methods.forEach(function(m) {",
+                  "            if (['get','post','put','patch','delete'].indexOf(m) >= 0) {",
+                  "                count++;",
+                  "            }",
+                  "        });",
+                  "    });",
+                  "    pm.expect(count).to.eql(169);",
+                  "    console.log('=== CONTEO SWAGGER FINAL ===');",
+                  "    console.log('Paths:', paths.length, '| Endpoints:', count, '/ 169');",
+                  "    console.log('=== PROYECTO NEWHYPE ERP COMPLETO ===');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

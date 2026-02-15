@@ -8,6 +8,8 @@ import java.util.Optional;
 
 public interface CajaRegistradoraRepository extends JpaRepository<CajaRegistradora, Long> {
 
+    List<CajaRegistradora> findByTenantId(Long tenantId);
+
     List<CajaRegistradora> findByTenantIdAndEstadoTrue(Long tenantId);
 
     Optional<CajaRegistradora> findByIdAndTenantId(Long id, Long tenantId);
