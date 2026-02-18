@@ -69,7 +69,7 @@ const Dashboard: React.FC = () => {
         <ActivityList>
           <ActivityItem>
             <ActivityIcon className="fas fa-shopping-cart" />
-            Venta: Camara de Seguridad (x2) a Juan Perez
+            Venta: Vestido Midi Satinado (x2) a Ana Rodriguez
           </ActivityItem>
           <ActivityItem>
             <ActivityIcon className="fas fa-user-plus" />
@@ -77,15 +77,15 @@ const Dashboard: React.FC = () => {
           </ActivityItem>
           <ActivityItem>
             <ActivityIcon className="fas fa-box" />
-            Producto actualizado: Sistema de Alarma
+            Producto actualizado: Jean Skinny Denim
           </ActivityItem>
           <ActivityItem>
             <ActivityIcon className="fas fa-shopping-cart" />
-            Venta: Portero Automatico (x1) a Maria Lopez
+            Venta: Casaca Bomber (x1) a Carlos Mendoza
           </ActivityItem>
           <ActivityItem>
             <ActivityIcon className="fas fa-plus-circle" />
-            Producto agregado: Sensor de Movimiento
+            Producto agregado: Zapatillas Urbanas
           </ActivityItem>
         </ActivityList>
       </ActivityCard>
