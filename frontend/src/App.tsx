@@ -52,9 +52,6 @@ const ConfiguracionComprobantes = lazy(() => import('./modules/configuration/pag
 const ConfiguracionMetodosPago = lazy(() => import('./modules/configuration/pages/MetodosPago'));
 const ConfiguracionProductos = lazy(() => import('./modules/configuration/pages/ConfiguracionProductos'));
 
-// Módulo de Superadmin
-const RequerimientosSuperadmin = lazy(() => import('./modules/superadmin/pages/RequerimientosSuperadmin'));
-
 // Módulo de Reports
 const ReportesVentas = lazy(() => import('./modules/reports/pages/ReporteVentas'));
 const ReportesCompras = lazy(() => import('./modules/reports/pages/ReporteCompras') as Promise<{ default: React.ComponentType<any> }>);
@@ -109,14 +106,6 @@ function App() {
                                       <Dashboard />
                                     </ProtectedRoute>
                                   } 
-                                />
-                                <Route
-                                  path="/superadmin/requerimientos"
-                                  element={
-                                    <ProtectedRoute requiredPermission="superadmin.read">
-                                      <RequerimientosSuperadmin />
-                                    </ProtectedRoute>
-                                  }
                                 />
                   <Route 
                     path="/gestion-caja" 
