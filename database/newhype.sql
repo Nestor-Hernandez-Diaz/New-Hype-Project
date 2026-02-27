@@ -1071,3 +1071,114 @@ SET FOREIGN_KEY_CHECKS = 1;
 --   -- Verificar tabla nueva con FK a productos
 --
 -- ============================================================================
+
+-- ═══════════════════════════════════════════════════════════════
+-- TABLAS FALTANTES DEL MÓDULO STOREFRONT
+-- Estas tablas son necesarias para el arranque del backend
+-- Ejecutar en la base de datos 'newhype'
+-- ═══════════════════════════════════════════════════════════════
+
+USE newhype;
+
+-- ───────────────────────────────────────────────────────────────
+-- 1. CLIENTES DE LA TIENDA ONLINE
+-- ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS clientes_tienda (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    password_hash VARCHAR(255),
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100),
+    telefono VARCHAR(20),
+    direccion TEXT,
+    proveedor_oauth VARCHAR(20),              -- 'google', 'facebook', NULL
+    oauth_id VARCHAR(200),
+    ultimo_acceso DATETIME,
+    estado BOOLEAN DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    UNIQUE KEY uk_cliente_email_tenant (email, tenant_id),
+    KEY idx_tenant (tenant_id),
+    KEY idx_oauth (proveedor_oauth, oauth_id),
+    CONSTRAINT fk_cliente_tenant FOREIGN KEY (tenant_id) 
+        REFERENCES tenants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ───────────────────────────────────────────────────────────────
+-- 2. IMÁGENES DE PRODUCTOS
+-- ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS imagenes_producto (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    producto_id BIGINT NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    alt_text VARCHAR(200),
+    orden INT DEFAULT 0,
+    es_principal BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    KEY idx_producto (producto_id),
+    KEY idx_principal (producto_id, es_principal),
+    CONSTRAINT fk_imagen_producto FOREIGN KEY (producto_id) 
+        REFERENCES productos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ───────────────────────────────────────────────────────────────
+-- 3. PEDIDOS DE LA TIENDA ONLINE
+-- ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pedidos_tienda (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    codigo VARCHAR(30) NOT NULL,          -- Ej: PED-000001
+    cliente_tienda_id BIGINT NOT NULL,
+    almacen_id BIGINT NOT NULL,
+    subtotal DECIMAL(10,2) DEFAULT 0.00,
+    igv DECIMAL(10,2) DEFAULT 0.00,
+    descuento DECIMAL(10,2) DEFAULT 0.00,
+    total DECIMAL(10,2) DEFAULT 0.00,
+    estado ENUM('PENDIENTE', 'CONFIRMADO', 'PREPARANDO', 'ENVIADO', 'ENTREGADO', 'CANCELADO') 
+        DEFAULT 'PENDIENTE',
+    direccion_envio TEXT,
+    instrucciones TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    UNIQUE KEY uk_pedido_codigo_tenant (codigo, tenant_id),
+    KEY idx_tenant (tenant_id),
+    KEY idx_cliente (cliente_tienda_id),
+    KEY idx_estado (estado),
+    KEY idx_fecha (created_at),
+    CONSTRAINT fk_pedido_tenant FOREIGN KEY (tenant_id) 
+        REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pedido_cliente FOREIGN KEY (cliente_tienda_id) 
+        REFERENCES clientes_tienda(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_pedido_almacen FOREIGN KEY (almacen_id) 
+        REFERENCES almacenes(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ───────────────────────────────────────────────────────────────
+-- 4. DETALLES DE PEDIDOS
+-- ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS detalle_pedidos_tienda (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    pedido_tienda_id BIGINT NOT NULL,
+    producto_id BIGINT NOT NULL,
+    nombre_producto VARCHAR(200) NOT NULL,
+    cantidad INT NOT NULL,
+    precio_unitario DECIMAL(10,2) NOT NULL,
+    descuento DECIMAL(10,2) DEFAULT 0.00,
+    subtotal DECIMAL(10,2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    KEY idx_pedido (pedido_tienda_id),
+    KEY idx_producto (producto_id),
+    CONSTRAINT fk_detalle_pedido FOREIGN KEY (pedido_tienda_id) 
+        REFERENCES pedidos_tienda(id) ON DELETE CASCADE,
+    CONSTRAINT fk_detalle_producto FOREIGN KEY (producto_id) 
+        REFERENCES productos(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ═══════════════════════════════════════════════════════════════
+-- FIN DEL SCRIPT
+-- ═══════════════════════════════════════════════════════════════
