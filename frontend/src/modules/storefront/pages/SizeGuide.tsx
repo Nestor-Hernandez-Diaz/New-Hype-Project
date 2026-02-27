@@ -4,14 +4,18 @@
  * Tablas de medidas para ropa y calzado
  */
 
+import { useState } from 'react';
 import { Ruler } from 'lucide-react';
 
+type GeneroFiltro = 'todos' | 'mujer' | 'hombre';
+
 export default function SizeGuide() {
+  const [generoActivo, setGeneroActivo] = useState<GeneroFiltro>('todos');
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Encabezado */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-900 rounded-full mb-4">
             <Ruler size={32} className="text-white" />
           </div>
@@ -19,6 +23,42 @@ export default function SizeGuide() {
           <p className="text-gray-600 max-w-2xl mx-auto">
             Encuentra tu talla perfecta con nuestras tablas de medidas detalladas
           </p>
+        </div>
+
+        {/* Selector de Género */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex rounded-lg border border-gray-300 bg-white p-1">
+            <button
+              onClick={() => setGeneroActivo('todos')}
+              className={`px-6 py-2 rounded-md font-medium transition ${
+                generoActivo === 'todos'
+                  ? 'bg-gray-900 text-white'
+                  : 'text-gray-700 hover:text-gray-900'
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setGeneroActivo('mujer')}
+              className={`px-6 py-2 rounded-md font-medium transition ${
+                generoActivo === 'mujer'
+                  ? 'bg-gray-900 text-white'
+                  : 'text-gray-700 hover:text-gray-900'
+              }`}
+            >
+              Mujer
+            </button>
+            <button
+              onClick={() => setGeneroActivo('hombre')}
+              className={`px-6 py-2 rounded-md font-medium transition ${
+                generoActivo === 'hombre'
+                  ? 'bg-gray-900 text-white'
+                  : 'text-gray-700 hover:text-gray-900'
+              }`}
+            >
+              Hombre
+            </button>
+          </div>
         </div>
 
         {/* Consejos de medición */}
@@ -34,6 +74,7 @@ export default function SizeGuide() {
         </div>
 
         {/* TABLA: ROPA MUJER */}
+        {(generoActivo === 'todos' || generoActivo === 'mujer') && (
         <section className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <h2 className="text-2xl font-bold mb-4 pb-4 border-b">Ropa Mujer</h2>
           
@@ -95,8 +136,10 @@ export default function SizeGuide() {
             </table>
           </div>
         </section>
+        )}
 
         {/* TABLA: ROPA HOMBRE */}
+        {(generoActivo === 'todos' || generoActivo === 'hombre') && (
         <section className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <h2 className="text-2xl font-bold mb-4 pb-4 border-b">Ropa Hombre</h2>
           
@@ -151,6 +194,7 @@ export default function SizeGuide() {
             </table>
           </div>
         </section>
+        )}
 
         {/* TABLA: JEANS */}
         <section className="bg-white rounded-lg shadow-sm p-6 mb-8">
@@ -214,6 +258,7 @@ export default function SizeGuide() {
           
           <div className="grid md:grid-cols-2 gap-8">
             {/* Mujer */}
+            {(generoActivo === 'todos' || generoActivo === 'mujer') && (
             <div>
               <h3 className="font-bold mb-3 text-lg">Mujer</h3>
               <div className="overflow-x-auto">
@@ -260,8 +305,10 @@ export default function SizeGuide() {
                 </table>
               </div>
             </div>
+            )}
 
             {/* Hombre */}
+            {(generoActivo === 'todos' || generoActivo === 'hombre') && (
             <div>
               <h3 className="font-bold mb-3 text-lg">Hombre</h3>
               <div className="overflow-x-auto">
@@ -308,6 +355,7 @@ export default function SizeGuide() {
                 </table>
               </div>
             </div>
+            )}
           </div>
         </section>
 

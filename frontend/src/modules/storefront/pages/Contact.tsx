@@ -6,8 +6,10 @@
 
 import { useState } from 'react';
 import { Mail, Phone, MapPin, MessageCircle, Send } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export default function Contact() {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -28,7 +30,7 @@ export default function Contact() {
     
     // Validar campos
     if (!formData.nombre || !formData.email || !formData.asunto || !formData.mensaje) {
-      alert('Por favor completa todos los campos obligatorios');
+      showToast('Por favor completa todos los campos obligatorios', 'error');
       return;
     }
 

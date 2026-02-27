@@ -32,12 +32,34 @@ export default {
           '0%': { transform: 'translateX(100%)' },
           '100%': { transform: 'translateX(0)' },
         },
+        toastIn: {
+          '0%': { 
+            opacity: '0', 
+            transform: 'translateX(100%) scale(0.8)' 
+          },
+          '100%': { 
+            opacity: '1', 
+            transform: 'translateX(0) scale(1)' 
+          },
+        },
+        toastOut: {
+          '0%': { 
+            opacity: '1', 
+            transform: 'translateX(0) scale(1)' 
+          },
+          '100%': { 
+            opacity: '0', 
+            transform: 'translateX(100%) scale(0.8)' 
+          },
+        },
       },
       animation: {
         marquee: 'marquee 20s linear infinite',
         'fade-in': 'fade-in 0.5s ease-out',
         'fade-in-up': 'fade-in-up 0.6s ease-out',
         'slide-in-right': 'slide-in-right 0.3s ease-out',
+        'toast-in': 'toastIn 0.3s ease-out forwards',
+        'toast-out': 'toastOut 0.3s ease-in forwards',
       },
     },
   },

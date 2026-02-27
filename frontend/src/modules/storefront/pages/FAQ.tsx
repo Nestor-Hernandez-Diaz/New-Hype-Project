@@ -5,7 +5,8 @@
  */
 
 import { useState } from 'react';
-import { ChevronDown, Package, Truck, CreditCard, RefreshCw, ShoppingBag, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronDown, Package, Truck, CreditCard, RefreshCw, ShoppingBag, User, Search } from 'lucide-react';
 
 interface FAQItem {
   pregunta: string;
@@ -158,12 +159,21 @@ const CATEGORIAS = [
 ];
 
 export default function FAQ() {
+  const navigate = useNavigate();
   const [categoriaActiva, setCategoriaActiva] = useState('todos');
   const [preguntaAbierta, setPreguntaAbierta] = useState<number | null>(null);
+  const [busqueda, setBusqueda] = useState('');
 
-  const faqsFiltrados = categoriaActiva === 'todos' 
-    ? FAQS 
-    : FAQS.filter(faq => faq.categoria === categoriaActiva);
+  // Filtrar por categoría y búsqueda
+  const faqsFiltrados = FAQS.filter(faq => {
+    const coincideCategoria = categoriaActiva === 'todos' || faq.categoria === categoriaActiva;
+    const terminoBusqueda = busqueda.toLowerCase().trim();
+    const coincideBusqueda = !terminoBusqueda || 
+      faq.pregunta.toLowerCase().includes(terminoBusqueda) ||
+      faq.respuesta.toLowerCase().includes(terminoBusqueda);
+    
+    return coincideCategoria && coincideBusqueda;
+  });
 
   const togglePregunta = (index: number) => {
     setPreguntaAbierta(preguntaAbierta === index ? null : index);
@@ -178,6 +188,20 @@ export default function FAQ() {
           <p className="text-gray-600 max-w-2xl mx-auto">
             Encuentra respuestas a las preguntas más comunes sobre nuestros productos, envíos, pagos y más.
           </p>
+        </div>
+
+        {/* Barra de búsqueda */}
+        <div className="mb-8">
+          <div className="relative max-w-2xl mx-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Buscar preguntas..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
+            />
+          </div>
         </div>
 
         {/* Filtros por categoría */}
@@ -202,7 +226,20 @@ export default function FAQ() {
 
         {/* Lista de preguntas */}
         <div className="space-y-3">
-          {faqsFiltrados.map((faq, index) => (
+          {faqsFiltrados.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+              <p className="text-gray-500 mb-2">
+                No se encontraron preguntas que coincidan con tu búsqueda.
+              </p>
+              <button
+                onClick={() => { setBusqueda(''); setCategoriaActiva('todos'); }}
+                className="text-gray-900 font-medium hover:underline"
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          ) : (
+            faqsFiltrados.map((faq, index) => (
             <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden">
               <button
                 onClick={() => togglePregunta(index)}
@@ -223,7 +260,8 @@ export default function FAQ() {
                 </div>
               )}
             </div>
-          ))}
+          ))
+          )}
         </div>
 
         {/* Contacto */}
@@ -233,12 +271,12 @@ export default function FAQ() {
             Nuestro equipo de soporte está disponible para ayudarte
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="/storefront/contacto"
+            <button
+              onClick={() => navigate('/storefront/contacto')}
               className="inline-block px-8 py-3 bg-white text-gray-900 rounded-lg font-bold hover:bg-gray-100 transition"
             >
               Enviar Mensaje
-            </a>
+            </button>
             <a
               href="https://wa.me/51999888777"
               target="_blank"

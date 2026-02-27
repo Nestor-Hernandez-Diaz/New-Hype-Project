@@ -1,17 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
+import { useToast } from '../context/ToastContext';
 import type { ProductoStorefront } from '@monorepo/shared-types';
 import { apiObtenerProductoPorSlug } from '../services/storefrontApi';
+import ProductGallery from '../components/product/ProductGallery';
+import ProductVariants from '../components/product/ProductVariants';
+import RelatedProducts from '../components/product/RelatedProducts';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import EmptyState from '../components/common/EmptyState';
+import { Heart, Check } from 'lucide-react';
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { agregarAlCarrito, toggleFavorito, esFavorito } = useStorefront();
+  const { showToast } = useToast();
   
   const [producto, setProducto] = useState<ProductoStorefront | null>(null);
   const [loading, setLoading] = useState(true);
-  const [imagenActual, setImagenActual] = useState(0);
   const [tallaSeleccionada, setTallaSeleccionada] = useState<number | null>(null);
   const [colorSeleccionado, setColorSeleccionado] = useState<number | null>(null);
   const [cantidad, setCantidad] = useState(1);
@@ -62,15 +69,24 @@ export default function ProductDetail() {
       colorHex: '#000000',
       cantidad
     });
+    
+    showToast(`${producto.nombre} agregado al carrito`, 'success');
+  };
+  
+  const handleToggleFavorito = () => {
+    if (!producto) return;
+    toggleFavorito(producto.id);
+    if (esFavorito(producto.id)) {
+      showToast('Eliminado de favoritos', 'info');
+    } else {
+      showToast('Agregado a favoritos ❤️', 'success');
+    }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando producto...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Cargando producto..." />
       </div>
     );
   }
@@ -78,15 +94,15 @@ export default function ProductDetail() {
   if (!producto) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bebas mb-4">PRODUCTO NO ENCONTRADO</h2>
-          <button
-            onClick={() => navigate('/storefront/catalogo')}
-            className="bg-black text-white px-6 py-2 hover:bg-gray-800"
-          >
-            Ver Catálogo
-          </button>
-        </div>
+        <EmptyState
+          icon="🔍"
+          title="Producto no encontrado"
+          description="Lo sentimos, no pudimos encontrar este producto."
+          action={{
+            label: 'Ver catálogo',
+            onClick: () => navigate('/storefront/catalogo')
+          }}
+        />
       </div>
     );
   }
@@ -119,31 +135,7 @@ export default function ProductDetail() {
       <div className="grid md:grid-cols-2 gap-10">
         {/* Galería de Imágenes */}
         <div>
-          {/* Imagen Principal */}
-          <div className="aspect-[3/4] bg-gray-100 mb-4 overflow-hidden">
-            <img
-              src={imagenes[imagenActual]}
-              alt={producto.nombre}
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Thumbnails */}
-          {imagenes.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {imagenes.map((img, index) => (
-                <button
-                  key={index}
-                  onClick={() => setImagenActual(index)}
-                  className={`aspect-square bg-gray-100 overflow-hidden border-2 ${
-                    imagenActual === index ? 'border-black' : 'border-transparent'
-                  }`}
-                >
-                  <img src={img} alt={`${producto.nombre} ${index + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
+          <ProductGallery images={imagenes} alt={producto.nombre} />
         </div>
 
         {/* Información del Producto */}
@@ -212,95 +204,103 @@ export default function ProductDetail() {
 
           {/* Stock Status */}
           {producto.stockTotal !== undefined && (
-            <div className="mb-6">
+            <div className="mb-6 flex items-center gap-2">
               {producto.stockTotal === 0 ? (
-                <span className="text-red-600 font-medium">Agotado</span>
+                <>
+                  <span className="w-2 h-2 bg-red-600 rounded-full" />
+                  <span className="text-red-600 font-medium">Agotado</span>
+                </>
               ) : producto.stockTotal <= 3 ? (
-                <span className="text-orange-600 font-medium">¡Últimas {producto.stockTotal} unidades!</span>
+                <>
+                  <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                  <span className="text-orange-600 font-medium">¡Últimas {producto.stockTotal} unidades!</span>
+                </>
               ) : (
-                <span className="text-green-600 font-medium">Disponible</span>
+                <>
+                  <span className="w-2 h-2 bg-green-600 rounded-full" />
+                  <span className="text-green-600 font-medium">Disponible</span>
+                </>
               )}
             </div>
           )}
 
-          {/* Selector de Cantidad */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Cantidad</label>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setCantidad(Math.max(1, cantidad - 1))}
-                className="w-10 h-10 border border-gray-300 hover:border-black"
-              >
-                −
-              </button>
-              <input
-                type="number"
-                min="1"
-                value={cantidad}
-                onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-16 h-10 border border-gray-300 text-center"
-              />
-              <button
-                onClick={() => setCantidad(cantidad + 1)}
-                className="w-10 h-10 border border-gray-300 hover:border-black"
-              >
-                +
-              </button>
-            </div>
-          </div>
+          {/* Selector de Variantes */}
+          <ProductVariants
+            tallas={producto.tallasDisponibles}
+            colores={producto.coloresDisponibles}
+            tallaSeleccionada={tallaSeleccionada}
+            colorSeleccionado={colorSeleccionado}
+            cantidad={cantidad}
+            onTallaChange={setTallaSeleccionada}
+            onColorChange={setColorSeleccionado}
+            onCantidadChange={setCantidad}
+            stockMax={producto.stockTotal || 10}
+          />
 
           {/* Botones de Acción */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 mb-8">
             <button
               onClick={handleAgregarAlCarrito}
               disabled={producto.stockTotal === 0}
-              className="flex-1 bg-black text-white px-6 py-4 font-bebas text-lg hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="
+                flex-1 bg-black text-white px-6 py-4 rounded-lg
+                font-semibold text-lg hover:bg-gray-800 transition-all
+                disabled:bg-gray-300 disabled:cursor-not-allowed
+                flex items-center justify-center gap-2
+              "
             >
-              {producto.stockTotal === 0 ? 'AGOTADO' : 'AGREGAR AL CARRITO'}
+              {producto.stockTotal === 0 ? (
+                'AGOTADO'
+              ) : (
+                <>
+                  <Check size={20} />
+                  AGREGAR AL CARRITO
+                </>
+              )}
             </button>
             <button
-              onClick={() => toggleFavorito(producto.id)}
-              className={`w-14 h-14 border ${
-                esFavorito(producto.id) ? 'bg-red-50 border-red-500' : 'border-gray-300'
-              } hover:border-black`}
+              onClick={handleToggleFavorito}
+              className={`
+                w-14 h-14 rounded-lg border-2 transition-all
+                ${
+                  esFavorito(producto.id) 
+                    ? 'bg-red-50 border-red-500 text-red-500' 
+                    : 'border-gray-300 hover:border-gray-500'
+                }
+              `}
+              aria-label="Agregar a favoritos"
             >
-              <svg
-                className={`w-6 h-6 mx-auto ${esFavorito(producto.id) ? 'fill-red-500' : 'fill-none'}`}
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                />
-              </svg>
+              <Heart 
+                size={24} 
+                className={`mx-auto ${esFavorito(producto.id) ? 'fill-current' : ''}`}
+              />
             </button>
           </div>
 
           {/* Beneficios */}
-          <div className="mt-8 space-y-3 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+          <div className="bg-gray-50 rounded-xl p-6 space-y-3 text-sm text-gray-700">
+            <div className="flex items-center gap-3">
+              <Check size={18} className="text-green-600 flex-shrink-0" />
               <span>Envío gratis en compras mayores a S/ 150</span>
             </div>
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+            <div className="flex items-center gap-3">
+              <Check size={18} className="text-green-600 flex-shrink-0" />
               <span>Devolución fácil dentro de 30 días</span>
             </div>
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+            <div className="flex items-center gap-3">
+              <Check size={18} className="text-green-600 flex-shrink-0" />
               <span>Pago 100% seguro</span>
             </div>
           </div>
         </div>
+      </div>
+      
+      {/* Productos Relacionados */}
+      <div className="mt-16">
+        <RelatedProducts 
+          productoActualId={producto.id} 
+          categoriaId={producto.categoriaId}
+        />
       </div>
     </div>
   );
