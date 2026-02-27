@@ -6,6 +6,7 @@ export * from './domain/usuarios';
 export * from './domain/entidades';
 export * from './domain/compras';
 export * from './domain/storefront';
+export * from './domain/superadmin';
 
 // User types
 export interface User {

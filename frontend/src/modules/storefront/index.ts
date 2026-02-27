@@ -9,6 +9,10 @@
 
 // Context
 export { StorefrontProvider, useStorefront } from './context/StorefrontContext';
+export { ToastProvider, useToast } from './context/ToastContext';
+
+// Hooks
+export { useScrollAnimation, useFadeInUp, useScrollAnimationList } from './hooks/useScrollAnimation';
 
 // Pages
 export { default as StorefrontLayout } from './pages/StorefrontLayout';
@@ -37,6 +41,16 @@ export { default as Footer } from './components/layout/Footer';
 // Components - Product
 export { default as ProductCard } from './components/product/ProductCard';
 export { default as ProductGrid } from './components/product/ProductGrid';
+
+// Components - Common
+export { default as Toast } from './components/common/Toast';
+export { default as ToastContainer } from './components/common/ToastContainer';
+export { default as ProcessingOverlay } from './components/common/ProcessingOverlay';
+
+// Components - Filters
+export { default as FilterBar } from './components/filters/FilterBar';
+export { default as FilterChip } from './components/filters/FilterChip';
+export { default as SortDropdown } from './components/filters/SortDropdown';
 
 // Services
 export * from './services/storefrontApi';

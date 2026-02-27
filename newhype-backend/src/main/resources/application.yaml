@@ -7,11 +7,11 @@ spring:
   application:
     name: NewHype Backend
 
-  # ── Datasource (MySQL XAMPP) ──────────────────────────────────
+  # ── Datasource (MySQL Docker + DBeaver) ───────────────────────
   datasource:
-    url: jdbc:mysql://localhost:3306/newhype_dev?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Lima
+    url: jdbc:mysql://localhost:3306/newhype?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Lima
     username: root
-    password:
+    password: mario123
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # ── JPA / Hibernate ──────────────────────────────────────────

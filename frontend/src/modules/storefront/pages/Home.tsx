@@ -9,11 +9,19 @@ import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import ProductGrid from '../components/product/ProductGrid';
 import { esProductoNuevo } from '../services/storefrontApi';
+import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import { Truck, RefreshCw, Lock, MessageCircle } from 'lucide-react';
 
 export default function Home() {
   const { state, cargarProductos } = useStorefront();
   const navigate = useNavigate();
+  
+  // Refs para animaciones de scroll
+  const featuresRef = useScrollAnimation<HTMLElement>();
+  const categoriasRef = useScrollAnimation<HTMLElement>();
+  const trendingRef = useScrollAnimation<HTMLElement>();
+  const bannerRef = useScrollAnimation<HTMLElement>();
+  const liquidacionRef = useScrollAnimation<HTMLElement>();
   
   // Cargar productos al montar
   useEffect(() => {
@@ -75,7 +83,7 @@ export default function Home() {
       </section>
       
       {/* Barra de características */}
-      <section className="bg-gray-50 py-8">
+      <section ref={featuresRef} className="bg-gray-50 py-8 opacity-0 translate-y-4 transition-all duration-700">
         <div className="max-w-[1440px] mx-auto px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureItem icon={<Truck size={32} />} title="Envío Gratis" desc="En compras +S/.150" />
@@ -87,8 +95,8 @@ export default function Home() {
       </section>
       
       {/* Categorías */}
-      <section className="max-w-[1440px] mx-auto px-8 py-16">
-        <div className="text-center mb-12 animate-fade-in-up">
+      <section ref={categoriasRef} className="max-w-[1440px] mx-auto px-8 py-16 opacity-0 translate-y-4 transition-all duration-700">
+        <div className="text-center mb-12">
           <div className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Explora</div>
           <h2 className="font-bebas text-5xl lg:text-6xl tracking-wider">CATEGORÍAS</h2>
         </div>
@@ -122,8 +130,8 @@ export default function Home() {
       </section>
       
       {/* Productos Trending */}
-      <section className="max-w-[1440px] mx-auto px-8 py-16">
-        <div className="text-center mb-12 animate-fade-in-up">
+      <section ref={trendingRef} className="max-w-[1440px] mx-auto px-8 py-16 opacity-0 translate-y-4 transition-all duration-700">
+        <div className="text-center mb-12">
           <div className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Lo más buscado</div>
           <h2 className="font-bebas text-5xl lg:text-6xl tracking-wider">
             TRENDING <span className="text-[#c8ff00]">NOW</span>
@@ -133,7 +141,7 @@ export default function Home() {
       </section>
       
       {/* Banner Promocional */}
-      <section className="relative h-[400px] bg-cover bg-center my-16 animate-fade-in-up"
+      <section ref={bannerRef} className="relative h-[400px] bg-cover bg-center my-16 opacity-0 translate-y-4 transition-all duration-700"
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1600&h=600&fit=crop')" }}
       >
         <div className="absolute inset-0 bg-black/50" />
@@ -154,8 +162,8 @@ export default function Home() {
       
       {/* Productos en Liquidación */}
       {productosLiquidacion.length > 0 && (
-        <section className="max-w-[1440px] mx-auto px-8 py-16">
-          <div className="text-center mb-12 animate-fade-in-up">
+        <section ref={liquidacionRef} className="max-w-[1440px] mx-auto px-8 py-16 opacity-0 translate-y-4 transition-all duration-700">
+          <div className="text-center mb-12">
             <div className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">No te lo pierdas</div>
             <h2 className="font-bebas text-5xl lg:text-6xl tracking-wider">
               LIQUIDACIÓN 🔥
@@ -179,7 +187,7 @@ export default function Home() {
 // Componentes auxiliares
 function FeatureItem({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="flex flex-col items-center text-center p-4 animate-fade-in-up">
+    <div className="flex flex-col items-center text-center p-4">
       <div className="mb-3 text-gray-700">{icon}</div>
       <div className="font-bold text-base mb-1">{title}</div>
       <div className="text-sm text-gray-500">{desc}</div>
@@ -191,7 +199,7 @@ function CategoryCard({ imagen, nombre, cantidad, onClick }: { imagen: string; n
   return (
     <div
       onClick={onClick}
-      className="relative aspect-[3/4] bg-cover bg-center rounded-lg overflow-hidden cursor-pointer group animate-fade-in-up"
+      className="relative aspect-[3/4] bg-cover bg-center rounded-lg overflow-hidden cursor-pointer group"
       style={{ backgroundImage: `url('${imagen}')` }}
     >
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent group-hover:from-black/90 transition-all duration-300" />

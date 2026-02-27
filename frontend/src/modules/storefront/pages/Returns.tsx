@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 interface Item {
   productoId: number;
@@ -38,6 +39,7 @@ const MOTIVOS_DEVOLUCION = [
 export default function Returns() {
   const { pedidoId } = useParams<{ pedidoId: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,17 +107,17 @@ export default function Returns() {
 
     // Validaciones
     if (formData.itemsSeleccionados.length === 0) {
-      alert('Por favor selecciona al menos un producto');
+      showToast('Por favor selecciona al menos un producto', 'error');
       return;
     }
 
     if (!formData.motivo) {
-      alert('Por favor selecciona un motivo de devolución');
+      showToast('Por favor selecciona un motivo de devolución', 'error');
       return;
     }
 
     if (!formData.detalleMotivo.trim()) {
-      alert('Por favor describe en detalle el motivo de la devolución');
+      showToast('Por favor describe en detalle el motivo de la devolución', 'error');
       return;
     }
 

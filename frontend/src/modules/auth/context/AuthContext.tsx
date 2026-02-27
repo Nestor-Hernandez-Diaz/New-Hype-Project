@@ -162,6 +162,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Auditoría
             'audit.read',
             'auditoria.read',
+
+            // Superadmin
+            'superadmin.read',
           ],
         },
       };

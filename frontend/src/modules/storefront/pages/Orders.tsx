@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { EstadoPedido } from '@monorepo/shared-types';
+import { Search, ArrowUpDown } from 'lucide-react';
 
 interface Pedido {
   id: number;
@@ -17,6 +18,8 @@ export default function Orders() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState<EstadoPedido | 'TODOS'>('TODOS');
+  const [busqueda, setBusqueda] = useState('');
+  const [orden, setOrden] = useState<'fecha-desc' | 'fecha-asc' | 'monto-desc' | 'monto-asc'>('fecha-desc');
 
   useEffect(() => {
     // Verificar autenticación
@@ -103,6 +106,29 @@ export default function Orders() {
     ? pedidos
     : pedidos.filter(p => p.estado === filtroEstado);
 
+  // Filtrar por búsqueda
+  const pedidosBuscados = busqueda.trim() !== ''
+    ? pedidosFiltrados.filter(p => 
+        p.codigo.toLowerCase().includes(busqueda.toLowerCase().trim())
+      )
+    : pedidosFiltrados;
+
+  // Ordenar
+  const pedidosOrdenados = [...pedidosBuscados].sort((a, b) => {
+    switch (orden) {
+      case 'fecha-desc':
+        return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+      case 'fecha-asc':
+        return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+      case 'monto-desc':
+        return b.total - a.total;
+      case 'monto-asc':
+        return a.total - b.total;
+      default:
+        return 0;
+    }
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -140,7 +166,7 @@ export default function Orders() {
                 Mis Pedidos
               </Link>
               <Link
-                to="/storefront/cuenta/favoritos"
+                to="/storefront/favoritos"
                 className="block py-3 px-4 hover:bg-gray-100"
               >
                 Favoritos
@@ -156,7 +182,38 @@ export default function Orders() {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            {/* Filtros */}
+            {/* Búsqueda y Ordenamiento */}
+            <div className="bg-white p-4 shadow-md mb-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Barra de búsqueda */}
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Buscar por código de pedido..."
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                </div>
+                {/* Ordenamiento */}
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown size={18} className="text-gray-500" />
+                  <select
+                    value={orden}
+                    onChange={(e) => setOrden(e.target.value as any)}
+                    className="border border-gray-200 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                  >
+                    <option value="fecha-desc">Más recientes</option>
+                    <option value="fecha-asc">Más antiguos</option>
+                    <option value="monto-desc">Mayor monto</option>
+                    <option value="monto-asc">Menor monto</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtros de Estado */}
             <div className="bg-white p-4 shadow-md mb-6">
               <div className="flex flex-wrap gap-2">
                 <button
@@ -195,7 +252,7 @@ export default function Orders() {
             </div>
 
             {/* Lista de Pedidos */}
-            {pedidosFiltrados.length === 0 ? (
+            {pedidosOrdenados.length === 0 ? (
               <div className="bg-white p-12 shadow-md text-center">
                 <svg
                   className="w-16 h-16 mx-auto mb-4 text-gray-400"
@@ -210,13 +267,23 @@ export default function Orders() {
                     d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                   />
                 </svg>
-                <h3 className="font-bebas text-2xl mb-2">NO TIENES PEDIDOS</h3>
+                <h3 className="font-bebas text-2xl mb-2">NO SE ENCONTRARON PEDIDOS</h3>
                 <p className="text-gray-600 mb-6">
-                  {filtroEstado === 'TODOS' 
-                    ? 'Aún no has realizado ninguna compra'
-                    : `No tienes pedidos con estado "${filtroEstado}"`
+                  {busqueda.trim() !== ''
+                    ? `No hay pedidos que coincidan con "${busqueda}"`
+                    : filtroEstado === 'TODOS' 
+                      ? 'Aún no has realizado ninguna compra'
+                      : `No tienes pedidos con estado "${filtroEstado}"`
                   }
                 </p>
+                {busqueda.trim() !== '' && (
+                  <button
+                    onClick={() => setBusqueda('')}
+                    className="text-black underline hover:no-underline mb-4"
+                  >
+                    Limpiar búsqueda
+                  </button>
+                )}
                 <Link
                   to="/storefront/catalogo"
                   className="inline-block bg-black text-white px-8 py-3 font-bebas text-lg hover:bg-gray-800"
@@ -226,7 +293,7 @@ export default function Orders() {
               </div>
             ) : (
               <div className="space-y-4">
-                {pedidosFiltrados.map((pedido) => (
+                {pedidosOrdenados.map((pedido) => (
                   <div key={pedido.id} className="bg-white p-6 shadow-md hover:shadow-lg transition-shadow">
                     <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
                       <div>

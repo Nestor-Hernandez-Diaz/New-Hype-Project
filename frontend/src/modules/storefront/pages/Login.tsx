@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import LoginForm from '../components/auth/LoginForm';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (email: string, password: string) => {
     setError('');
     setLoading(true);
 
@@ -31,7 +29,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-white p-8 shadow-lg">
+      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="font-bebas text-4xl mb-2">INICIAR SESIÓN</h1>
@@ -40,63 +38,14 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-6 text-sm">
-            {error}
-          </div>
-        )}
-
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-gray-300 focus:outline-none focus:border-black"
-              placeholder="tu@email.com"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Contraseña
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-gray-300 focus:outline-none focus:border-black"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center">
-              <input type="checkbox" className="mr-2" />
-              <span className="text-gray-600">Recordarme</span>
-            </label>
-            <Link to="/storefront/cuenta/recuperar" className="text-black hover:underline">
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-black text-white py-4 font-bebas text-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {loading ? 'INICIANDO SESIÓN...' : 'INICIAR SESIÓN'}
-          </button>
-        </form>
+        <LoginForm
+          onSubmit={handleSubmit}
+          loading={loading}
+          error={error}
+          onForgotPassword={() => navigate('/storefront/cuenta/recuperar')}
+          onRegister={() => navigate('/storefront/cuenta/registro')}
+        />
 
         {/* Divider */}
         <div className="relative my-8">
@@ -108,21 +57,8 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Register Link */}
-        <div className="text-center">
-          <p className="text-gray-600 text-sm mb-4">
-            ¿No tienes cuenta?
-          </p>
-          <Link
-            to="/storefront/cuenta/registro"
-            className="block w-full border-2 border-black text-black py-3 font-bebas text-lg hover:bg-black hover:text-white transition-colors"
-          >
-            CREAR CUENTA
-          </Link>
-        </div>
-
         {/* Back to Store */}
-        <div className="mt-8 text-center">
+        <div className="text-center">
           <Link to="/storefront" className="text-sm text-gray-600 hover:text-black">
             ← Volver a la tienda
           </Link>

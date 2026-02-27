@@ -7,14 +7,16 @@
 import { Instagram, Facebook } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useToast } from '../../context/ToastContext';
 
 export default function Footer() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   
   const handleNewsletter = () => {
     if (!email.trim()) return;
-    alert('¡Gracias por suscribirte! 🎉');
+    showToast('¡Gracias por suscribirte! 🎉', 'success');
     setEmail('');
   };
   
@@ -82,11 +84,11 @@ export default function Footer() {
             <div>
               <h4 className="font-bold text-base mb-4">Ayuda</h4>
               <div className="flex flex-col gap-3">
-                <FooterLink onClick={() => navigate('/storefront/pedidos')}>Seguir mi pedido</FooterLink>
-                <FooterLink onClick={() => alert('Devoluciones — Próximamente')}>Devoluciones</FooterLink>
-                <FooterLink onClick={() => alert('Guía de tallas — Próximamente')}>Guía de tallas</FooterLink>
-                <FooterLink onClick={() => alert('Preguntas frecuentes — Próximamente')}>Preguntas frecuentes</FooterLink>
-                <FooterLink onClick={() => alert('Contacto: info@newhype.pe')}>Contacto</FooterLink>
+                <FooterLink onClick={() => navigate('/storefront/seguir-pedido')}>Seguir mi pedido</FooterLink>
+                <FooterLink onClick={() => showToast('Devoluciones — Próximamente', 'info')}>Devoluciones</FooterLink>
+                <FooterLink onClick={() => navigate('/storefront/guia-tallas')}>Guía de tallas</FooterLink>
+                <FooterLink onClick={() => navigate('/storefront/faq')}>Preguntas frecuentes</FooterLink>
+                <FooterLink onClick={() => navigate('/storefront/contacto')}>Contacto</FooterLink>
               </div>
             </div>
             

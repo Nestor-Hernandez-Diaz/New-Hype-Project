@@ -6,15 +6,17 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Search, Heart, ShoppingBag, User, Menu, X, ChevronDown } from 'lucide-react';
+import { Search, Heart, ShoppingBag, User, Menu, ChevronDown } from 'lucide-react';
 import { useStorefront } from '../../context/StorefrontContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import MobileMenu from './MobileMenu';
+import SearchBar from './SearchBar';
 
 export default function Navbar() {
   const { state, dispatch, obtenerResumenCarrito } = useStorefront();
   const navigate = useNavigate();
+  const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
-  const [busquedaTexto, setBusquedaTexto] = useState('');
   const [dropdownAbierto, setDropdownAbierto] = useState<string | null>(null);
   
   const resumenCarrito = obtenerResumenCarrito();
@@ -28,21 +30,33 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  const handleBuscar = () => {
-    if (!busquedaTexto.trim()) return;
-    navigate(`/storefront/catalogo?busqueda=${encodeURIComponent(busquedaTexto)}`);
-    setBusquedaTexto('');
-    dispatch({ type: 'TOGGLE_BUSCADOR' });
-  };
-  
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleBuscar();
-    }
-  };
+  // Cerrar dropdown cuando cambia la ruta
+  useEffect(() => {
+    setDropdownAbierto(null);
+  }, [location.pathname]);
+
+  // Cerrar dropdown cuando se hace clic fuera
+  useEffect(() => {
+    if (!dropdownAbierto) return;
+    
+    const handleClickOutside = () => {
+      setDropdownAbierto(null);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [dropdownAbierto]);
   
   return (
     <>
+      {/* Backdrop when dropdown is open */}
+      {dropdownAbierto && (
+        <div 
+          className="fixed inset-0 z-[850]" 
+          onClick={() => setDropdownAbierto(null)}
+        />
+      )}
+
       {/* Navbar Desktop */}
       <nav className={`sticky top-0 z-[900] bg-white/97 backdrop-blur-xl border-b border-gray-200 h-[70px] transition-all duration-300 ${scrolled ? 'shadow-sm' : ''}`}>
         <div className="max-w-[1440px] mx-auto px-8 h-full flex items-center justify-between">
@@ -62,6 +76,8 @@ export default function Navbar() {
             {/* Mujer con dropdown */}
             <NavDropdown
               label="Mujer"
+              navigate={navigate}
+              navigateTo="/storefront/catalogo?genero=1"
               isOpen={dropdownAbierto === 'mujer'}
               onToggle={() => setDropdownAbierto(dropdownAbierto === 'mujer' ? null : 'mujer')}
             >
@@ -89,6 +105,8 @@ export default function Navbar() {
             {/* Hombre con dropdown */}
             <NavDropdown
               label="Hombre"
+              navigate={navigate}
+              navigateTo="/storefront/catalogo?genero=2"
               isOpen={dropdownAbierto === 'hombre'}
               onToggle={() => setDropdownAbierto(dropdownAbierto === 'hombre' ? null : 'hombre')}
             >
@@ -116,6 +134,8 @@ export default function Navbar() {
             {/* Accesorios con dropdown */}
             <NavDropdown
               label="Accesorios"
+              navigate={navigate}
+              navigateTo="/storefront/catalogo?seccion=accesorios"
               isOpen={dropdownAbierto === 'accesorios'}
               onToggle={() => setDropdownAbierto(dropdownAbierto === 'accesorios' ? null : 'accesorios')}
             >
@@ -143,6 +163,8 @@ export default function Navbar() {
             {/* Calzado con dropdown */}
             <NavDropdown
               label="Calzado"
+              navigate={navigate}
+              navigateTo="/storefront/catalogo?seccion=calzado"
               isOpen={dropdownAbierto === 'calzado'}
               onToggle={() => setDropdownAbierto(dropdownAbierto === 'calzado' ? null : 'calzado')}
             >
@@ -182,36 +204,15 @@ export default function Navbar() {
               </button>
               
               {/* Barra de búsqueda expandible */}
-              {state.buscadorAbierto && (
-                <div className="absolute top-full right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex items-center gap-2 animate-fade-in">
-                  <input
-                    type="text"
-                    placeholder="Buscar productos..."
-                    value={busquedaTexto}
-                    onChange={(e) => setBusquedaTexto(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="flex-1 px-3 py-2 text-sm outline-none"
-                    autoFocus
-                  />
-                  <button
-                    onClick={handleBuscar}
-                    className="p-2 hover:bg-gray-100 rounded-md"
-                  >
-                    <Search size={16} strokeWidth={2.5} />
-                  </button>
-                  <button
-                    onClick={() => dispatch({ type: 'TOGGLE_BUSCADOR' })}
-                    className="p-2 hover:bg-gray-100 rounded-md text-gray-500"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              )}
+              <SearchBar
+                isOpen={state.buscadorAbierto}
+                onClose={() => dispatch({ type: 'TOGGLE_BUSCADOR' })}
+              />
             </div>
             
             {/* Usuario */}
             <button
-              onClick={() => navigate('/storefront/cuenta')}
+              onClick={() => navigate('/storefront/cuenta/perfil')}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               aria-label="Mi cuenta"
             >
@@ -259,60 +260,10 @@ export default function Navbar() {
       </nav>
       
       {/* Menú Móvil Overlay */}
-      {state.menuMovilAbierto && (
-        <div className="fixed inset-0 z-[950] md:hidden">
-          {/* Fondo oscuro */}
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => dispatch({ type: 'TOGGLE_MENU_MOVIL' })}
-          />
-          
-          {/* Panel lateral */}
-          <div className="absolute top-0 left-0 bottom-0 w-[280px] bg-white shadow-2xl animate-slide-in-left">
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-8">
-                <div className="font-bebas text-2xl tracking-wider">
-                  <span className="text-black">NEW</span>
-                  <span className="text-black bg-[#c8ff00] px-2 py-0.5 ml-1">HYPE</span>
-                </div>
-                <button
-                  onClick={() => dispatch({ type: 'TOGGLE_MENU_MOVIL' })}
-                  className="p-2"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              
-              {/* Enlaces */}
-              <div className="flex flex-col gap-4">
-                <MobileLink onClick={() => { navigate('/storefront/catalogo?filtro=nuevo'); dispatch({ type: 'TOGGLE_MENU_MOVIL' }); }}>
-                  New In ⚡
-                </MobileLink>
-                <MobileLink onClick={() => { navigate('/storefront/catalogo?genero=1'); dispatch({ type: 'TOGGLE_MENU_MOVIL' }); }}>
-                  Mujer
-                </MobileLink>
-                <MobileLink onClick={() => { navigate('/storefront/catalogo?genero=2'); dispatch({ type: 'TOGGLE_MENU_MOVIL' }); }}>
-                  Hombre
-                </MobileLink>
-                <MobileLink onClick={() => { navigate('/storefront/catalogo?seccion=accesorios'); dispatch({ type: 'TOGGLE_MENU_MOVIL' }); }}>
-                  Accesorios
-                </MobileLink>
-                <MobileLink onClick={() => { navigate('/storefront/catalogo?seccion=calzado'); dispatch({ type: 'TOGGLE_MENU_MOVIL' }); }}>
-                  Calzado
-                </MobileLink>
-                <MobileLink onClick={() => { navigate('/storefront/catalogo?liquidacion=true'); dispatch({ type: 'TOGGLE_MENU_MOVIL' }); }}>
-                  Sale 🔥
-                </MobileLink>
-                <div className="border-t-2 border-gray-200 my-4" />
-                <MobileLink onClick={() => { navigate('/storefront/cuenta'); dispatch({ type: 'TOGGLE_MENU_MOVIL' }); }}>
-                  Mi Cuenta 👤
-                </MobileLink>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <MobileMenu
+        isOpen={state.menuMovilAbierto}
+        onClose={() => dispatch({ type: 'TOGGLE_MENU_MOVIL' })}
+      />
     </>
   );
 }
@@ -333,20 +284,30 @@ function NavLink({ children, onClick, className = '' }: { children: React.ReactN
 
 function NavDropdown({ 
   label, 
+  navigate,
+  navigateTo,
   isOpen, 
   onToggle, 
   children 
 }: { 
-  label: string; 
+  label: string;
+  navigate: (path: string) => void;
+  navigateTo: string;
   isOpen: boolean; 
   onToggle: () => void; 
   children: React.ReactNode;
 }) {
   return (
-    <li className="relative">
+    <li 
+      className="relative" 
+      onMouseEnter={() => !isOpen && onToggle()}
+      onMouseLeave={() => isOpen && onToggle()}
+    >
       <button
-        onClick={onToggle}
-        onMouseEnter={onToggle}
+        onClick={(e) => { 
+          e.stopPropagation(); // Prevenir propagación
+          navigate(navigateTo);
+        }}
         className="px-4 py-2 text-[15px] font-medium hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1"
       >
         {label}
@@ -355,8 +316,8 @@ function NavDropdown({
       
       {isOpen && (
         <div
-          onMouseLeave={onToggle}
           className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl py-2 z-[1000] animate-fade-in"
+          onClick={(e) => e.stopPropagation()} // Prevenir que clicks internos cierren el backdrop
         >
           {children}
         </div>
@@ -378,15 +339,4 @@ function DropdownLink({ onClick, children }: { onClick: () => void; children: Re
 
 function DropdownDivider() {
   return <div className="my-1 border-t border-gray-200" />;
-}
-
-function MobileLink({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="text-left text-base font-medium hover:text-[#c8ff00] transition-colors py-2"
-    >
-      {children}
-    </button>
-  );
 }

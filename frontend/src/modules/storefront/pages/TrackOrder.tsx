@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Package, Search, Truck, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
 interface PedidoRastreo {
@@ -27,6 +28,7 @@ interface PedidoRastreo {
 }
 
 export default function TrackOrder() {
+  const navigate = useNavigate();
   const [codigoPedido, setCodigoPedido] = useState('');
   const [buscando, setBuscando] = useState(false);
   const [pedido, setPedido] = useState<PedidoRastreo | null>(null);
@@ -291,12 +293,12 @@ export default function TrackOrder() {
                 Si tienes alguna pregunta sobre tu pedido, no dudes en contactarnos
               </p>
               <div className="flex gap-3">
-                <a
-                  href="/storefront/contacto"
+                <button
+                  onClick={() => navigate('/storefront/contacto')}
                   className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition"
                 >
                   Contactar Soporte
-                </a>
+                </button>
                 <a
                   href="https://wa.me/51999888777"
                   target="_blank"

@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import ProductGrid from '../components/product/ProductGrid';
+import FilterChip from '../components/filters/FilterChip';
+import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import type { FiltrosProductos } from '@monorepo/shared-types';
 import { SlidersHorizontal } from 'lucide-react';
 
@@ -18,6 +20,9 @@ export default function Catalog() {
   const [titulo, setTitulo] = useState('TODOS LOS PRODUCTOS');
   const [filtroActivo, setFiltroActivo] = useState<string>('todos');
   const [ordenActivo, setOrdenActivo] = useState<string>('');
+  
+  // Ref para animación de scroll
+  const gridRef = useScrollAnimation<HTMLDivElement>();
   
   useEffect(() => {
     const filtros: FiltrosProductos = {};
@@ -192,17 +197,12 @@ export default function Catalog() {
           {filtros.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {filtros.map(f => (
-                <button
+                <FilterChip
                   key={f.key}
+                  label={f.label}
+                  active={filtroActivo === f.key || (f.key === 'todos' && !filtroActivo)}
                   onClick={() => navigate(f.url)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    filtroActivo === f.key || (f.key === 'todos' && !filtroActivo)
-                      ? 'bg-black text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {f.label}
-                </button>
+                />
               ))}
             </div>
           )}
@@ -226,7 +226,9 @@ export default function Catalog() {
         </div>
         
         {/* Grid de productos */}
-        <ProductGrid productos={state.productos} loading={state.productosLoading} />
+        <div ref={gridRef} className="opacity-0 translate-y-4 transition-all duration-700">
+          <ProductGrid productos={state.productos} loading={state.productosLoading} />
+        </div>
       </div>
     </div>
   );

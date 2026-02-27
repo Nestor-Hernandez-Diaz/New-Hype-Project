@@ -6,12 +6,14 @@
 
 import { useEffect, useState } from 'react';
 import { Heart, Trash2, ShoppingCart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import { apiObtenerProductoPorId } from '../services/storefrontApi';
 import ProductCard from '../components/product/ProductCard';
 import type { ProductoStorefront } from '@monorepo/shared-types';
 
 export default function Favorites() {
+  const navigate = useNavigate();
   const { state, toggleFavorito, agregarAlCarrito } = useStorefront();
   const [productosCompletos, setProductosCompletos] = useState<ProductoStorefront[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,12 +97,12 @@ export default function Favorites() {
             <Heart size={64} className="mx-auto mb-4 text-gray-300" />
             <h2 className="text-2xl font-bold mb-2">No hay favoritos aún</h2>
             <p className="text-gray-600 mb-6">Marca tus productos favoritos para verlos aquí</p>
-            <a
-              href="/storefront"
+            <button
+              onClick={() => navigate('/storefront')}
               className="inline-block px-8 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-gray-800 transition"
             >
               Ver Productos
-            </a>
+            </button>
           </div>
         ) : (
           <>

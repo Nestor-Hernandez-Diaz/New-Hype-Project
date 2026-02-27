@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import EditarPerfilModal from '../components/common/EditarPerfilModal';
 import CambiarPasswordModal from '../components/common/CambiarPasswordModal';
+import { useToast } from '../context/ToastContext';
 
 interface UsuarioCliente {
   nombre: string;
@@ -15,6 +16,7 @@ interface UsuarioCliente {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [usuario, setUsuario] = useState<UsuarioCliente | null>(null);
   const [editing, setEditing] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
@@ -88,7 +90,7 @@ export default function Profile() {
       localStorage.setItem('nh_cliente_email', formData.email);
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
-      alert('Error al guardar los cambios. Por favor intenta de nuevo.');
+      showToast('Error al guardar los cambios. Por favor intenta de nuevo.', 'error');
     } finally {
       setGuardando(false);
     }
@@ -114,7 +116,7 @@ export default function Profile() {
       // Actualizar localStorage
       localStorage.setItem('nh_cliente_nombre', `${datos.nombre} ${datos.apellidos}`);
       
-      alert('Perfil actualizado correctamente');
+      showToast('Perfil actualizado correctamente', 'success');
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
       throw new Error('Error al guardar los cambios');
@@ -132,7 +134,7 @@ export default function Profile() {
         // En producción esto vendría del backend
       }
       
-      alert('Contraseña cambiada correctamente');
+      showToast('Contraseña cambiada correctamente', 'success');
     } catch (error) {
       console.error('Error al cambiar contraseña:', error);
       throw new Error('Contraseña actual incorrecta');
@@ -180,7 +182,7 @@ export default function Profile() {
                 Mis Pedidos
               </Link>
               <Link
-                to="/storefront/cuenta/favoritos"
+                to="/storefront/favoritos"
                 className="block py-3 px-4 hover:bg-gray-100"
               >
                 Favoritos
