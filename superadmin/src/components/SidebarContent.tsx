@@ -138,6 +138,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
     { path: '/dashboard', label: 'Dashboard Global' },
     { path: '/sucursales', label: 'Sucursales' },
     { path: '/suscripciones', label: 'Planes & Suscripciones' },
+    { path: '/suscripciones/estado-pagos', label: 'Estado de Pagos' },
     { path: '/usuarios', label: 'Usuarios del Sistema' },
     { path: '/tickets/detalle', label: 'Detalle de Tickets' },
   ];
@@ -165,6 +166,15 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
           <svg viewBox="0 0 24 24">
             <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+        );
+      case '/suscripciones/estado-pagos':
+        return (
+          <svg viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <line x1="2" y1="10" x2="22" y2="10" />
+            <path d="M7 15h0.01" />
+            <path d="M11 15h2" />
           </svg>
         );
       case '/usuarios':

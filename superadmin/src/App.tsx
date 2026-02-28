@@ -5,6 +5,7 @@ import Login from './modules/auth/pages/Login';
 import Dashboard from './modules/dashboard/pages/Dashboard';
 import GestionSucursales from './modules/sucursales/pages/GestionSucursales';
 import GestionSuscripciones from './modules/suscripciones/pages/GestionSuscripciones';
+import EstadoPagos from './modules/suscripciones/pages/EstadoPagos';
 import GestionUsuarios from './modules/usuarios/pages/GestionUsuarios';
 import DetalleTickets from './modules/tickets/pages/DetalleTickets';
 
@@ -68,6 +69,15 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <GestionSuscripciones />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/suscripciones/estado-pagos" 
+          element={
+            <ProtectedRoute>
+              <EstadoPagos />
             </ProtectedRoute>
           } 
         />
