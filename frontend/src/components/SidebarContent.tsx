@@ -199,6 +199,9 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
     if (pathname.includes('/ventas') || pathname.includes('/gestion-caja') || pathname.includes('/historial-caja')) {
       return 'ventas';
     }
+    if (pathname.includes('/tickets')) {
+      return 'tickets';
+    }
     if (pathname.includes('/lista-productos')) {
       return 'productos';
     }
@@ -363,6 +366,25 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
               <SubMenuItem $isActive={isActive('/lista-productos')}>
                 <Link to="/lista-productos" onClick={handleItemClick}>
                   <h3>Lista de Productos</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/tickets/detalle') || isActive('/tickets/crear')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('tickets'); }}>
+              <i className="fas fa-ticket-alt"></i>
+              <span>Tickets</span>
+            </a>
+            <SubMenu $isOpen={openMenus.tickets}>
+              <SubMenuItem $isActive={isActive('/tickets/crear')}>
+                <Link to="/tickets/crear" onClick={handleItemClick}>
+                  <h3>Registrar Ticket</h3>
+                </Link>
+              </SubMenuItem>
+              <SubMenuItem $isActive={isActive('/tickets/detalle')}>
+                <Link to="/tickets/detalle" onClick={handleItemClick}>
+                  <h3>Detalle de Tickets</h3>
                 </Link>
               </SubMenuItem>
             </SubMenu>

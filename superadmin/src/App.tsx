@@ -6,6 +6,7 @@ import Dashboard from './modules/dashboard/pages/Dashboard';
 import GestionSucursales from './modules/sucursales/pages/GestionSucursales';
 import GestionSuscripciones from './modules/suscripciones/pages/GestionSuscripciones';
 import GestionUsuarios from './modules/usuarios/pages/GestionUsuarios';
+import DetalleTickets from './modules/tickets/pages/DetalleTickets';
 
 // Componente de ruta protegida
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -78,6 +79,15 @@ function AppRoutes() {
               <GestionUsuarios />
             </ProtectedRoute>
           } 
+        />
+
+        <Route
+          path="/tickets/detalle"
+          element={
+            <ProtectedRoute>
+              <DetalleTickets />
+            </ProtectedRoute>
+          }
         />
         
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

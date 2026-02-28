@@ -32,6 +32,8 @@ const ListaVentas = lazy(() => import('./modules/sales/pages/ListaVentas'));
 const DetalleVenta = lazy(() => import('./modules/sales/pages/DetalleVenta'));
 const Cotizaciones = lazy(() => import('./modules/sales/pages/Cotizaciones'));
 const AsistenteVentas = lazy(() => import('./modules/sales/pages/AsistenteVentas'));
+const DetalleTickets = lazy(() => import('./modules/tickets/pages/DetalleTickets'));
+const RegistrarTicket = lazy(() => import('./modules/tickets/pages/RegistrarTicket'));
 const ListaUsuarios = lazy(() => import('./modules/users/pages/ListaUsuarios'));
 const CrearUsuario = lazy(() => import('./modules/users/pages/CrearUsuario'));
 const EditarUsuario = lazy(() => import('./modules/users/pages/EditarUsuario'));
@@ -169,6 +171,16 @@ function App() {
                     <Route path="/ventas/asistente-ia" element={
                       <ProtectedRoute requiredPermission="sales.create">
                         <AsistenteVentas />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/tickets/detalle" element={
+                      <ProtectedRoute>
+                        <DetalleTickets />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/tickets/crear" element={
+                      <ProtectedRoute>
+                        <RegistrarTicket />
                       </ProtectedRoute>
                     } />
                     <Route path="/usuarios" element={
