@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { fetchSuscripciones, renovarSuscripcion, cancelarSuscripcion, type Suscripcion } from '../services/suscripcionesApi';
+import { actualizarSucursal } from '../../sucursales/services/sucursalesApi';
 import { ActionButton, StatusBadge } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../../../styles/theme';
 
@@ -32,8 +33,14 @@ const StatValue = styled.div`
   color: ${COLORS.text};
 `;
 
+const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+`;
+
 const Table = styled.table`
   width: 100%;
+  min-width: 900px;
   background: ${COLORS.surface};
   border-radius: 12px;
   overflow: hidden;
@@ -79,6 +86,16 @@ const PlanBadge = styled.span<{ $tipo: string }>`
   text-transform: uppercase;
 `;
 
+const getVencimientoByPlan = (plan: 'mensual' | 'anual'): string => {
+  const fecha = new Date();
+  if (plan === 'anual') {
+    fecha.setFullYear(fecha.getFullYear() + 1);
+  } else {
+    fecha.setMonth(fecha.getMonth() + 1);
+  }
+  return fecha.toISOString().split('T')[0];
+};
+
 const GestionSuscripciones: React.FC = () => {
   const [suscripciones, setSuscripciones] = useState<Suscripcion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,6 +123,25 @@ const GestionSuscripciones: React.FC = () => {
       await cancelarSuscripcion(id);
       loadSuscripciones();
     }
+  };
+
+  const handleVerEditar = async (suscripcion: Suscripcion) => {
+    const nombreActualizado = window.prompt('Editar nombre de sucursal', suscripcion.sucursalNombre);
+    if (!nombreActualizado?.trim()) return;
+
+    const planInput = window.prompt('Editar plan (mensual/anual)', suscripcion.plan.tipo);
+    if (!planInput) return;
+
+    const planNormalizado = planInput.trim().toLowerCase();
+    const planActual: 'mensual' | 'anual' = planNormalizado === 'anual' ? 'anual' : 'mensual';
+
+    await actualizarSucursal(suscripcion.sucursalId, {
+      nombre: nombreActualizado.trim(),
+      planActual,
+      fechaVencimiento: getVencimientoByPlan(planActual),
+    });
+
+    await loadSuscripciones();
   };
 
   const activas = suscripciones.filter(s => s.estado === 'activa').length;
@@ -145,6 +181,7 @@ const GestionSuscripciones: React.FC = () => {
         {isLoading ? (
           <div>Cargando...</div>
         ) : (
+          <TableWrapper>
           <Table>
             <Thead>
               <Tr>
@@ -180,9 +217,9 @@ const GestionSuscripciones: React.FC = () => {
                   <Td>
                     <ActionButton 
                       $variant="view"
-                      onClick={() => alert(`Ver detalles de ${suscripcion.sucursalNombre}`)}
+                      onClick={() => handleVerEditar(suscripcion)}
                     >
-                      Ver
+                      Ver/Editar
                     </ActionButton>
                     {' '}
                     {suscripcion.estado === 'vencida' ? (
@@ -199,6 +236,7 @@ const GestionSuscripciones: React.FC = () => {
               ))}
             </Tbody>
           </Table>
+          </TableWrapper>
         )}
     </Layout>
   );

@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
-import { fetchSucursales, cambiarEstadoSucursal, type Sucursal } from '../services/sucursalesApi';
+import {
+  fetchSucursales,
+  cambiarEstadoSucursal,
+  crearSucursal,
+  actualizarSucursal,
+  type Sucursal,
+} from '../services/sucursalesApi';
+import { crearUsuario } from '../../usuarios/services/usuariosApi';
 import { Button, ActionButton, StatusBadge } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../../../styles/theme';
 
@@ -25,8 +32,14 @@ const PlanBadge = styled.span<{ $plan: string }>`
 const CreateButton = styled(Button)`
 `;
 
+const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+`;
+
 const Table = styled.table`
   width: 100%;
+  min-width: 900px;
   background: ${COLORS.surface};
   border-radius: 12px;
   overflow: hidden;
@@ -62,6 +75,41 @@ const Td = styled.td`
   color: ${COLORS.text};
 `;
 
+const toSlug = (value: string): string =>
+  value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '')
+    .trim();
+
+const splitOwnerName = (fullName: string): { nombre: string; apellido: string } => {
+  const cleaned = fullName.trim();
+  if (!cleaned) {
+    return { nombre: 'Sin', apellido: 'Nombre' };
+  }
+
+  const parts = cleaned.split(/\s+/);
+  if (parts.length === 1) {
+    return { nombre: parts[0], apellido: 'Propietario' };
+  }
+
+  return {
+    nombre: parts[0],
+    apellido: parts.slice(1).join(' '),
+  };
+};
+
+const getVencimientoByPlan = (plan: 'mensual' | 'anual'): string => {
+  const fecha = new Date();
+  if (plan === 'anual') {
+    fecha.setFullYear(fecha.getFullYear() + 1);
+  } else {
+    fecha.setMonth(fecha.getMonth() + 1);
+  }
+  return fecha.toISOString().split('T')[0];
+};
+
 const GestionSucursales: React.FC = () => {
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,10 +135,80 @@ const GestionSucursales: React.FC = () => {
     loadSucursales();
   };
 
+  const handleCrearSucursal = async () => {
+    const nombre = window.prompt('Nombre de la sucursal');
+    if (!nombre?.trim()) return;
+
+    const propietarioNombreCompleto = window.prompt('Nombre completo del propietario');
+    if (!propietarioNombreCompleto?.trim()) return;
+
+    const planInput = window.prompt('Plan (mensual/anual)', 'mensual');
+    if (!planInput) return;
+
+    const planNormalizado = planInput.trim().toLowerCase();
+    const planActual: 'mensual' | 'anual' = planNormalizado === 'anual' ? 'anual' : 'mensual';
+    const propietario = splitOwnerName(propietarioNombreCompleto);
+    const slug = toSlug(nombre);
+    const hoy = new Date().toISOString().split('T')[0];
+
+    const emailPropietario = `${toSlug(propietario.nombre)}.admin@${slug || 'sucursal'}.pe`;
+
+    const nuevaSucursal = await crearSucursal({
+      nombre: nombre.trim(),
+      ruc: `20${Math.floor(100000000 + Math.random() * 899999999)}`,
+      direccion: 'Dirección pendiente',
+      telefono: '900000000',
+      email: `${slug || 'sucursal'}@tienda.pe`,
+      planActual,
+      fechaInicio: hoy,
+      fechaVencimiento: getVencimientoByPlan(planActual),
+      estado: 'activa',
+      propietario: {
+        nombre: propietario.nombre,
+        apellido: propietario.apellido,
+        email: emailPropietario,
+        telefono: '900000000',
+      },
+    });
+
+    // Crear automáticamente el usuario admin de la nueva sucursal
+    await crearUsuario({
+      email: emailPropietario,
+      nombre: propietario.nombre,
+      apellido: propietario.apellido,
+      telefono: '900000000',
+      sucursalId: nuevaSucursal.id,
+      sucursalNombre: nuevaSucursal.nombre,
+      rol: 'admin',
+      estado: 'activo',
+      permisos: ['ventas', 'inventario', 'reportes', 'usuarios', 'configuracion'],
+    });
+
+    await loadSucursales();
+  };
+
+  const handleEditarSucursal = async (sucursal: Sucursal) => {
+    const nombreActualizado = window.prompt('Editar nombre de sucursal', sucursal.nombre);
+    if (!nombreActualizado?.trim()) return;
+
+    const planInput = window.prompt('Editar plan (mensual/anual)', sucursal.planActual);
+    if (!planInput) return;
+    const planNormalizado = planInput.trim().toLowerCase();
+    const planActual: 'mensual' | 'anual' = planNormalizado === 'anual' ? 'anual' : 'mensual';
+
+    await actualizarSucursal(sucursal.id, {
+      nombre: nombreActualizado.trim(),
+      planActual,
+      fechaVencimiento: getVencimientoByPlan(planActual),
+    });
+
+    await loadSucursales();
+  };
+
   return (
     <Layout title="Gestión de Sucursales">
       <PageHeader>
-        <CreateButton $variant="primary" onClick={() => alert('Crear sucursal (próximamente)')}>
+        <CreateButton $variant="primary" onClick={handleCrearSucursal}>
           + Nueva Sucursal
         </CreateButton>
       </PageHeader>
@@ -98,6 +216,7 @@ const GestionSucursales: React.FC = () => {
         {isLoading ? (
           <div>Cargando...</div>
         ) : (
+          <TableWrapper>
           <Table>
             <Thead>
               <Tr>
@@ -134,9 +253,9 @@ const GestionSucursales: React.FC = () => {
                   <Td>
                     <ActionButton 
                       $variant="view"
-                      onClick={() => alert(`Ver detalles de ${sucursal.nombre}`)}
+                      onClick={() => handleEditarSucursal(sucursal)}
                     >
-                      Ver
+                      Ver/Editar
                     </ActionButton>
                     {' '}
                     {sucursal.estado === 'activa' ? (
@@ -159,6 +278,7 @@ const GestionSucursales: React.FC = () => {
               ))}
             </Tbody>
           </Table>
+          </TableWrapper>
         )}
     </Layout>
   );

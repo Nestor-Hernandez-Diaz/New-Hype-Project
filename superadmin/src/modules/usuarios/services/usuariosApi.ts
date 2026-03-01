@@ -26,10 +26,25 @@ export interface UsuarioSistema {
 }
 
 // ============================================================================
+// PERSISTENCIA LOCAL
+// ============================================================================
+const STORAGE_KEY = 'sa_usuarios';
+
+const guardarEnStorage = (data: UsuarioSistema[]): void => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+};
+
+const cargarDeStorage = (): UsuarioSistema[] | null => {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+};
+
+// ============================================================================
 // USUARIOS MOCK
 // ============================================================================
 
-const MOCK_USUARIOS: UsuarioSistema[] = [
+const SEED_USUARIOS: UsuarioSistema[] = [
   {
     id: 'usr-001',
     email: 'maria.admin@boutiquefashion.com',
@@ -199,6 +214,9 @@ const MOCK_USUARIOS: UsuarioSistema[] = [
   },
 ];
 
+// Inicializar: cargar de localStorage o usar seed
+const MOCK_USUARIOS: UsuarioSistema[] = cargarDeStorage() ?? [...SEED_USUARIOS];
+
 // ============================================================================
 // ESTADÍSTICAS
 // ============================================================================
@@ -276,6 +294,7 @@ export const cambiarEstadoUsuario = async (id: string, estado: 'activo' | 'inact
   if (index === -1) return false;
   
   MOCK_USUARIOS[index].estado = estado;
+  guardarEnStorage(MOCK_USUARIOS);
   return true;
 };
 
@@ -287,6 +306,7 @@ export const crearUsuario = async (data: Omit<UsuarioSistema, 'id' | 'fechaCreac
     fechaCreacion: new Date().toISOString().split('T')[0],
   };
   MOCK_USUARIOS.push(newUser);
+  guardarEnStorage(MOCK_USUARIOS);
   return newUser;
 };
 
@@ -296,6 +316,7 @@ export const actualizarUsuario = async (id: string, data: Partial<UsuarioSistema
   if (index === -1) return null;
   
   MOCK_USUARIOS[index] = { ...MOCK_USUARIOS[index], ...data };
+  guardarEnStorage(MOCK_USUARIOS);
   return MOCK_USUARIOS[index];
 };
 
@@ -305,5 +326,6 @@ export const eliminarUsuario = async (id: string): Promise<boolean> => {
   if (index === -1) return false;
   
   MOCK_USUARIOS.splice(index, 1);
+  guardarEnStorage(MOCK_USUARIOS);
   return true;
 };

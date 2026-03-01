@@ -1,5 +1,7 @@
 // Mock de Sistema de Suscripciones
 
+import { fetchSucursales, actualizarSucursal, type Sucursal } from '../../sucursales/services/sucursalesApi';
+
 export type TipoPlan = 'mensual' | 'anual';
 
 export interface PlanSuscripcion {
@@ -38,10 +40,6 @@ export interface PagoHistorial {
   comprobante?: string;
 }
 
-// ============================================================================
-// PLANES DISPONIBLES
-// ============================================================================
-
 const PLANES: PlanSuscripcion[] = [
   {
     id: 'plan-mensual',
@@ -65,7 +63,7 @@ const PLANES: PlanSuscripcion[] = [
     id: 'plan-anual',
     tipo: 'anual',
     nombre: 'Plan Anual',
-    precio: 990,  // Equivalente a S/82.50/mes (15% descuento)
+    precio: 990,
     caracteristicas: [
       'Hasta 10 usuarios',
       'Productos ilimitados',
@@ -76,106 +74,31 @@ const PLANES: PlanSuscripcion[] = [
     ],
     limites: {
       usuarios: 10,
-      productos: -1, // -1 = ilimitado
+      productos: -1,
       ventasMes: -1,
     },
   },
 ];
 
-// ============================================================================
-// SUSCRIPCIONES ACTIVAS
-// ============================================================================
+const SUSCRIPCION_ID_BY_SUCURSAL: Record<string, string> = {
+  'suc-001': 'sub-001',
+  'suc-002': 'sub-002',
+  'suc-003': 'sub-003',
+  'suc-004': 'sub-004',
+  'suc-005': 'sub-005',
+  'suc-006': 'sub-006',
+  'suc-007': 'sub-007',
+};
 
-const MOCK_SUSCRIPCIONES: Suscripcion[] = [
-  {
-    id: 'sub-001',
-    sucursalId: 'suc-001',
-    sucursalNombre: 'Boutique Fashion Maria',
-    plan: PLANES[1], // Plan anual
-    fechaInicio: '2025-01-15',
-    fechaVencimiento: '2027-01-15',
-    estado: 'activa',
-    precioFinal: 990,
-    metodoPago: 'Tarjeta Visa **** 4532',
-    proximoPago: '2027-01-15',
-  },
-  {
-    id: 'sub-002',
-    sucursalId: 'suc-002',
-    sucursalNombre: 'Urban Style',
-    plan: PLANES[0], // Plan mensual
-    fechaInicio: '2025-12-01',
-    fechaVencimiento: '2026-03-01',
-    estado: 'activa',
-    precioFinal: 99,
-    metodoPago: 'Transferencia Bancaria',
-    proximoPago: '2026-03-01',
-  },
-  {
-    id: 'sub-003',
-    sucursalId: 'suc-003',
-    sucursalNombre: 'Moda Total SAC',
-    plan: PLANES[0],
-    fechaInicio: '2024-09-10',
-    fechaVencimiento: '2026-02-10',
-    estado: 'vencida',
-    precioFinal: 99,
-    metodoPago: 'Tarjeta MasterCard **** 8821',
-    proximoPago: undefined,
-  },
-  {
-    id: 'sub-004',
-    sucursalId: 'suc-004',
-    sucursalNombre: 'Tendencia Fashion',
-    plan: PLANES[1], // Plan anual
-    fechaInicio: '2026-02-20',
-    fechaVencimiento: '2027-02-20',
-    estado: 'activa',
-    precioFinal: 990,
-    metodoPago: 'Yape',
-    proximoPago: '2027-02-20',
-  },
-  {
-    id: 'sub-005',
-    sucursalId: 'suc-005',
-    sucursalNombre: 'Ropa Express SRL',
-    plan: PLANES[0], // Plan mensual
-    fechaInicio: '2026-02-05',
-    fechaVencimiento: '2026-03-05',
-    estado: 'activa',
-    precioFinal: 99,
-    metodoPago: 'Transferencia BCP',
-    proximoPago: '2026-03-05',
-  },
-  {
-    id: 'sub-006',
-    sucursalId: 'suc-006',
-    sucursalNombre: 'Glamour Store',
-    plan: PLANES[0], // Plan mensual
-    fechaInicio: '2025-11-28',
-    fechaVencimiento: '2026-01-28',
-    estado: 'vencida',
-    precioFinal: 99,
-    metodoPago: 'Tarjeta Visa **** 7712',
-    proximoPago: undefined,
-  },
-  {
-    id: 'sub-007',
-    sucursalId: 'suc-007',
-    sucursalNombre: 'Street Wear Lima',
-    plan: PLANES[1], // Plan anual
-    fechaInicio: '2025-09-01',
-    fechaVencimiento: '2026-09-01',
-    estado: 'activa',
-    precioFinal: 990,
-    metodoPago: 'Transferencia Interbank',
-    proximoPago: '2026-09-01',
-  },
-];
-
-// ============================================================================
-// HISTORIAL DE PAGOS
-// ============================================================================
+const METODO_PAGO_BY_SUCURSAL: Record<string, string> = {
+  'suc-001': 'Tarjeta Visa **** 4532',
+  'suc-002': 'Transferencia Bancaria',
+  'suc-003': 'Tarjeta MasterCard **** 8821',
+  'suc-004': 'Yape',
+  'suc-005': 'Transferencia BCP',
+  'suc-006': 'Tarjeta Visa **** 7712',
+  'suc-007': 'Transferencia Interbank',
+};
 
 const MOCK_PAGOS: PagoHistorial[] = [
   {
@@ -252,9 +175,44 @@ const MOCK_PAGOS: PagoHistorial[] = [
   },
 ];
 
-// ============================================================================
-// API MOCK
-// ============================================================================
+const getPlanByTipo = (tipo: TipoPlan): PlanSuscripcion => {
+  const plan = PLANES.find(item => item.tipo === tipo);
+  return plan ?? PLANES[0];
+};
+
+const getSuscripcionId = (sucursalId: string): string => {
+  return SUSCRIPCION_ID_BY_SUCURSAL[sucursalId] ?? `sub-${sucursalId}`;
+};
+
+const getMetodoPago = (sucursalId: string): string => {
+  return METODO_PAGO_BY_SUCURSAL[sucursalId] ?? 'Pendiente de configuración';
+};
+
+const mapEstadoSuscripcion = (
+  estadoSucursal: Sucursal['estado']
+): Suscripcion['estado'] => {
+  if (estadoSucursal === 'vencida') return 'vencida';
+  if (estadoSucursal === 'suspendida') return 'cancelada';
+  return 'activa';
+};
+
+const sucursalToSuscripcion = (sucursal: Sucursal): Suscripcion => {
+  const plan = getPlanByTipo(sucursal.planActual);
+  const estado = mapEstadoSuscripcion(sucursal.estado);
+
+  return {
+    id: getSuscripcionId(sucursal.id),
+    sucursalId: sucursal.id,
+    sucursalNombre: sucursal.nombre,
+    plan,
+    fechaInicio: sucursal.fechaInicio,
+    fechaVencimiento: sucursal.fechaVencimiento,
+    estado,
+    precioFinal: plan.precio,
+    metodoPago: getMetodoPago(sucursal.id),
+    proximoPago: estado === 'activa' ? sucursal.fechaVencimiento : undefined,
+  };
+};
 
 export const fetchPlanes = async (): Promise<PlanSuscripcion[]> => {
   await new Promise(resolve => setTimeout(resolve, 600));
@@ -263,12 +221,14 @@ export const fetchPlanes = async (): Promise<PlanSuscripcion[]> => {
 
 export const fetchSuscripciones = async (): Promise<Suscripcion[]> => {
   await new Promise(resolve => setTimeout(resolve, 800));
-  return [...MOCK_SUSCRIPCIONES];
+  const sucursales = await fetchSucursales();
+  return sucursales.map(sucursalToSuscripcion);
 };
 
 export const fetchSuscripcion = async (id: string): Promise<Suscripcion | null> => {
   await new Promise(resolve => setTimeout(resolve, 600));
-  return MOCK_SUSCRIPCIONES.find(s => s.id === id) || null;
+  const suscripciones = await fetchSuscripciones();
+  return suscripciones.find(s => s.id === id) || null;
 };
 
 export const fetchPagosBySuscripcion = async (suscripcionId: string): Promise<PagoHistorial[]> => {
@@ -278,31 +238,40 @@ export const fetchPagosBySuscripcion = async (suscripcionId: string): Promise<Pa
 
 export const renovarSuscripcion = async (id: string): Promise<boolean> => {
   await new Promise(resolve => setTimeout(resolve, 1000));
-  const index = MOCK_SUSCRIPCIONES.findIndex(s => s.id === id);
-  if (index === -1) return false;
-  
-  // Simular renovación
+  const suscripciones = await fetchSuscripciones();
+  const suscripcion = suscripciones.find(sub => sub.id === id);
+  if (!suscripcion) return false;
+
   const fechaActual = new Date();
-  const fechaVencimiento = new Date(fechaActual);
-  
-  if (MOCK_SUSCRIPCIONES[index].plan.tipo === 'anual') {
-    fechaVencimiento.setFullYear(fechaActual.getFullYear() + 1);
+  const nuevaFechaVencimiento = new Date(fechaActual);
+
+  if (suscripcion.plan.tipo === 'anual') {
+    nuevaFechaVencimiento.setFullYear(fechaActual.getFullYear() + 1);
   } else {
-    fechaVencimiento.setMonth(fechaActual.getMonth() + 1);
+    nuevaFechaVencimiento.setMonth(fechaActual.getMonth() + 1);
   }
-  
-  MOCK_SUSCRIPCIONES[index].estado = 'activa';
-  MOCK_SUSCRIPCIONES[index].fechaVencimiento = fechaVencimiento.toISOString().split('T')[0];
-  MOCK_SUSCRIPCIONES[index].proximoPago = fechaVencimiento.toISOString().split('T')[0];
-  
-  return true;
+
+  const fechaInicio = fechaActual.toISOString().split('T')[0];
+  const fechaVencimiento = nuevaFechaVencimiento.toISOString().split('T')[0];
+
+  const actualizada = await actualizarSucursal(suscripcion.sucursalId, {
+    estado: 'activa',
+    fechaInicio,
+    fechaVencimiento,
+  });
+
+  return actualizada !== null;
 };
 
 export const cancelarSuscripcion = async (id: string): Promise<boolean> => {
   await new Promise(resolve => setTimeout(resolve, 800));
-  const index = MOCK_SUSCRIPCIONES.findIndex(s => s.id === id);
-  if (index === -1) return false;
-  
-  MOCK_SUSCRIPCIONES[index].estado = 'cancelada';
-  return true;
+  const suscripciones = await fetchSuscripciones();
+  const suscripcion = suscripciones.find(sub => sub.id === id);
+  if (!suscripcion) return false;
+
+  const actualizada = await actualizarSucursal(suscripcion.sucursalId, {
+    estado: 'suspendida',
+  });
+
+  return actualizada !== null;
 };

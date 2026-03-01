@@ -29,7 +29,22 @@ export interface Sucursal {
   };
 }
 
-const MOCK_SUCURSALES: Sucursal[] = [
+// ============================================================================
+// PERSISTENCIA LOCAL
+// ============================================================================
+const STORAGE_KEY = 'sa_sucursales';
+
+const guardarEnStorage = (data: Sucursal[]): void => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+};
+
+const cargarDeStorage = (): Sucursal[] | null => {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+};
+
+const SEED_SUCURSALES: Sucursal[] = [
   {
     id: 'suc-001',
     nombre: 'Boutique Fashion Maria',
@@ -193,6 +208,9 @@ const MOCK_SUCURSALES: Sucursal[] = [
   },
 ];
 
+// Inicializar: cargar de localStorage o usar seed
+const MOCK_SUCURSALES: Sucursal[] = cargarDeStorage() ?? [...SEED_SUCURSALES];
+
 export const fetchSucursales = async (): Promise<Sucursal[]> => {
   await new Promise(resolve => setTimeout(resolve, 800));
   return [...MOCK_SUCURSALES];
@@ -215,6 +233,7 @@ export const crearSucursal = async (data: Omit<Sucursal, 'id' | 'metricas'>): Pr
     },
   };
   MOCK_SUCURSALES.push(newSucursal);
+  guardarEnStorage(MOCK_SUCURSALES);
   return newSucursal;
 };
 
@@ -224,6 +243,7 @@ export const actualizarSucursal = async (id: string, data: Partial<Sucursal>): P
   if (index === -1) return null;
   
   MOCK_SUCURSALES[index] = { ...MOCK_SUCURSALES[index], ...data };
+  guardarEnStorage(MOCK_SUCURSALES);
   return MOCK_SUCURSALES[index];
 };
 
@@ -233,5 +253,6 @@ export const cambiarEstadoSucursal = async (id: string, estado: 'activa' | 'susp
   if (index === -1) return false;
   
   MOCK_SUCURSALES[index].estado = estado;
+  guardarEnStorage(MOCK_SUCURSALES);
   return true;
 };

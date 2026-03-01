@@ -7,6 +7,8 @@ import {
   type EstadoPagosData,
   type SuscripcionDetallePago,
 } from '../services/estadoPagosApi';
+import { fetchSuscripcion, renovarSuscripcion } from '../services/suscripcionesApi';
+import { actualizarSucursal } from '../../sucursales/services/sucursalesApi';
 import { ActionButton, StatusBadge } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../../../styles/theme';
 
@@ -85,6 +87,11 @@ const FilterBar = styled.div`
   flex-wrap: wrap;
 `;
 
+const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+`;
+
 const FilterButton = styled.button<{ $active?: boolean }>`
   padding: ${SPACING.sm} ${SPACING.lg};
   border: 1px solid ${props => props.$active ? COLORS.superadmin : COLORS.border};
@@ -104,6 +111,7 @@ const FilterButton = styled.button<{ $active?: boolean }>`
 
 const Table = styled.table`
   width: 100%;
+  min-width: 980px;
   background: ${COLORS.surface};
   border-radius: 12px;
   overflow: hidden;
@@ -178,6 +186,16 @@ const EmptyState = styled.div`
 
 type FiltroEstado = 'todos' | 'al_dia' | 'por_vencer' | 'vencida';
 
+const getVencimientoByPlan = (plan: 'mensual' | 'anual'): string => {
+  const fecha = new Date();
+  if (plan === 'anual') {
+    fecha.setFullYear(fecha.getFullYear() + 1);
+  } else {
+    fecha.setMonth(fecha.getMonth() + 1);
+  }
+  return fecha.toISOString().split('T')[0];
+};
+
 const getEstadoLabel = (estado: string): string => {
   switch (estado) {
     case 'al_dia': return 'Al día';
@@ -241,6 +259,40 @@ const EstadoPagos: React.FC = () => {
 
   const handleCardClick = (nuevoFiltro: FiltroEstado) => {
     setFiltro(nuevoFiltro === filtro ? 'todos' : nuevoFiltro);
+  };
+
+  const handleVerEditar = async (item: SuscripcionDetallePago) => {
+    const suscripcion = await fetchSuscripcion(item.id);
+    if (!suscripcion) {
+      window.alert('No se encontró la suscripción asociada.');
+      return;
+    }
+
+    const nombreActualizado = window.prompt('Editar nombre de sucursal', item.sucursalNombre);
+    if (!nombreActualizado?.trim()) return;
+
+    const planInput = window.prompt('Editar plan (mensual/anual)', suscripcion.plan.tipo);
+    if (!planInput) return;
+
+    const planNormalizado = planInput.trim().toLowerCase();
+    const planActual: 'mensual' | 'anual' = planNormalizado === 'anual' ? 'anual' : 'mensual';
+
+    await actualizarSucursal(suscripcion.sucursalId, {
+      nombre: nombreActualizado.trim(),
+      planActual,
+      fechaVencimiento: getVencimientoByPlan(planActual),
+    });
+
+    await loadData();
+  };
+
+  const handleNotificar = async (item: SuscripcionDetallePago) => {
+    if (!window.confirm(`¿Marcar como gestionada y renovar suscripción de ${item.sucursalNombre}?`)) {
+      return;
+    }
+
+    await renovarSuscripcion(item.id);
+    await loadData();
   };
 
   return (
@@ -336,6 +388,7 @@ const EstadoPagos: React.FC = () => {
       ) : detalle.length === 0 ? (
         <EmptyState>No se encontraron suscripciones con el filtro seleccionado.</EmptyState>
       ) : (
+        <TableWrapper>
         <Table>
           <Thead>
             <Tr>
@@ -386,16 +439,16 @@ const EstadoPagos: React.FC = () => {
                 <Td>
                   <ActionButton
                     $variant="view"
-                    onClick={() => alert(`Detalle de pagos: ${item.sucursalNombre}`)}
+                    onClick={() => handleVerEditar(item)}
                   >
-                    Ver
+                    Ver/Editar
                   </ActionButton>
                   {item.estado === 'vencida' && (
                     <>
                       {' '}
                       <ActionButton
                         $variant="activate"
-                        onClick={() => alert(`Enviar recordatorio a: ${item.sucursalNombre}`)}
+                        onClick={() => handleNotificar(item)}
                       >
                         Notificar
                       </ActionButton>
@@ -406,6 +459,7 @@ const EstadoPagos: React.FC = () => {
             ))}
           </Tbody>
         </Table>
+        </TableWrapper>
       )}
     </Layout>
   );
