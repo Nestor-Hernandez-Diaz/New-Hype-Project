@@ -6,34 +6,34 @@ const UserContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
-  background: rgba(59, 130, 246, 0.1);
-  border-radius: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border-radius: 24px;
+  border: 1px solid #e5e5e5;
 
   @media (max-width: 768px) {
-    padding: 6px 10px;
+    padding: 6px 12px;
     gap: 8px;
   }
 `;
 
 const UserAvatar = styled.div`
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  background: #000000;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
 
   @media (max-width: 768px) {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
   }
 `;
 
@@ -48,14 +48,14 @@ const UserDetails = styled.div`
 
 const UserName = styled.span`
   font-weight: 600;
-  font-size: 14px;
-  color: #1f2937;
+  font-size: 13px;
+  color: #0a0a0a;
   line-height: 1.2;
 `;
 
 const UserRole = styled.span`
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 11px;
+  color: #a3a3a3;
   font-weight: 500;
 `;
 

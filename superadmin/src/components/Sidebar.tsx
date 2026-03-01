@@ -4,10 +4,10 @@ import { Link } from 'react-router-dom';
 import SidebarContent from './SidebarContent';
 
 const SidebarContainer = styled.aside`
-  width: 250px;
-  background: #1e293b;
+  width: 260px;
+  background: #000000;
   color: #ffffff;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -21,27 +21,24 @@ const SidebarContainer = styled.aside`
 `;
 
 const SidebarHeader = styled.div`
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
-  background: #0f172a;
 
   h2 {
     margin: 0;
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 900;
     color: #ffffff;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    letter-spacing: -1px;
   }
   
   p {
-    margin: 6px 0 0 0;
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.5);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
+    margin: 4px 0 0 0;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 500;
+    letter-spacing: 0.5px;
   }
 `;
 

@@ -4,7 +4,7 @@ import Layout from '../../../components/Layout';
 import { fetchSucursales } from '../../sucursales/services/sucursalesApi';
 import { fetchSuscripciones } from '../../suscripciones/services/suscripcionesApi';
 import { fetchEstadisticas } from '../../usuarios/services/usuariosApi';
-import { COLORS, SPACING, TYPOGRAPHY } from '../../../styles/theme';
+import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 
 const StatsGrid = styled.div`
   display: grid;
@@ -15,24 +15,24 @@ const StatsGrid = styled.div`
 
 const StatCard = styled.div`
   background: ${COLORS.surface};
-  border: 1px solid ${COLORS.border};
-  border-radius: 6px;
+  border-radius: ${RADIUS.lg};
   padding: ${SPACING.xl};
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.15s ease;
+  box-shadow: ${SHADOWS.sm};
+  transition: ${TRANSITION};
 
   &:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    transform: translateY(-3px);
+    box-shadow: ${SHADOWS.md};
   }
 `;
 
 const StatLabel = styled.div`
-  font-size: 11px;
-  color: #6b7280;
+  font-size: 12px;
+  color: ${COLORS.textLighter};
   margin-bottom: ${SPACING.sm};
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  font-weight: 600;
+  letter-spacing: 1px;
+  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
 `;
 
 const StatValue = styled.div`
@@ -49,21 +49,20 @@ const StatChange = styled.div<{ positive?: boolean }>`
 
 const ActivitySection = styled.div`
   background: ${COLORS.surface};
-  border: 1px solid ${COLORS.border};
-  border-radius: 6px;
+  border-radius: ${RADIUS.lg};
   padding: ${SPACING.xl};
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: ${SHADOWS.sm};
 `;
 
 const ActivityTitle = styled.h2`
   font-size: 14px;
   margin-bottom: ${SPACING.lg};
-  color: #374151;
+  color: ${COLORS.text};
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-weight: 700;
-  border-bottom: 2px solid #e5e7eb;
+  font-weight: ${TYPOGRAPHY.fontWeight.bold};
   padding-bottom: 12px;
+  border-bottom: 1px solid ${COLORS.border};
 `;
 
 const ActivityList = styled.div`
@@ -77,37 +76,29 @@ const ActivityItem = styled.div<{ $type: string }>`
   align-items: flex-start;
   gap: ${SPACING.md};
   padding: 14px 16px;
-  border-radius: 4px;
-  border-left: 3px solid ${props => {
-    switch (props.$type) {
-      case 'sucursal': return '#1e40af';
-      case 'suscripcion': return '#0891b2';
-      case 'usuario': return '#d97706';
-      case 'pago': return '#059669';
-      default: return '#9ca3af';
-    }
-  }};
-  background: #f9fafb;
-  transition: background-color 0.15s ease;
-  border-top: 1px solid #f3f4f6;
+  border-radius: ${RADIUS.sm};
+  background: ${COLORS.surfaceHover};
+  transition: ${TRANSITION};
 
   &:hover {
-    background: #f3f4f6;
+    background: ${COLORS.border};
   }
 `;
 
 const ActivityIcon = styled.div`
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: #525252;
+  background: #ffffff;
+  border-radius: ${RADIUS.sm};
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     stroke: currentColor;
     stroke-width: 2;
     fill: none;
@@ -120,17 +111,16 @@ const ActivityContent = styled.div`
 
 const ActivityDescription = styled.div`
   font-size: 13px;
-  color: #1f2937;
+  color: ${COLORS.text};
   margin-bottom: ${SPACING.xs};
   line-height: 1.5;
-  font-weight: 500;
+  font-weight: ${TYPOGRAPHY.fontWeight.medium};
 `;
 
 const ActivityTime = styled.div`
   font-size: 11px;
-  color: #9ca3af;
-  font-weight: 500;
-  text-transform: uppercase;
+  color: ${COLORS.textLighter};
+  font-weight: ${TYPOGRAPHY.fontWeight.medium};
   letter-spacing: 0.3px;
 `;
 

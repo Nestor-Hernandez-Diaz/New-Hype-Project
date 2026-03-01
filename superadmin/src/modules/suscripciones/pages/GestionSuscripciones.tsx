@@ -4,7 +4,7 @@ import Layout from '../../../components/Layout';
 import { fetchSuscripciones, renovarSuscripcion, cancelarSuscripcion, type Suscripcion } from '../services/suscripcionesApi';
 import { actualizarSucursal } from '../../sucursales/services/sucursalesApi';
 import { ActionButton, StatusBadge } from '../../../components/shared';
-import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../../../styles/theme';
+import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS } from '../../../styles/theme';
 
 const StatsGrid = styled.div`
   display: grid;
@@ -16,7 +16,7 @@ const StatsGrid = styled.div`
 const StatCard = styled.div`
   background: ${COLORS.surface};
   border: 1px solid ${COLORS.border};
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   padding: ${SPACING.xl};
   box-shadow: ${SHADOWS.sm};
 `;
@@ -42,7 +42,7 @@ const Table = styled.table`
   width: 100%;
   min-width: 900px;
   background: ${COLORS.surface};
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   overflow: hidden;
   box-shadow: ${SHADOWS.sm};
 `;
@@ -78,11 +78,11 @@ const Td = styled.td`
 
 const PlanBadge = styled.span<{ $tipo: string }>`
   padding: ${SPACING.xs} ${SPACING.md};
-  border-radius: 12px;
+  border-radius: ${RADIUS.xl};
   font-size: ${TYPOGRAPHY.fontSize.xs};
   font-weight: ${TYPOGRAPHY.fontWeight.medium};
-  background: ${props => props.$tipo === 'anual' ? COLORS.superadminLight : COLORS.infoLight};
-  color: ${props => props.$tipo === 'anual' ? COLORS.superadminDark : COLORS.info};
+  background: ${props => props.$tipo === 'anual' ? COLORS.surfaceHover : COLORS.infoLight};
+  color: ${props => props.$tipo === 'anual' ? COLORS.primary : COLORS.info};
   text-transform: uppercase;
 `;
 

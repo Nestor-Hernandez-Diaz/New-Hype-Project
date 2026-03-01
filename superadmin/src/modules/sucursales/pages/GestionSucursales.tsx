@@ -10,7 +10,7 @@ import {
 } from '../services/sucursalesApi';
 import { crearUsuario } from '../../usuarios/services/usuariosApi';
 import { Button, ActionButton, StatusBadge } from '../../../components/shared';
-import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../../../styles/theme';
+import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS } from '../../../styles/theme';
 
 const PageHeader = styled.div`
   display: flex;
@@ -21,11 +21,11 @@ const PageHeader = styled.div`
 
 const PlanBadge = styled.span<{ $plan: string }>`
   padding: ${SPACING.xs} ${SPACING.md};
-  border-radius: 12px;
+  border-radius: ${RADIUS.xl};
   font-size: ${TYPOGRAPHY.fontSize.xs};
   font-weight: ${TYPOGRAPHY.fontWeight.medium};
-  background: ${props => props.$plan === 'anual' ? COLORS.superadminLight : COLORS.infoLight};
-  color: ${props => props.$plan === 'anual' ? COLORS.superadminDark : COLORS.info};
+  background: ${props => props.$plan === 'anual' ? COLORS.surfaceHover : COLORS.infoLight};
+  color: ${props => props.$plan === 'anual' ? COLORS.primary : COLORS.info};
   text-transform: uppercase;
 `;
 
@@ -41,7 +41,7 @@ const Table = styled.table`
   width: 100%;
   min-width: 900px;
   background: ${COLORS.surface};
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   overflow: hidden;
   box-shadow: ${SHADOWS.sm};
 `;

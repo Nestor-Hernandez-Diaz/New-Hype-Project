@@ -1,42 +1,37 @@
 export const COLORS = {
-  // Brand
-  primary: '#3B82F6',
-  primaryDark: '#2563EB',
-  primaryLight: '#60A5FA',
-  
-  // Superadmin specific
-  superadmin: '#8B5CF6',
-  superadminDark: '#7C3AED',
-  superadminLight: '#A78BFA',
+  // Brand — negro como AplicacionCliente
+  primary: '#000000',
+  primaryDark: '#333333',
+  primaryLight: '#525252',
   
   // Neutrals
-  text: '#1F2937',
-  textLight: '#6B7280',
-  textLighter: '#9CA3AF',
+  text: '#0a0a0a',
+  textLight: '#525252',
+  textLighter: '#a3a3a3',
   
   // Backgrounds
-  background: '#F9FAFB',
-  surface: '#FFFFFF',
-  surfaceHover: '#F3F4F6',
+  background: '#f5f5f5',
+  surface: '#ffffff',
+  surfaceHover: '#f5f5f5',
   
   // Status
-  success: '#10B981',
-  successLight: '#D1FAE5',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
-  error: '#EF4444',
-  errorLight: '#FEE2E2',
-  info: '#3B82F6',
-  infoLight: '#DBEAFE',
+  success: '#22c55e',
+  successLight: '#f0fdf4',
+  warning: '#f59e0b',
+  warningLight: '#fef3c7',
+  error: '#ef4444',
+  errorLight: '#fef2f2',
+  info: '#3b82f6',
+  infoLight: '#dbeafe',
   
   // Borders
-  border: '#E5E7EB',
-  borderDark: '#D1D5DB',
+  border: '#e5e5e5',
+  borderDark: '#d4d4d4',
   
   // States
-  active: '#10B981',
-  suspended: '#F59E0B',
-  inactive: '#6B7280',
+  active: '#22c55e',
+  suspended: '#f59e0b',
+  inactive: '#525252',
 } as const;
 
 export const SPACING = {
@@ -52,7 +47,7 @@ export const SPACING = {
 
 export const TYPOGRAPHY = {
   fontFamily: {
-    base: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    base: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     mono: 'Menlo, Monaco, "Courier New", monospace',
   },
   fontSize: {
@@ -70,6 +65,7 @@ export const TYPOGRAPHY = {
     medium: 500,
     semibold: 600,
     bold: 700,
+    extrabold: 800,
   },
   lineHeight: {
     tight: 1.25,
@@ -79,11 +75,19 @@ export const TYPOGRAPHY = {
 } as const;
 
 export const SHADOWS = {
-  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-  base: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-  md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-  lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+  sm: '0 1px 3px rgba(0, 0, 0, 0.08)',
+  base: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+  md: '0 4px 20px rgba(0, 0, 0, 0.08)',
+  lg: '0 10px 40px rgba(0, 0, 0, 0.12)',
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+} as const;
+
+export const RADIUS = {
+  sm: '8px',
+  md: '12px',
+  lg: '16px',
+  xl: '24px',
+  full: '50%',
 } as const;
 
 export const BREAKPOINTS = {
@@ -92,3 +96,6 @@ export const BREAKPOINTS = {
   desktop: '1024px',
   wide: '1280px',
 } as const;
+
+export const TRANSITION = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+

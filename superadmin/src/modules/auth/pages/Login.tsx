@@ -2,20 +2,20 @@ import React, { useState, FormEvent } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../../../styles/theme';
+import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS } from '../../../styles/theme';
 
 const LoginContainer = styled.div`
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, ${COLORS.superadmin} 0%, ${COLORS.superadminDark} 100%);
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2d2d2d 100%);
   padding: ${SPACING.xl};
 `;
 
 const LoginCard = styled.div`
   background: ${COLORS.surface};
-  border-radius: 16px;
+  border-radius: ${RADIUS.lg};
   box-shadow: ${SHADOWS.xl};
   padding: ${SPACING['3xl']};
   width: 100%;
@@ -31,14 +31,15 @@ const LogoIcon = styled.div`
   width: 64px;
   height: 64px;
   margin: 0 auto ${SPACING.lg};
-  background: linear-gradient(135deg, ${COLORS.superadmin}, ${COLORS.superadminLight});
-  border-radius: 16px;
+  background: #000000;
+  border-radius: ${RADIUS.lg};
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: ${TYPOGRAPHY.fontSize['2xl']};
-  font-weight: ${TYPOGRAPHY.fontWeight.bold};
+  font-weight: 900;
   color: ${COLORS.surface};
+  letter-spacing: -1px;
 `;
 
 const Title = styled.h1`
@@ -70,16 +71,16 @@ const Label = styled.label`
 
 const Input = styled.input`
   width: 100%;
-  padding: ${SPACING.md} ${SPACING.lg};
-  border: 1px solid ${COLORS.border};
-  border-radius: 8px;
-  font-size: ${TYPOGRAPHY.fontSize.base};
-  transition: all 0.2s ease;
+  padding: 12px 15px;
+  border: 1.5px solid ${COLORS.border};
+  border-radius: ${RADIUS.md};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:focus {
     outline: none;
-    border-color: ${COLORS.superadmin};
-    box-shadow: 0 0 0 3px ${COLORS.superadminLight}33;
+    border-color: #000000;
+    box-shadow: none;
   }
 
   &::placeholder {
@@ -89,19 +90,21 @@ const Input = styled.input`
 
 const Button = styled.button`
   width: 100%;
-  padding: ${SPACING.md} ${SPACING.xl};
-  background: linear-gradient(135deg, ${COLORS.superadmin}, ${COLORS.superadminDark});
+  padding: 14px ${SPACING.xl};
+  background: #000000;
   color: ${COLORS.surface};
   border: none;
-  border-radius: 8px;
-  font-size: ${TYPOGRAPHY.fontSize.base};
+  border-radius: ${RADIUS.xl};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
   font-weight: ${TYPOGRAPHY.fontWeight.semibold};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: ${SHADOWS.lg};
+    background: #333333;
+    transform: translateY(-1px);
   }
 
   &:disabled {
@@ -113,9 +116,10 @@ const Button = styled.button`
 const ErrorMessage = styled.div`
   margin-top: ${SPACING.lg};
   padding: ${SPACING.md} ${SPACING.lg};
-  background: ${COLORS.errorLight};
-  color: ${COLORS.error};
-  border-radius: 8px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
   font-size: ${TYPOGRAPHY.fontSize.sm};
 `;
 

@@ -23,16 +23,16 @@ const SidebarNav = styled.nav`
   }
   
   &::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.4);
+    background: rgba(0, 0, 0, 0.4);
   }
   
   &::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.3);
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 2px;
   }
   
   &::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.5);
+    background: rgba(255, 255, 255, 0.25);
   }
 
   ul {
@@ -49,16 +49,16 @@ const NavItem = styled.li<{ $isActive?: boolean }>`
     display: flex;
     align-items: center;
     padding: 14px 20px;
-    color: ${props => props.$isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.85)'};
-    background-color: ${props => props.$isActive ? 'rgba(30, 64, 175, 0.5)' : 'transparent'};
-    transition: background-color 0.15s ease, color 0.15s ease;
+    color: ${props => props.$isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)'};
+    background-color: ${props => props.$isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent'};
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
     border-radius: 0;
     margin: 0;
-    border-left: ${props => props.$isActive ? '3px solid #1e40af' : '3px solid transparent'};
+    border-left: ${props => props.$isActive ? '3px solid #ffffff' : '3px solid transparent'};
 
     &:hover {
-      background-color: ${props => props.$isActive ? 'rgba(30, 64, 175, 0.6)' : 'rgba(30, 64, 175, 0.25)'};
+      background-color: rgba(255, 255, 255, 0.08);
       color: #ffffff;
     }
 
@@ -81,18 +81,17 @@ const NavItem = styled.li<{ $isActive?: boolean }>`
 
 const LogoutSection = styled.div`
   padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: #0f172a;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 `;
 
 const LogoutButton = styled.button`
   width: 100%;
   padding: 12px 18px;
-  background-color: rgba(30, 58, 138, 0.4);
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 4px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -102,12 +101,12 @@ const LogoutButton = styled.button`
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background-color: rgba(185, 28, 28, 0.25);
-    border-color: rgba(220, 53, 69, 0.5);
-    color: #ffffff;
+    background-color: #ffffff;
+    border-color: #ffffff;
+    color: #000000;
   }
 
   svg {

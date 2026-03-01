@@ -9,7 +9,7 @@ import {
   type EstadisticasUsuarios 
 } from '../services/usuariosApi';
 import { Button, ActionButton, StatusBadge } from '../../../components/shared';
-import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../../../styles/theme';
+import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS } from '../../../styles/theme';
 
 const PageHeader = styled.div`
   display: flex;
@@ -28,7 +28,7 @@ const StatsGrid = styled.div`
 const StatCard = styled.div`
   background: ${COLORS.surface};
   border: 1px solid ${COLORS.border};
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   padding: ${SPACING.xl};
   box-shadow: ${SHADOWS.sm};
 `;
@@ -48,7 +48,7 @@ const StatValue = styled.div`
 const Filters = styled.div`
   background: ${COLORS.surface};
   border: 1px solid ${COLORS.border};
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   padding: ${SPACING.xl};
   margin-bottom: ${SPACING.xl};
   display: flex;
@@ -73,7 +73,7 @@ const Select = styled.select`
   width: 100%;
   padding: ${SPACING.sm} ${SPACING.md};
   border: 1px solid ${COLORS.border};
-  border-radius: 6px;
+  border-radius: ${RADIUS.sm};
   font-size: ${TYPOGRAPHY.fontSize.base};
   color: ${COLORS.text};
   background: ${COLORS.surface};
@@ -81,14 +81,14 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: ${COLORS.superadmin};
+    border-color: ${COLORS.primary};
   }
 `;
 
 const Table = styled.table`
   width: 100%;
   background: ${COLORS.surface};
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   overflow: hidden;
   box-shadow: ${SHADOWS.sm};
 `;
@@ -124,7 +124,7 @@ const Td = styled.td`
 
 const RolBadge = styled.span<{ $rol: string }>`
   padding: ${SPACING.xs} ${SPACING.md};
-  border-radius: 12px;
+  border-radius: ${RADIUS.xl};
   font-size: ${TYPOGRAPHY.fontSize.xs};
   font-weight: ${TYPOGRAPHY.fontWeight.medium};
   text-transform: capitalize;
@@ -132,7 +132,7 @@ const RolBadge = styled.span<{ $rol: string }>`
   ${props => {
     switch (props.$rol) {
       case 'admin':
-        return `background: ${COLORS.superadminLight}; color: ${COLORS.superadminDark};`;
+        return `background: ${COLORS.surfaceHover}; color: ${COLORS.primary};`;
       case 'vendedor':
         return `background: ${COLORS.infoLight}; color: ${COLORS.info};`;
       case 'almacenero':

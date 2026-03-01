@@ -20,10 +20,11 @@ const MainContent = styled.main`
 `;
 
 const MainHeader = styled.header`
-  background-color: #fff;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
   padding: 20px 30px;
-  border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -37,17 +38,18 @@ const MainHeader = styled.header`
   }
 
   h1 {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
-    color: #333;
+    color: #0a0a0a;
     margin: 0;
+    letter-spacing: -0.5px;
     
     @media (max-width: 768px) {
-      font-size: 24px;
+      font-size: 20px;
     }
     
     @media (max-width: 480px) {
-      font-size: 20px;
+      font-size: 18px;
     }
   }
 `;

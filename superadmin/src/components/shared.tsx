@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { TYPOGRAPHY, COLORS, SHADOWS, SPACING } from '../styles/theme';
+import { TYPOGRAPHY, COLORS, RADIUS, TRANSITION } from '../styles/theme';
 
 // ============================================================================
 // TIPOS DE BOTONES
@@ -22,61 +22,66 @@ export interface ActionButtonProps {
 
 export const Button = styled.button<ButtonProps>`
   font-family: ${TYPOGRAPHY.fontFamily.base};
-  padding: 0.625rem 1.25rem;
+  padding: 12px 30px;
   border: none;
-  border-radius: 8px;
-  font-size: ${TYPOGRAPHY.fontSize.base};
-  font-weight: ${TYPOGRAPHY.fontWeight.medium};
+  border-radius: ${RADIUS.xl};
+  font-size: 13px;
+  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: ${TRANSITION};
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 
   ${props => {
     switch (props.$variant) {
       case 'primary':
         return `
-          background: ${COLORS.superadmin};
-          color: ${COLORS.surface};
+          background: #000000;
+          color: #ffffff;
           &:hover:not(:disabled) {
-            background: ${COLORS.superadminDark};
+            background: #333333;
             transform: translateY(-1px);
-            box-shadow: ${SHADOWS.md};
           }
         `;
       case 'success':
         return `
           background: ${COLORS.success};
-          color: ${COLORS.surface};
+          color: #ffffff;
           &:hover:not(:disabled) {
-            background: #0d9668;
+            background: #16a34a;
+            transform: translateY(-1px);
           }
         `;
       case 'danger':
         return `
           background: ${COLORS.error};
-          color: ${COLORS.surface};
+          color: #ffffff;
           &:hover:not(:disabled) {
             background: #dc2626;
+            transform: translateY(-1px);
           }
         `;
       case 'outline':
         return `
           background: transparent;
-          color: ${COLORS.superadmin};
-          border: 1px solid ${COLORS.superadmin};
+          color: #000000;
+          border: 1.5px solid #000000;
           &:hover:not(:disabled) {
-            background: ${COLORS.superadminLight}22;
+            background: #000000;
+            color: #ffffff;
           }
         `;
       default: // secondary
         return `
           background: ${COLORS.surface};
           color: ${COLORS.text};
-          border: 1px solid ${COLORS.border};
+          border: 1.5px solid ${COLORS.border};
           &:hover:not(:disabled) {
             background: ${COLORS.surfaceHover};
+            border-color: ${COLORS.borderDark};
           }
         `;
     }
@@ -94,31 +99,33 @@ export const Button = styled.button<ButtonProps>`
 
 export const ActionButton = styled.button<ActionButtonProps>`
   font-family: ${TYPOGRAPHY.fontFamily.base};
-  padding: 0.375rem 0.75rem;
+  padding: 8px 16px;
   border: none;
-  border-radius: 6px;
-  font-size: ${TYPOGRAPHY.fontSize.sm};
-  font-weight: ${TYPOGRAPHY.fontWeight.medium};
+  border-radius: ${RADIUS.sm};
+  font-size: ${TYPOGRAPHY.fontSize.xs};
+  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: ${TRANSITION};
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 
   ${props => {
     switch (props.$variant) {
       case 'view':
-        return `background: #d1ecf1; color: #17a2d8;`;
+        return `background: #f5f5f5; color: #525252; border: 1px solid #e5e5e5;`;
       case 'edit':
-        return `background: #3498db; color: #ffffff;`;
+        return `background: #000000; color: #ffffff;`;
       case 'delete':
-        return `background: #dc3545; color: #ffffff;`;
+        return `background: #fef2f2; color: #ef4444; border: 1px solid #fecaca;`;
       case 'activate':
-        return `background: #28a745; color: #ffffff;`;
+        return `background: #f0fdf4; color: #22c55e; border: 1px solid #bbf7d0;`;
       case 'deactivate':
-        return `background: #f8d7da; color: #dc3545;`;
+        return `background: #fef2f2; color: #ef4444; border: 1px solid #fecaca;`;
       default:
-        return `background: ${COLORS.surfaceHover}; color: ${COLORS.textLight};`;
+        return `background: ${COLORS.surfaceHover}; color: ${COLORS.textLight}; border: 1px solid ${COLORS.border};`;
     }
   }}
 
@@ -149,10 +156,10 @@ export const ButtonGroup = styled.div`
 // ============================================================================
 
 export const StatusBadge = styled.span<{ $status: string }>`
-  padding: ${SPACING.xs} ${SPACING.md};
-  border-radius: 12px;
-  font-size: ${TYPOGRAPHY.fontSize.xs};
-  font-weight: ${TYPOGRAPHY.fontWeight.medium};
+  padding: 4px 10px;
+  border-radius: ${RADIUS.xl};
+  font-size: 11px;
+  font-weight: ${TYPOGRAPHY.fontWeight.bold};
   text-transform: capitalize;
   display: inline-block;
   
@@ -161,28 +168,31 @@ export const StatusBadge = styled.span<{ $status: string }>`
       case 'activa':
       case 'activo':
       case 'pagado':
+      case 'al_dia':
         return `
           background: ${COLORS.successLight};
-          color: ${COLORS.success};
+          color: #16a34a;
         `;
       case 'suspendida':
       case 'suspendido':
       case 'pendiente':
+      case 'por_vencer':
         return `
           background: ${COLORS.warningLight};
-          color: ${COLORS.warning};
+          color: #d97706;
         `;
       case 'vencida':
       case 'vencido':
       case 'inactivo':
       case 'fallido':
+      case 'cancelada':
         return `
           background: ${COLORS.errorLight};
-          color: ${COLORS.error};
+          color: #dc2626;
         `;
       default:
         return `
-          background: ${COLORS.border};
+          background: #f5f5f5;
           color: ${COLORS.textLight};
         `;
     }

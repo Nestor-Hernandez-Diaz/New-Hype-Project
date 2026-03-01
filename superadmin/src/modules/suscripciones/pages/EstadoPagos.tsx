@@ -10,7 +10,7 @@ import {
 import { fetchSuscripcion, renovarSuscripcion } from '../services/suscripcionesApi';
 import { actualizarSucursal } from '../../sucursales/services/sucursalesApi';
 import { ActionButton, StatusBadge } from '../../../components/shared';
-import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../../../styles/theme';
+import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -26,11 +26,11 @@ const StatsGrid = styled.div`
 const StatCard = styled.div<{ $color?: string; $active?: boolean }>`
   background: ${COLORS.surface};
   border: 2px solid ${props => props.$active ? (props.$color || COLORS.border) : COLORS.border};
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   padding: ${SPACING.xl};
   box-shadow: ${props => props.$active ? SHADOWS.md : SHADOWS.sm};
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: ${TRANSITION};
 
   &:hover {
     border-color: ${props => props.$color || COLORS.primary};
@@ -42,7 +42,7 @@ const StatCard = styled.div<{ $color?: string; $active?: boolean }>`
 const StatIcon = styled.div<{ $bgColor: string }>`
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   background: ${props => props.$bgColor};
   display: flex;
   align-items: center;
@@ -94,18 +94,18 @@ const TableWrapper = styled.div`
 
 const FilterButton = styled.button<{ $active?: boolean }>`
   padding: ${SPACING.sm} ${SPACING.lg};
-  border: 1px solid ${props => props.$active ? COLORS.superadmin : COLORS.border};
-  background: ${props => props.$active ? COLORS.superadmin : COLORS.surface};
+  border: 1px solid ${props => props.$active ? COLORS.primary : COLORS.border};
+  background: ${props => props.$active ? COLORS.primary : COLORS.surface};
   color: ${props => props.$active ? '#fff' : COLORS.text};
-  border-radius: 8px;
+  border-radius: ${RADIUS.xl};
   font-size: ${TYPOGRAPHY.fontSize.sm};
   font-weight: ${TYPOGRAPHY.fontWeight.medium};
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: ${TRANSITION};
 
   &:hover {
-    border-color: ${COLORS.superadmin};
-    background: ${props => props.$active ? COLORS.superadminDark : COLORS.surfaceHover};
+    border-color: ${COLORS.primary};
+    background: ${props => props.$active ? COLORS.primaryDark : COLORS.surfaceHover};
   }
 `;
 
@@ -113,7 +113,7 @@ const Table = styled.table`
   width: 100%;
   min-width: 980px;
   background: ${COLORS.surface};
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   overflow: hidden;
   box-shadow: ${SHADOWS.sm};
 `;
@@ -152,7 +152,7 @@ const DiasIndicator = styled.span<{ $estado: string }>`
   align-items: center;
   gap: 4px;
   padding: ${SPACING.xs} ${SPACING.md};
-  border-radius: 8px;
+  border-radius: ${RADIUS.sm};
   font-size: ${TYPOGRAPHY.fontSize.xs};
   font-weight: ${TYPOGRAPHY.fontWeight.semibold};
   background: ${props => {
@@ -300,11 +300,11 @@ const EstadoPagos: React.FC = () => {
       {/* ── Dashboard Cards ── */}
       <StatsGrid>
         <StatCard
-          $color={COLORS.superadmin}
+          $color={COLORS.primary}
           $active={filtro === 'todos'}
           onClick={() => handleCardClick('todos')}
         >
-          <StatIcon $bgColor={COLORS.superadmin}>
+          <StatIcon $bgColor={COLORS.primary}>
             <svg viewBox="0 0 24 24">
               <rect x="2" y="5" width="20" height="14" rx="2" />
               <line x1="2" y1="10" x2="22" y2="10" />

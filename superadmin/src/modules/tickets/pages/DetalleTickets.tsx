@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
-import { COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../../../styles/theme';
+import { COLORS, SHADOWS, SPACING, TYPOGRAPHY, RADIUS } from '../../../styles/theme';
 import {
   cambiarEstadoTicket,
   fetchTicketDetalle,
@@ -25,7 +25,7 @@ const Container = styled.div`
 const Panel = styled.section`
   background: ${COLORS.surface};
   border: 1px solid ${COLORS.border};
-  border-radius: 12px;
+  border-radius: ${RADIUS.lg};
   box-shadow: ${SHADOWS.sm};
   overflow: hidden;
 `;
@@ -51,7 +51,7 @@ const TicketItem = styled.li<{ $active: boolean }>`
     width: 100%;
     text-align: left;
     border: none;
-    background: ${props => (props.$active ? COLORS.superadminLight : 'transparent')};
+    background: ${props => (props.$active ? COLORS.surfaceHover : 'transparent')};
     color: ${COLORS.text};
     padding: ${SPACING.md} ${SPACING.xl};
     cursor: pointer;
@@ -87,7 +87,7 @@ const Grid = styled.div`
 
 const Field = styled.div`
   border: 1px solid ${COLORS.border};
-  border-radius: 8px;
+  border-radius: ${RADIUS.md};
   padding: ${SPACING.md};
 `;
 
@@ -108,7 +108,7 @@ const Value = styled.div`
 const StatusBadge = styled.span<{ $estado: TicketDetalle['estado'] }>`
   display: inline-flex;
   padding: ${SPACING.xs} ${SPACING.md};
-  border-radius: 12px;
+  border-radius: ${RADIUS.xl};
   font-size: ${TYPOGRAPHY.fontSize.xs};
   font-weight: ${TYPOGRAPHY.fontWeight.semibold};
 
@@ -138,7 +138,7 @@ const EmptyState = styled.div`
 
 const ActionsPanel = styled.div`
   border: 1px solid ${COLORS.border};
-  border-radius: 8px;
+  border-radius: ${RADIUS.md};
   padding: ${SPACING.lg};
   display: grid;
   gap: ${SPACING.md};
@@ -155,7 +155,7 @@ const Select = styled.select`
   min-width: 180px;
   padding: ${SPACING.sm} ${SPACING.md};
   border: 1px solid ${COLORS.border};
-  border-radius: 6px;
+  border-radius: ${RADIUS.md};
   color: ${COLORS.text};
   background: ${COLORS.surface};
 `;
@@ -165,7 +165,7 @@ const Input = styled.input`
   min-width: 220px;
   padding: ${SPACING.sm} ${SPACING.md};
   border: 1px solid ${COLORS.border};
-  border-radius: 6px;
+  border-radius: ${RADIUS.md};
   color: ${COLORS.text};
 `;
 
@@ -174,19 +174,19 @@ const TextArea = styled.textarea`
   min-height: 88px;
   padding: ${SPACING.sm} ${SPACING.md};
   border: 1px solid ${COLORS.border};
-  border-radius: 6px;
+  border-radius: ${RADIUS.md};
   color: ${COLORS.text};
   resize: vertical;
 `;
 
 const Button = styled.button`
   border: none;
-  border-radius: 6px;
+  border-radius: ${RADIUS.xl};
   padding: ${SPACING.sm} ${SPACING.md};
   font-weight: ${TYPOGRAPHY.fontWeight.semibold};
   cursor: pointer;
   color: ${COLORS.surface};
-  background: ${COLORS.superadmin};
+  background: ${COLORS.primary};
 
   &:disabled {
     opacity: 0.7;
@@ -201,7 +201,7 @@ const MutedText = styled.div`
 
 const TimelinePanel = styled.div`
   border: 1px solid ${COLORS.border};
-  border-radius: 8px;
+  border-radius: ${RADIUS.md};
   padding: ${SPACING.lg};
 `;
 
@@ -221,7 +221,7 @@ const TimelineList = styled.ul`
 `;
 
 const TimelineItem = styled.li`
-  border-left: 3px solid ${COLORS.superadmin};
+  border-left: 3px solid ${COLORS.primary};
   padding: ${SPACING.xs} 0 ${SPACING.xs} ${SPACING.md};
 `;
 
