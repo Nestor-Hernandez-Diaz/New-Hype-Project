@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
-import { fetchSucursales } from '../../sucursales/services/sucursalesApi';
-import { fetchSuscripciones } from '../../suscripciones/services/suscripcionesApi';
-import { fetchEstadisticas } from '../../usuarios/services/usuariosApi';
+import { fetchDashboardIngresos } from '../services/dashboardApi';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
+import type { DashboardIngresos } from '../../../types/api';
 
 const StatsGrid = styled.div`
   display: grid;
@@ -126,7 +125,7 @@ const ActivityTime = styled.div`
 
 interface ActivityLog {
   id: string;
-  type: 'sucursal' | 'suscripcion' | 'usuario' | 'pago';
+  type: 'tenant' | 'plan' | 'pago' | 'ticket';
   description: string;
   timestamp: Date;
 }
@@ -134,50 +133,50 @@ interface ActivityLog {
 const MOCK_ACTIVITIES: ActivityLog[] = [
   {
     id: '1',
-    type: 'sucursal',
-    description: 'Sucursal "Boutique Fashion" fue activada exitosamente',
+    type: 'tenant',
+    description: 'Tenant "Boutique Fashion María" fue activado exitosamente',
     timestamp: new Date(Date.now() - 15 * 60000)
   },
   {
     id: '2',
-    type: 'suscripcion',
-    description: 'Suscripción renovada para "Urban Style" - Plan Anual',
+    type: 'plan',
+    description: 'Plan Enterprise asignado a "Urban Style Store"',
     timestamp: new Date(Date.now() - 45 * 60000)
   },
   {
     id: '3',
-    type: 'usuario',
-    description: 'Nuevo usuario creado: Ana Vendedora (Boutique Fashion)',
+    type: 'pago',
+    description: 'Pago confirmado: S/ 990.00 - Urban Style Store (Plan Enterprise)',
     timestamp: new Date(Date.now() - 2 * 3600000)
   },
   {
     id: '4',
-    type: 'pago',
-    description: 'Pago confirmado: S/ 990.00 - Urban Style (Plan Anual)',
+    type: 'ticket',
+    description: 'Ticket #1024 resuelto: "Error al generar boleta" - Boutique Fashion',
     timestamp: new Date(Date.now() - 3 * 3600000)
   },
   {
     id: '5',
-    type: 'usuario',
-    description: 'Usuario suspendido: Jorge Almacén por inactividad',
+    type: 'tenant',
+    description: 'Nuevo tenant registrado: "Trendy Kids"',
     timestamp: new Date(Date.now() - 5 * 3600000)
   },
   {
     id: '6',
-    type: 'suscripcion',
-    description: 'Suscripción de "Boutique Fashion" próxima a vencer (7 días)',
+    type: 'plan',
+    description: 'Suscripción de "Sport Zone Lima" próxima a vencer (7 días)',
     timestamp: new Date(Date.now() - 86400000)
   },
   {
     id: '7',
-    type: 'sucursal',
-    description: 'Nueva sucursal registrada: "Urban Style"',
+    type: 'pago',
+    description: 'Pago confirmado: S/ 99.00 - Trendy Kids (Plan Básico)',
     timestamp: new Date(Date.now() - 2 * 86400000)
   },
   {
     id: '8',
-    type: 'pago',
-    description: 'Pago confirmado: S/ 99.00 - Boutique Fashion (Plan Mensual)',
+    type: 'ticket',
+    description: 'Nuevo ticket urgente #1028: "No puedo iniciar sesión" - Elegance Plus',
     timestamp: new Date(Date.now() - 3 * 86400000)
   }
 ];
@@ -200,25 +199,25 @@ const getTimeAgo = (date: Date): string => {
 
 const getActivityIcon = (type: string) => {
   switch (type) {
-    case 'sucursal':
+    case 'tenant':
       return (
         <svg viewBox="0 0 24 24">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
       );
-    case 'suscripcion':
+    case 'plan':
       return (
         <svg viewBox="0 0 24 24">
           <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
         </svg>
       );
-    case 'usuario':
+    case 'ticket':
       return (
         <svg viewBox="0 0 24 24">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
+          <path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />
+          <line x1="7" y1="10" x2="17" y2="10" />
         </svg>
       );
     case 'pago':
@@ -240,65 +239,42 @@ const getActivityIcon = (type: string) => {
 };
 
 const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState({
-    totalSucursales: 0,
-    sucursalesActivas: 0,
-    ingresosMensuales: 0,
-    totalUsuarios: 0,
-  });
+  const [data, setData] = useState<DashboardIngresos | null>(null);
 
   useEffect(() => {
     loadStats();
   }, []);
 
   const loadStats = async () => {
-    const [sucursales, suscripciones, usuarios] = await Promise.all([
-      fetchSucursales(),
-      fetchSuscripciones(),
-      fetchEstadisticas(),
-    ]);
-
-    const activas = sucursales.filter(s => s.estado === 'activa').length;
-    const ingresos = suscripciones
-      .filter(s => s.estado === 'activa')
-      .reduce((acc, s) => {
-        const mensual = s.plan.tipo === 'anual' ? s.precioFinal / 12 : s.precioFinal;
-        return acc + mensual;
-      }, 0);
-
-    setStats({
-      totalSucursales: sucursales.length,
-      sucursalesActivas: activas,
-      ingresosMensuales: ingresos,
-      totalUsuarios: usuarios.totalUsuarios,
-    });
+    const res = await fetchDashboardIngresos();
+    setData(res.data);
   };
 
   return (
     <Layout title="Dashboard Global">
       <StatsGrid>
         <StatCard>
-          <StatLabel>Total Sucursales</StatLabel>
-          <StatValue>{stats.totalSucursales}</StatValue>
-          <StatChange positive>+{stats.sucursalesActivas} activas</StatChange>
+          <StatLabel>Total Tenants</StatLabel>
+          <StatValue>{data?.porPlan.reduce((a, p) => a + p.cantidadTenants, 0) ?? 0}</StatValue>
+          <StatChange positive>Registrados en plataforma</StatChange>
         </StatCard>
 
         <StatCard>
-          <StatLabel>Sucursales Activas</StatLabel>
-          <StatValue>{stats.sucursalesActivas}</StatValue>
-          <StatChange positive>{stats.totalSucursales > 0 ? Math.round((stats.sucursalesActivas / stats.totalSucursales) * 100) : 0}% del total</StatChange>
+          <StatLabel>MRR (Ingresos Recurrentes)</StatLabel>
+          <StatValue>S/ {data?.mrr.toFixed(2) ?? '0.00'}</StatValue>
+          <StatChange positive>Mensual</StatChange>
         </StatCard>
 
         <StatCard>
-          <StatLabel>Ingresos Mensuales</StatLabel>
-          <StatValue>S/ {stats.ingresosMensuales.toFixed(2)}</StatValue>
-          <StatChange positive>Estimado mensual</StatChange>
+          <StatLabel>Ingresos Totales</StatLabel>
+          <StatValue>S/ {data?.ingresosTotales.toFixed(2) ?? '0.00'}</StatValue>
+          <StatChange positive>Acumulado</StatChange>
         </StatCard>
 
         <StatCard>
-          <StatLabel>Usuarios Totales</StatLabel>
-          <StatValue>{stats.totalUsuarios}</StatValue>
-          <StatChange positive>Todos los sistemas</StatChange>
+          <StatLabel>Top Tenant</StatLabel>
+          <StatValue>{data?.topTenants[0]?.tenantNombre ?? '—'}</StatValue>
+          <StatChange positive>S/ {data?.topTenants[0]?.totalPagado.toFixed(2) ?? '0.00'}</StatChange>
         </StatCard>
       </StatsGrid>
 

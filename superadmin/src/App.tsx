@@ -3,11 +3,12 @@ import { GlobalStyles } from './styles/GlobalStyles';
 import { AuthProvider, useAuth } from './modules/auth/context/AuthContext';
 import Login from './modules/auth/pages/Login';
 import Dashboard from './modules/dashboard/pages/Dashboard';
-import GestionSucursales from './modules/sucursales/pages/GestionSucursales';
-import GestionSuscripciones from './modules/suscripciones/pages/GestionSuscripciones';
-import EstadoPagos from './modules/suscripciones/pages/EstadoPagos';
-import GestionUsuarios from './modules/usuarios/pages/GestionUsuarios';
-import DetalleTickets from './modules/tickets/pages/DetalleTickets';
+import GestionTenants from './modules/tenants/pages/GestionTenants';
+import GestionPlanes from './modules/planes/pages/GestionPlanes';
+import EstadoPagos from './modules/pagos/pages/EstadoPagos';
+import GestionCupones from './modules/cupones/pages/GestionCupones';
+import LogsAuditoria from './modules/auditoria/pages/LogsAuditoria';
+import GestionTickets from './modules/tickets/pages/GestionTickets';
 
 // Componente de ruta protegida
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -56,46 +57,55 @@ function AppRoutes() {
         />
         
         <Route 
-          path="/sucursales" 
+          path="/tenants" 
           element={
             <ProtectedRoute>
-              <GestionSucursales />
+              <GestionTenants />
             </ProtectedRoute>
           } 
         />
         
         <Route 
-          path="/suscripciones" 
+          path="/planes" 
           element={
             <ProtectedRoute>
-              <GestionSuscripciones />
+              <GestionPlanes />
             </ProtectedRoute>
           } 
         />
 
         <Route 
-          path="/suscripciones/estado-pagos" 
+          path="/pagos" 
           element={
             <ProtectedRoute>
               <EstadoPagos />
             </ProtectedRoute>
           } 
         />
-        
+
         <Route 
-          path="/usuarios" 
+          path="/cupones" 
           element={
             <ProtectedRoute>
-              <GestionUsuarios />
+              <GestionCupones />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/auditoria" 
+          element={
+            <ProtectedRoute>
+              <LogsAuditoria />
             </ProtectedRoute>
           } 
         />
 
         <Route
-          path="/tickets/detalle"
+          path="/tickets"
           element={
             <ProtectedRoute>
-              <DetalleTickets />
+              <GestionTickets />
             </ProtectedRoute>
           }
         />
