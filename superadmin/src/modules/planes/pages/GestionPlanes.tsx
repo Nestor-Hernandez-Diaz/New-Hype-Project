@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { fetchPlanes, toggleEstadoPlan } from '../services/planesApi';
+import CrearPlanModal from '../components/CrearPlanModal';
 import { Button, ActionButton } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Plan } from '../../../types/api';
@@ -166,6 +167,7 @@ const formatLimit = (n: number): string => {
 const GestionPlanes: React.FC = () => {
   const [planes, setPlanes] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCrear, setShowCrear] = useState(false);
 
   useEffect(() => {
     loadPlanes();
@@ -175,14 +177,17 @@ const GestionPlanes: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await fetchPlanes();
-      setPlanes(data);
+      setPlanes(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error cargando planes:', err);
+      setPlanes([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleToggleEstado = async (plan: Plan) => {
-    const accion = plan.activo ? 'desactivar' : 'activar';
+    const accion = plan.estado ? 'desactivar' : 'activar';
     if (!window.confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} el plan "${plan.nombre}"?`)) return;
     await toggleEstadoPlan(plan.id);
     await loadPlanes();
@@ -196,10 +201,10 @@ const GestionPlanes: React.FC = () => {
             Planes de Suscripción
           </h2>
           <p style={{ margin: `${SPACING.xs} 0 0`, fontSize: TYPOGRAPHY.fontSize.sm, color: COLORS.textLight }}>
-            {planes.filter(p => p.activo).length} planes activos · {planes.reduce((sum, p) => sum + p.tenantCount, 0)} tenants suscritos
+            {planes.filter(p => p.estado).length} planes activos · {planes.reduce((sum, p) => sum + (p.cantidadTenants ?? 0), 0)} tenants suscritos
           </p>
         </div>
-        <Button onClick={() => window.alert('Modal de crear plan — próximamente')}>
+        <Button onClick={() => setShowCrear(true)}>
           + Nuevo Plan
         </Button>
       </PageHeader>
@@ -209,22 +214,22 @@ const GestionPlanes: React.FC = () => {
       ) : (
         <PlanesGrid>
           {planes.map(plan => (
-            <PlanCard key={plan.id} $inactive={!plan.activo}>
+            <PlanCard key={plan.id} $inactive={!plan.estado}>
               <PlanHeader>
                 <div>
                   <PlanName>{plan.nombre}</PlanName>
-                  <StatusBadge $active={plan.activo}>
-                    {plan.activo ? 'Activo' : 'Inactivo'}
+                  <StatusBadge $active={plan.estado}>
+                    {plan.estado ? 'Activo' : 'Inactivo'}
                   </StatusBadge>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <ActionButton $variant="edit" title="Editar plan">✏️</ActionButton>
                   <ActionButton
-                    $variant={plan.activo ? 'delete' : 'view'}
+                    $variant={plan.estado ? 'delete' : 'view'}
                     onClick={() => handleToggleEstado(plan)}
-                    title={plan.activo ? 'Desactivar' : 'Activar'}
+                    title={plan.estado ? 'Desactivar' : 'Activar'}
                   >
-                    {plan.activo ? '⏸' : '▶'}
+                    {plan.estado ? '⏸' : '▶'}
                   </ActionButton>
                 </div>
               </PlanHeader>
@@ -263,15 +268,22 @@ const GestionPlanes: React.FC = () => {
 
               <PlanFooter>
                 <TenantCount>
-                  <strong>{plan.tenantCount}</strong> tenants suscritos
+                  <strong>{plan.cantidadTenants ?? 0}</strong> tenants suscritos
                 </TenantCount>
                 <span style={{ fontSize: TYPOGRAPHY.fontSize.xs, color: COLORS.textLighter }}>
-                  Prueba: {plan.periodoPruebaDias}d · {plan.moduloIds.length} módulos
+                  Prueba: {plan.periodoPruebaDias}d · {(plan.modulos ?? []).length} módulos
                 </span>
               </PlanFooter>
             </PlanCard>
           ))}
         </PlanesGrid>
+      )}
+
+      {showCrear && (
+        <CrearPlanModal
+          onClose={() => setShowCrear(false)}
+          onCreated={() => { setShowCrear(false); loadPlanes(); }}
+        />
       )}
     </Layout>
   );

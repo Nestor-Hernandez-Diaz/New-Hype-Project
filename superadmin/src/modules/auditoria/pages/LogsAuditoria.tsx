@@ -204,7 +204,10 @@ const LogsAuditoria: React.FC = () => {
         fechaDesde: filtroFechaDesde || undefined,
         fechaHasta: filtroFechaHasta || undefined,
       });
-      setLogs(res.content);
+      setLogs(res?.content ?? []);
+    } catch (err) {
+      console.error('Error cargando auditoría:', err);
+      setLogs([]);
     } finally {
       setIsLoading(false);
     }

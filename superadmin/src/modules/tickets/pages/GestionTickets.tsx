@@ -307,11 +307,15 @@ const GestionTickets: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchTickets();
-      setTickets(res.content);
-      if (res.content.length > 0 && !selected) {
-        const detail = await fetchTicketById(res.content[0].id);
-        setSelected(detail);
+      const list = res?.content ?? [];
+      setTickets(list);
+      if (list.length > 0 && !selected) {
+        const detail = await fetchTicketById(list[0].id);
+        setSelected(detail ?? null);
       }
+    } catch (err) {
+      console.error('Error cargando tickets:', err);
+      setTickets([]);
     } finally {
       setIsLoading(false);
     }

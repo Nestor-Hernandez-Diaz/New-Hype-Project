@@ -5,6 +5,7 @@ import { fetchCupones } from '../services/cuponesApi';
 import { Button } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Cupon } from '../../../types/api';
+import CrearCuponModal from '../components/CrearCuponModal';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -170,6 +171,7 @@ const LoadingState = styled.div`
 const GestionCupones: React.FC = () => {
   const [cupones, setCupones] = useState<Cupon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCrear, setShowCrear] = useState(false);
 
   useEffect(() => {
     loadCupones();
@@ -179,7 +181,10 @@ const GestionCupones: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await fetchCupones();
-      setCupones(data);
+      setCupones(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error cargando cupones:', err);
+      setCupones([]);
     } finally {
       setIsLoading(false);
     }
@@ -212,7 +217,7 @@ const GestionCupones: React.FC = () => {
         <h2 style={{ margin: 0, fontSize: TYPOGRAPHY.fontSize.xl, fontWeight: TYPOGRAPHY.fontWeight.bold, color: COLORS.text }}>
           Cupones Promocionales
         </h2>
-        <Button onClick={() => window.alert('Modal de crear cupón — próximamente')}>
+        <Button onClick={() => setShowCrear(true)}>
           + Nuevo Cupón
         </Button>
       </PageHeader>
@@ -256,6 +261,13 @@ const GestionCupones: React.FC = () => {
             </Tbody>
           </Table>
         </TableWrapper>
+      )}
+
+      {showCrear && (
+        <CrearCuponModal
+          onClose={() => setShowCrear(false)}
+          onCreated={() => { setShowCrear(false); loadCupones(); }}
+        />
       )}
     </Layout>
   );

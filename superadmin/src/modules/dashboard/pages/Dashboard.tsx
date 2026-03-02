@@ -41,9 +41,9 @@ const StatValue = styled.div`
   margin-bottom: ${SPACING.xs};
 `;
 
-const StatChange = styled.div<{ positive?: boolean }>`
+const StatChange = styled.div<{ $positive?: boolean }>`
   font-size: ${TYPOGRAPHY.fontSize.sm};
-  color: ${props => props.positive ? COLORS.success : COLORS.error};
+  color: ${props => props.$positive ? COLORS.success : COLORS.error};
 `;
 
 const ActivitySection = styled.div`
@@ -246,8 +246,12 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const loadStats = async () => {
-    const data = await fetchDashboardIngresos();
-    setData(data);
+    try {
+      const data = await fetchDashboardIngresos();
+      setData(data);
+    } catch (err) {
+      console.error('Error cargando dashboard:', err);
+    }
   };
 
   return (
@@ -255,26 +259,26 @@ const Dashboard: React.FC = () => {
       <StatsGrid>
         <StatCard>
           <StatLabel>Total Tenants</StatLabel>
-          <StatValue>{data?.porPlan.reduce((a, p) => a + p.cantidadTenants, 0) ?? 0}</StatValue>
-          <StatChange positive>Registrados en plataforma</StatChange>
+          <StatValue>{data?.porPlan?.reduce((a, p) => a + p.cantidadTenants, 0) ?? 0}</StatValue>
+          <StatChange $positive>Registrados en plataforma</StatChange>
         </StatCard>
 
         <StatCard>
           <StatLabel>MRR (Ingresos Recurrentes)</StatLabel>
-          <StatValue>S/ {data?.mrr.toFixed(2) ?? '0.00'}</StatValue>
-          <StatChange positive>Mensual</StatChange>
+          <StatValue>S/ {data?.mrr?.toFixed(2) ?? '0.00'}</StatValue>
+          <StatChange $positive>Mensual</StatChange>
         </StatCard>
 
         <StatCard>
           <StatLabel>Ingresos Totales</StatLabel>
-          <StatValue>S/ {data?.ingresosTotales.toFixed(2) ?? '0.00'}</StatValue>
-          <StatChange positive>Acumulado</StatChange>
+          <StatValue>S/ {data?.ingresosTotales?.toFixed(2) ?? '0.00'}</StatValue>
+          <StatChange $positive>Acumulado</StatChange>
         </StatCard>
 
         <StatCard>
           <StatLabel>Top Tenant</StatLabel>
-          <StatValue>{data?.topTenants[0]?.tenantNombre ?? '—'}</StatValue>
-          <StatChange positive>S/ {data?.topTenants[0]?.totalPagado.toFixed(2) ?? '0.00'}</StatChange>
+          <StatValue>{data?.topTenants?.[0]?.tenantNombre ?? '—'}</StatValue>
+          <StatChange $positive>S/ {data?.topTenants?.[0]?.totalPagado?.toFixed(2) ?? '0.00'}</StatChange>
         </StatCard>
       </StatsGrid>
 

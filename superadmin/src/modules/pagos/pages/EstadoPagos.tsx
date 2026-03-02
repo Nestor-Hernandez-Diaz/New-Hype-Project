@@ -193,8 +193,12 @@ const EstadoPagos: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchEstadoPagos();
-      setResumen(res.resumen);
-      setDetalle(res.detalle);
+      setResumen(res?.resumen ?? null);
+      setDetalle(res?.detalle ?? []);
+    } catch (err) {
+      console.error('Error cargando pagos:', err);
+      setResumen(null);
+      setDetalle([]);
     } finally {
       setIsLoading(false);
     }

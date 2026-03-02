@@ -2,7 +2,8 @@
 // API CONFIG — Cliente HTTP centralizado para el backend Spring Boot
 // ============================================================================
 
-export const API_BASE_URL = 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1/platform';
+// En desarrollo Vite proxea /api/v1/* → http://spring.informaticapp.com:5001/New-Hype-Project/api/v1/*
+export const API_BASE_URL = '/api/v1/platform';
 
 export const BEARER_TOKEN = 'eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwic2NvcGUiOiJwbGF0Zm9ybSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzI0MjIxNTYsImV4cCI6MTc3MjUwODU1Niwicm9sZSI6IlNVUEVSQURNSU4ifQ.But34rAvQA2cbOIeCEAKvffAaHBOe2kSi-k3H5U5UYyJp9LVC3Ok6E-289fiElfx';
 
@@ -30,8 +31,9 @@ export class ApiError extends Error {
 }
 
 /**
- * Wrapper de fetch que inyecta headers, parsega JSON y lanza ApiError si falla.
- * Retorna directamente el body JSON (el backend decide la forma).
+ * Wrapper de fetch que inyecta headers, parsea JSON y lanza ApiError si falla.
+ * El backend envuelve las respuestas en { success, data } — este wrapper lo desenvuelve
+ * automáticamente y retorna solo el payload útil (body.data).
  */
 export async function apiFetch<T>(
   path: string,
@@ -55,6 +57,11 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     throw new ApiError(res.status, body);
+  }
+
+  // El backend envuelve en { success: boolean, data: T } — desenvolver
+  if (body && typeof body === 'object' && 'success' in body && 'data' in body) {
+    return body.data as T;
   }
 
   return body as T;

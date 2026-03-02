@@ -5,7 +5,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5174,
-    open: true
+    open: true,
+    proxy: {
+      '/api/v1': {
+        target: 'http://spring.informaticapp.com:5001/New-Hype-Project',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   resolve: {
     alias: {

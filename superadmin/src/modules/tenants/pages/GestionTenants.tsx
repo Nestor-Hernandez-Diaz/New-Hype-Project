@@ -5,6 +5,7 @@ import { fetchTenants, cambiarEstadoTenant, enviarRecordatorioPago } from '../se
 import { Button, ActionButton, StatusBadge } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Tenant } from '../../../types/api';
+import CrearTenantModal from '../components/CrearTenantModal';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -201,6 +202,7 @@ const GestionTenants: React.FC = () => {
   const [filtro, setFiltro] = useState<FiltroEstado>('todos');
   const [busqueda, setBusqueda] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [showCrear, setShowCrear] = useState(false);
 
   useEffect(() => {
     loadTenants();
@@ -210,7 +212,10 @@ const GestionTenants: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchTenants();
-      setTenants(res.content);
+      setTenants(res?.content ?? []);
+    } catch (err) {
+      console.error('Error cargando tenants:', err);
+      setTenants([]);
     } finally {
       setIsLoading(false);
     }
@@ -283,7 +288,7 @@ const GestionTenants: React.FC = () => {
 
       <PageHeader>
         <Title>Listado de Tenants</Title>
-        <Button onClick={() => window.alert('Modal de crear tenant — próximamente')}>
+        <Button onClick={() => setShowCrear(true)}>
           + Nuevo Tenant
         </Button>
       </PageHeader>
@@ -346,6 +351,13 @@ const GestionTenants: React.FC = () => {
             </Tbody>
           </Table>
         </TableWrapper>
+      )}
+
+      {showCrear && (
+        <CrearTenantModal
+          onClose={() => setShowCrear(false)}
+          onCreated={() => { setShowCrear(false); loadTenants(); }}
+        />
       )}
     </Layout>
   );

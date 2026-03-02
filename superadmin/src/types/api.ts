@@ -183,10 +183,11 @@ export interface Plan {
   maxAlmacenes: number;
   maxVentasMes: number;
   periodoPruebaDias: number;
-  moduloIds: number[];
-  activo: boolean;
-  tenantCount: number;           // from GET /planes (listado)
+  modulos: number[];             // backend devuelve "modulos" (no "moduloIds")
+  estado: boolean;               // backend devuelve boolean (true=activo)
+  cantidadTenants: number;       // backend devuelve "cantidadTenants" (no "tenantCount")
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface PlanCreatePayload {
@@ -199,7 +200,7 @@ export interface PlanCreatePayload {
   maxAlmacenes: number;
   maxVentasMes: number;
   periodoPruebaDias: number;
-  moduloIds: number[];
+  modulos: number[];
 }
 
 export type PlanUpdatePayload = PlanCreatePayload;
