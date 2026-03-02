@@ -181,7 +181,8 @@ type FiltroEstado = 'todos' | 'al_dia' | 'por_vencer' | 'vencida';
 
 const EstadoPagos: React.FC = () => {
   const [resumen, setResumen] = useState<EstadoPagosResumen | null>(null);
-  const [detalle, setDetalle] = useState<SuscripcionDetallePago[]>([]);
+  // detalle no viene del endpoint actual — la tabla queda preparada para cuando el backend lo implemente
+  const detalle: SuscripcionDetallePago[] = [];
   const [filtro, setFiltro] = useState<FiltroEstado>('todos');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -193,12 +194,11 @@ const EstadoPagos: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchEstadoPagos();
-      setResumen(res?.resumen ?? null);
-      setDetalle(res?.detalle ?? []);
+      // El backend devuelve el resumen directamente (no wrapper)
+      setResumen(res ?? null);
     } catch (err) {
       console.error('Error cargando pagos:', err);
       setResumen(null);
-      setDetalle([]);
     } finally {
       setIsLoading(false);
     }

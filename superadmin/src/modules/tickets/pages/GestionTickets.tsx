@@ -307,7 +307,7 @@ const GestionTickets: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchTickets();
-      const list = res?.content ?? [];
+      const list = Array.isArray(res) ? res : [];
       setTickets(list);
       if (list.length > 0 && !selected) {
         const detail = await fetchTicketById(list[0].id);

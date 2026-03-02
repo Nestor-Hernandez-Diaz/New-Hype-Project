@@ -212,7 +212,7 @@ const GestionTenants: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchTenants();
-      setTenants(res?.content ?? []);
+      setTenants(Array.isArray(res) ? res : []);
     } catch (err) {
       console.error('Error cargando tenants:', err);
       setTenants([]);
@@ -333,9 +333,9 @@ const GestionTenants: React.FC = () => {
                     </TenantInfo>
                   </Td>
                   <Td>{tenant.propietarioNombre}</Td>
-                  <Td><PlanBadge>{tenant.planNombre}</PlanBadge></Td>
+                  <Td><PlanBadge>{tenant.planNombre ?? '—'}</PlanBadge></Td>
                   <Td><StatusBadge $status={getEstadoForBadge(tenant.estado)}>{tenant.estado}</StatusBadge></Td>
-                  <Td>{tenant.fechaVencimiento}</Td>
+                  <Td>{tenant.fechaVencimiento ?? tenant.createdAt?.split('T')[0] ?? '—'}</Td>
                   <Td>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <ActionButton $variant="view" title="Ver detalle">👁</ActionButton>

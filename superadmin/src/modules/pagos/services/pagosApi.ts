@@ -6,20 +6,14 @@
 import { apiFetch } from '../../../services/apiConfig';
 import type {
   EstadoPagosResumen,
-  SuscripcionDetallePago,
   Factura,
   PagoManualPayload,
 } from '../../../types/api';
 
-// Respuesta del endpoint 2.5 (resumen + detalle)
-interface EstadoPagosResponse {
-  resumen: EstadoPagosResumen;
-  detalle: SuscripcionDetallePago[];
-}
-
-// ── 2.5 ESTADO DE PAGOS (resumen + detalle) ────────────────────────────────
-export async function fetchEstadoPagos(): Promise<EstadoPagosResponse> {
-  return apiFetch<EstadoPagosResponse>('/suscripciones/estado-pagos');
+// ── 2.5 ESTADO DE PAGOS (resumen) ──────────────────────────────────────────
+// Backend devuelve directamente { totalSuscripciones, alDia, porVencer, vencidas }
+export async function fetchEstadoPagos(): Promise<EstadoPagosResumen> {
+  return apiFetch<EstadoPagosResumen>('/suscripciones/estado-pagos');
 }
 
 // ── 2.6 FACTURA / DETALLE DE PAGO ──────────────────────────────────────────

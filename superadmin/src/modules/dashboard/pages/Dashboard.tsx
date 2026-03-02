@@ -259,20 +259,22 @@ const Dashboard: React.FC = () => {
       <StatsGrid>
         <StatCard>
           <StatLabel>Total Tenants</StatLabel>
-          <StatValue>{data?.porPlan?.reduce((a, p) => a + p.cantidadTenants, 0) ?? 0}</StatValue>
-          <StatChange $positive>Registrados en plataforma</StatChange>
+          <StatValue>{data?.totalTenants ?? 0}</StatValue>
+          <StatChange $positive>{data?.tenantsActivos ?? 0} activos</StatChange>
         </StatCard>
 
         <StatCard>
-          <StatLabel>MRR (Ingresos Recurrentes)</StatLabel>
-          <StatValue>S/ {data?.mrr?.toFixed(2) ?? '0.00'}</StatValue>
-          <StatChange $positive>Mensual</StatChange>
+          <StatLabel>Ingresos del Mes</StatLabel>
+          <StatValue>S/ {data?.ingresosMesActual?.toFixed(2) ?? '0.00'}</StatValue>
+          <StatChange $positive={Number(data?.porcentajeCrecimiento ?? 0) >= 0}>
+            {Number(data?.porcentajeCrecimiento ?? 0) >= 0 ? '+' : ''}{data?.porcentajeCrecimiento ?? 0}% vs mes anterior
+          </StatChange>
         </StatCard>
 
         <StatCard>
-          <StatLabel>Ingresos Totales</StatLabel>
-          <StatValue>S/ {data?.ingresosTotales?.toFixed(2) ?? '0.00'}</StatValue>
-          <StatChange $positive>Acumulado</StatChange>
+          <StatLabel>Mes Anterior</StatLabel>
+          <StatValue>S/ {data?.ingresosMesAnterior?.toFixed(2) ?? '0.00'}</StatValue>
+          <StatChange $positive>Referencia</StatChange>
         </StatCard>
 
         <StatCard>

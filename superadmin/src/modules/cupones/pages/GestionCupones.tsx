@@ -192,7 +192,7 @@ const GestionCupones: React.FC = () => {
 
   const stats = {
     total: cupones.length,
-    activos: cupones.filter(c => c.activo).length,
+    activos: cupones.filter(c => c.estado).length,
     usosTotal: cupones.reduce((sum, c) => sum + c.usosActuales, 0),
   };
 
@@ -254,7 +254,7 @@ const GestionCupones: React.FC = () => {
                         <UsosBg><UsosFill $pct={pctUsos} /></UsosBg>
                       </UsosBar>
                     </Td>
-                    <Td><EstadoBadge $activo={cupon.activo}>{cupon.activo ? 'Activo' : 'Inactivo'}</EstadoBadge></Td>
+                    <Td><EstadoBadge $activo={cupon.estado}>{cupon.estado ? 'Activo' : 'Inactivo'}</EstadoBadge></Td>
                   </Tr>
                 );
               })}

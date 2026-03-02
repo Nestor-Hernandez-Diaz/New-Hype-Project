@@ -27,8 +27,9 @@ export interface Cupon {
   fechaExpiracion: string;        // "2026-03-01"
   usosMaximos: number;
   usosActuales: number;
-  activo: boolean;
+  estado: boolean;                // backend devuelve "estado" (true=activo)
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CuponCreatePayload {
@@ -74,16 +75,13 @@ export interface TicketFilters {
 
 // 2.4 — Dashboard de ingresos
 export interface DashboardIngresos {
-  ingresosTotales: number;
   ingresosMesActual: number;
   ingresosMesAnterior: number;
-  crecimientoPorcentaje: number;
+  porcentajeCrecimiento: number;  // backend: "porcentajeCrecimiento"
   totalTenants: number;
   tenantsActivos: number;
   tenantsSuspendidos: number;
-  totalSuscripciones: number;
-  mrr: number;                  // Monthly Recurring Revenue
-  porPlan: PlanIngreso[];
+  ingresosPorPlan: PlanIngreso[]; // backend: "ingresosPorPlan" (no "porPlan")
   topTenants: TopTenantIngreso[];
 }
 
@@ -91,7 +89,7 @@ export interface PlanIngreso {
   planId: number;
   planNombre: string;
   cantidadTenants: number;
-  ingresosMensuales: number;
+  ingresos: number;               // backend: "ingresos" (no "ingresosMensuales")
 }
 
 export interface TopTenantIngreso {
@@ -143,13 +141,11 @@ export interface AuditLog {
   id: number;
   tenantId: number;
   tenantNombre: string;
-  usuarioId: number;
-  usuarioEmail: string;
+  usuarioPlataformaId: number;    // backend: "usuarioPlataformaId"
+  nombreUsuario: string;          // backend: "nombreUsuario" (no "usuarioEmail")
   accion: string;
-  entidad: string;
-  entidadId: number;
-  detalles: string;
-  ip: string;
+  detalle: string;                // backend: "detalle" (singular)
+  ipAddress: string;              // backend: "ipAddress" (no "ip")
   createdAt: string;
 }
 
@@ -212,14 +208,16 @@ export interface Tenant {
   subdominio: string;
   email: string;
   telefono: string;
-  direccion: string;
+  direccion?: string;              // puede no venir en listado
   estado: 'ACTIVA' | 'SUSPENDIDA' | 'PRUEBA' | 'CANCELADA';
   propietarioNombre: string;
   propietarioTipoDocumento: string;
   propietarioNumeroDocumento: string;
-  planNombre: string;
-  fechaRegistro: string;
-  fechaVencimiento: string;
+  planNombre?: string;             // solo en detalle
+  fechaRegistro?: string;          // solo en detalle
+  fechaVencimiento?: string;       // solo en detalle
+  createdAt: string;
+  updatedAt?: string;
   // Detail fields (from 4.2)
   metricas?: TenantMetricas;
   suscripcion?: TenantSuscripcion;

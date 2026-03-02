@@ -204,7 +204,7 @@ const LogsAuditoria: React.FC = () => {
         fechaDesde: filtroFechaDesde || undefined,
         fechaHasta: filtroFechaHasta || undefined,
       });
-      setLogs(res?.content ?? []);
+      setLogs(Array.isArray(res) ? res : []);
     } catch (err) {
       console.error('Error cargando auditoría:', err);
       setLogs([]);
@@ -251,7 +251,6 @@ const LogsAuditoria: React.FC = () => {
                 <Th>Fecha</Th>
                 <Th>Tenant</Th>
                 <Th>Acción</Th>
-                <Th>Entidad</Th>
                 <Th>Detalles</Th>
                 <Th>IP</Th>
               </tr>
@@ -263,13 +262,12 @@ const LogsAuditoria: React.FC = () => {
                   <Td>
                     <TenantCell>
                       <TenantName>{log.tenantNombre}</TenantName>
-                      <TenantEmail>{log.usuarioEmail}</TenantEmail>
+                      <TenantEmail>{log.nombreUsuario}</TenantEmail>
                     </TenantCell>
                   </Td>
                   <Td><AccionBadge $accion={log.accion}>{log.accion}</AccionBadge></Td>
-                  <Td>{log.entidad} #{log.entidadId}</Td>
-                  <Td>{log.detalles}</Td>
-                  <Td><IpBadge>{log.ip}</IpBadge></Td>
+                  <Td>{log.detalle}</Td>
+                  <Td><IpBadge>{log.ipAddress}</IpBadge></Td>
                 </Tr>
               ))}
             </Tbody>
