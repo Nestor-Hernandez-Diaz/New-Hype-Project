@@ -210,7 +210,7 @@ const GestionTenants: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchTenants();
-      setTenants(res.data);
+      setTenants(res.content);
     } finally {
       setIsLoading(false);
     }

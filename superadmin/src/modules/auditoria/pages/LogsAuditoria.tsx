@@ -204,7 +204,7 @@ const LogsAuditoria: React.FC = () => {
         fechaDesde: filtroFechaDesde || undefined,
         fechaHasta: filtroFechaHasta || undefined,
       });
-      setLogs(res.data);
+      setLogs(res.content);
     } finally {
       setIsLoading(false);
     }

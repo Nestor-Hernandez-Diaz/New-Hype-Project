@@ -178,8 +178,8 @@ const GestionCupones: React.FC = () => {
   const loadCupones = async () => {
     setIsLoading(true);
     try {
-      const res = await fetchCupones();
-      setCupones(res.data);
+      const data = await fetchCupones();
+      setCupones(data);
     } finally {
       setIsLoading(false);
     }

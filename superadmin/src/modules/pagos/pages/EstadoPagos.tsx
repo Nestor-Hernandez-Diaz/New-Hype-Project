@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
-import { fetchEstadoPagos, fetchDetallePagos } from '../services/pagosApi';
+import { fetchEstadoPagos } from '../services/pagosApi';
 import { ActionButton, StatusBadge } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { EstadoPagosResumen, SuscripcionDetallePago } from '../../../types/api';
@@ -189,32 +189,24 @@ const EstadoPagos: React.FC = () => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    loadDetalle();
-  }, [filtro]);
-
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [estadoRes, detalleRes] = await Promise.all([
-        fetchEstadoPagos(),
-        fetchDetallePagos('todos'),
-      ]);
-      setResumen(estadoRes.data);
-      setDetalle(detalleRes);
+      const res = await fetchEstadoPagos();
+      setResumen(res.resumen);
+      setDetalle(res.detalle);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const loadDetalle = async () => {
-    const data = await fetchDetallePagos(filtro);
-    setDetalle(data);
-  };
-
   const handleCardClick = (nuevoFiltro: FiltroEstado) => {
     setFiltro(nuevoFiltro === filtro ? 'todos' : nuevoFiltro);
   };
+
+  const filteredDetalle = filtro === 'todos'
+    ? detalle
+    : detalle.filter(d => d.estado === filtro);
 
   const getEstadoLabel = (estado: string) => {
     switch (estado) {
@@ -274,7 +266,7 @@ const EstadoPagos: React.FC = () => {
 
       {isLoading ? (
         <LoadingState>Cargando estado de pagos...</LoadingState>
-      ) : detalle.length === 0 ? (
+      ) : filteredDetalle.length === 0 ? (
         <EmptyState>No se encontraron registros</EmptyState>
       ) : (
         <TableWrapper>
@@ -292,7 +284,7 @@ const EstadoPagos: React.FC = () => {
               </tr>
             </Thead>
             <Tbody>
-              {detalle.map(item => (
+              {filteredDetalle.map(item => (
                 <Tr key={item.id}>
                   <Td style={{ fontWeight: TYPOGRAPHY.fontWeight.medium }}>{item.tenantNombre}</Td>
                   <Td>{item.plan}</Td>

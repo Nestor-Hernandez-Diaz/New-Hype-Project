@@ -174,8 +174,8 @@ const GestionPlanes: React.FC = () => {
   const loadPlanes = async () => {
     setIsLoading(true);
     try {
-      const res = await fetchPlanes();
-      setPlanes(res.data);
+      const data = await fetchPlanes();
+      setPlanes(data);
     } finally {
       setIsLoading(false);
     }

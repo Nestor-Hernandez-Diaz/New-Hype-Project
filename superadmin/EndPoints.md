@@ -1,4 +1,8 @@
-Estos son los Endpoints que vamos a usar:
+Estos son los endpoints para usar en la pagina web, todo ya esta en la nube solo falta configurarlo con la pagina, este es el bearer token de autorizacion:
+
+bearertoken = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIzNSIsInNjb3BlIjoidGVuYW50IiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3MTgyMTkzMiwiZXhwIjoxNzcxOTA4MzMyLCJ0ZW5hbnRJZCI6MzQsInJvbGUiOiJBRE1JTiJ9.FXEcXU6SiWlHoCkvRCWdp7QCIVvu9IpxGGCYYXpFIrXZWVZhg50nJs3wBG-8F2jN
+
+Y estos son los Endpoints que vamos a usar:
 
 1. Cupones - Gestion de cupones promocionales
 

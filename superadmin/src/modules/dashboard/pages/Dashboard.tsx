@@ -246,8 +246,8 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const loadStats = async () => {
-    const res = await fetchDashboardIngresos();
-    setData(res.data);
+    const data = await fetchDashboardIngresos();
+    setData(data);
   };
 
   return (

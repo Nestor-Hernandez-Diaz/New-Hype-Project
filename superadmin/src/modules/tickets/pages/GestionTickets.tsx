@@ -307,10 +307,10 @@ const GestionTickets: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchTickets();
-      setTickets(res.data);
-      if (res.data.length > 0 && !selected) {
-        const detail = await fetchTicketById(res.data[0].id);
-        setSelected(detail.data);
+      setTickets(res.content);
+      if (res.content.length > 0 && !selected) {
+        const detail = await fetchTicketById(res.content[0].id);
+        setSelected(detail);
       }
     } finally {
       setIsLoading(false);
@@ -319,7 +319,7 @@ const GestionTickets: React.FC = () => {
 
   const handleSelectTicket = async (ticket: Ticket) => {
     const detail = await fetchTicketById(ticket.id);
-    setSelected(detail.data);
+    setSelected(detail);
     setNuevoEstado('');
     setNuevaPrioridad('');
     setRespuesta('');
