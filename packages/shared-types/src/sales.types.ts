@@ -26,7 +26,7 @@ export enum FormaPago {
   PLIN = 'Plin'
 }
 
-export enum MetodoPago {
+export enum TipoMetodoPago {
   EFECTIVO = 'Efectivo',
   TARJETA = 'Tarjeta',
   TRANSFERENCIA = 'Transferencia',
@@ -204,7 +204,7 @@ export interface PagoVenta {
   id: string;
   
   /** Método de pago utilizado */
-  metodoPago: MetodoPago;
+  metodoPago: TipoMetodoPago;
   
   /** Monto del pago */
   monto: number;
@@ -335,7 +335,7 @@ export interface CrearVentaRequest {
   
   /** Pagos múltiples (opcional) */
   payments?: Array<{
-    metodoPago: MetodoPago;
+    metodoPago: TipoMetodoPago;
     monto: number;
     referencia?: string;
     observaciones?: string;

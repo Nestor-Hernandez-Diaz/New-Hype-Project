@@ -17,8 +17,19 @@ import { ProductProvider } from './modules/products/context/ProductContext';
 import { ClientProvider } from './modules/clients/context/ClientContext';
 import { PurchasesProvider } from './modules/purchases/context/PurchasesContext';
 
-// Lazy loading de páginas desde módulos
-const Login = lazy(() => import('./modules/auth/pages/Login'));
+// ============================================================================
+// 🏢 PLATFORM MODULE (SUPERADMIN)
+// ============================================================================
+const PlatformLogin = lazy(() => import('./modules/platform/pages/PlatformLogin'));
+const PlatformLayout = lazy(() => import('./modules/platform/pages/PlatformLayout'));
+const PlatformDashboard = lazy(() => import('./modules/platform/pages/PlatformDashboard'));
+const TenantsManagement = lazy(() => import('./modules/platform/pages/TenantsManagement'));
+const PlansManagement = lazy(() => import('./modules/platform/pages/PlansManagement'));
+
+// ============================================================================
+// 🏪 TENANT ADMIN MODULE (Gestión de Tienda)
+// ============================================================================
+const TenantLogin = lazy(() => import('./modules/auth/pages/Login'));
 const Dashboard = lazy(() => import('./modules/dashboard/pages/Dashboard'));
 const TemplateUI = lazy(() => import('./modules/dashboard/pages/TemplateUI'));
 const GestionCaja = lazy(() => import('./modules/sales/pages/GestionCaja') as Promise<{ default: React.ComponentType<any> }>);
@@ -58,6 +69,26 @@ const ReportesCompras = lazy(() => import('./modules/reports/pages/ReporteCompra
 const ReportesInventario = lazy(() => import('./modules/reports/pages/ReporteInventario') as Promise<{ default: React.ComponentType<any> }>);
 const ReportesCaja = lazy(() => import('./modules/reports/pages/ReporteCaja') as Promise<{ default: React.ComponentType<any> }>);
 
+// ============================================================================
+// 🛍️ STOREFRONT MODULE (E-commerce Público - Cliente B2C)
+// ============================================================================
+const StorefrontLayout = lazy(() => import('./modules/storefront/pages/StorefrontLayout'));
+const StorefrontHome = lazy(() => import('./modules/storefront/pages/Home'));
+const StorefrontCatalog = lazy(() => import('./modules/storefront/pages/Catalog'));
+const StorefrontProductDetail = lazy(() => import('./modules/storefront/pages/ProductDetail'));
+const StorefrontLogin = lazy(() => import('./modules/storefront/pages/Login'));
+const StorefrontRegister = lazy(() => import('./modules/storefront/pages/Register'));
+const StorefrontProfile = lazy(() => import('./modules/storefront/pages/Profile'));
+const StorefrontOrders = lazy(() => import('./modules/storefront/pages/Orders'));
+const StorefrontCheckout = lazy(() => import('./modules/storefront/pages/Checkout'));
+const StorefrontOrderConfirmation = lazy(() => import('./modules/storefront/pages/OrderConfirmation'));
+const StorefrontFavorites = lazy(() => import('./modules/storefront/pages/Favorites'));
+const StorefrontFAQ = lazy(() => import('./modules/storefront/pages/FAQ'));
+const StorefrontSizeGuide = lazy(() => import('./modules/storefront/pages/SizeGuide'));
+const StorefrontContact = lazy(() => import('./modules/storefront/pages/Contact'));
+const StorefrontTrackOrder = lazy(() => import('./modules/storefront/pages/TrackOrder'));
+const StorefrontReturns = lazy(() => import('./modules/storefront/pages/Returns'));
+
 // Componente interno para manejar el modal
 const AppContent = () => {
   const { isModalOpen, modalContent, modalTitle, modalSize, closeModal } = useModal();
@@ -95,10 +126,49 @@ function App() {
                             <AppContent />
                             <Suspense fallback={<LoadingSpinner />}>
                               <Routes>
-                                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                                <Route path="/login" element={<Login />} />
+                                {/* Root - Redirige al storefront (vista cliente) */}
+                                <Route path="/" element={<Navigate to="/storefront" replace />} />
+
+                                {/* ============================================ */}
+                                {/* 🏢 SUPERADMIN - PLATFORM ROUTES            */}
+                                {/* ============================================ */}
+                                <Route path="/platform">
+                                  <Route path="login" element={<PlatformLogin />} />
+                                  <Route element={<PlatformLayout />}>
+                                    <Route path="dashboard" element={<PlatformDashboard />} />
+                                    <Route path="tenants" element={<TenantsManagement />} />
+                                    <Route path="plans" element={<PlansManagement />} />
+                                  </Route>
+                                </Route>
+
+                                {/* ============================================ */}
+                                {/* 🏪 TENANT ADMIN - MANAGEMENT ROUTES        */}
+                                {/* ============================================ */}
+                                <Route path="/login" element={<TenantLogin />} />
                                 {/* 🎨 Template UI - Solo para desarrollo */}
                                 <Route path="/template-ui" element={<TemplateUI />} />
+                                
+                                {/* ============================================ */}
+                                {/* 🛍️ STOREFRONT - CLIENTE B2C ROUTES        */}
+                                {/* ============================================ */}
+                                <Route path="/storefront" element={<StorefrontLayout />}>
+                                  <Route index element={<StorefrontHome />} />
+                                  <Route path="catalogo" element={<StorefrontCatalog />} />
+                                  <Route path="producto/:slug" element={<StorefrontProductDetail />} />
+                                  <Route path="checkout" element={<StorefrontCheckout />} />
+                                  <Route path="confirmacion/:pedidoId" element={<StorefrontOrderConfirmation />} />
+                                  <Route path="favoritos" element={<StorefrontFavorites />} />
+                                  <Route path="faq" element={<StorefrontFAQ />} />
+                                  <Route path="guia-tallas" element={<StorefrontSizeGuide />} />
+                                  <Route path="contacto" element={<StorefrontContact />} />
+                                  <Route path="seguir-pedido" element={<StorefrontTrackOrder />} />
+                                  <Route path="devolucion/:pedidoId" element={<StorefrontReturns />} />
+                                  <Route path="cuenta/login" element={<StorefrontLogin />} />
+                                  <Route path="cuenta/registro" element={<StorefrontRegister />} />
+                                  <Route path="cuenta/perfil" element={<StorefrontProfile />} />
+                                  <Route path="cuenta/pedidos" element={<StorefrontOrders />} />
+                                </Route>
+
                                 <Route 
                                   path="/dashboard" 
                                   element={

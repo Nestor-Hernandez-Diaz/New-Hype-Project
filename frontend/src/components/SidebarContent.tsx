@@ -184,6 +184,9 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
     if (pathname.includes('/reportes')) {
       return 'reportes';
     }
+    if (pathname.includes('/superadmin')) {
+      return 'superadmin';
+    }
     if (pathname.includes('/usuarios') || pathname.includes('/roles')) {
       return 'usuarios';
     }
@@ -263,6 +266,20 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
               <i className="fas fa-chart-line"></i>
               <span>Dashboard</span>
             </Link>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/superadmin/requerimientos')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('superadmin'); }}>
+              <i className="fas fa-crown"></i>
+              <span>Superadmin</span>
+            </a>
+            <SubMenu $isOpen={openMenus.superadmin}>
+              <SubMenuItem $isActive={isActive('/superadmin/requerimientos')}>
+                <Link to="/superadmin/requerimientos" onClick={handleItemClick}>
+                  <h3>Requerimientos</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
           </NavItem>
 
           <NavItem $isActive={isActive('/usuarios') || isActive('/usuarios/crear') || isActive('/roles')}>

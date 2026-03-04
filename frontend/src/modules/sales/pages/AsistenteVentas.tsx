@@ -956,7 +956,7 @@ const AsistenteVentas: React.FC = () => {
               <SharedInput
                 id="searchQuery"
                 type="text"
-                placeholder="Ej: cámaras de seguridad"
+                placeholder="Ej: vestidos, jeans, zapatillas"
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
