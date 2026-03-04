@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { fetchDashboardIngresos } from '../services/dashboardApi';
+import { fetchEstadoPagos } from '../../pagos/services/pagosApi';
+import { fetchAuditLogs } from '../../auditoria/services/auditoriaApi';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
-import type { DashboardIngresos } from '../../../types/api';
+import type { DashboardIngresos, EstadoPagosResumen, AuditLog } from '../../../types/api';
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: ${SPACING.xl};
   margin-bottom: ${SPACING['3xl']};
 `;
@@ -123,63 +125,9 @@ const ActivityTime = styled.div`
   letter-spacing: 0.3px;
 `;
 
-interface ActivityLog {
-  id: string;
-  type: 'negocio' | 'plan' | 'pago' | 'ticket';
-  description: string;
-  timestamp: Date;
-}
-
-const MOCK_ACTIVITIES: ActivityLog[] = [
-  {
-    id: '1',
-    type: 'negocio',
-    description: 'Negocio "Boutique Fashion María" fue activado exitosamente',
-    timestamp: new Date(Date.now() - 15 * 60000)
-  },
-  {
-    id: '2',
-    type: 'plan',
-    description: 'Plan Enterprise asignado a "Urban Style Store"',
-    timestamp: new Date(Date.now() - 45 * 60000)
-  },
-  {
-    id: '3',
-    type: 'pago',
-    description: 'Pago confirmado: S/ 990.00 - Urban Style Store (Plan Enterprise)',
-    timestamp: new Date(Date.now() - 2 * 3600000)
-  },
-  {
-    id: '4',
-    type: 'ticket',
-    description: 'Ticket #1024 resuelto: "Error al generar boleta" - Boutique Fashion',
-    timestamp: new Date(Date.now() - 3 * 3600000)
-  },
-  {
-    id: '5',
-    type: 'negocio',
-    description: 'Nuevo negocio registrado: "Trendy Kids"',
-    timestamp: new Date(Date.now() - 5 * 3600000)
-  },
-  {
-    id: '6',
-    type: 'plan',
-    description: 'Suscripción de "Sport Zone Lima" próxima a vencer (7 días)',
-    timestamp: new Date(Date.now() - 86400000)
-  },
-  {
-    id: '7',
-    type: 'pago',
-    description: 'Pago confirmado: S/ 99.00 - Trendy Kids (Plan Básico)',
-    timestamp: new Date(Date.now() - 2 * 86400000)
-  },
-  {
-    id: '8',
-    type: 'ticket',
-    description: 'Nuevo ticket urgente #1028: "No puedo iniciar sesión" - Elegance Plus',
-    timestamp: new Date(Date.now() - 3 * 86400000)
-  }
-];
+// ============================================================================
+// HELPERS
+// ============================================================================
 
 const getTimeAgo = (date: Date): string => {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -197,49 +145,35 @@ const getTimeAgo = (date: Date): string => {
   return `Hace ${days} ${days === 1 ? 'día' : 'días'}`;
 };
 
-const getActivityIcon = (type: string) => {
-  switch (type) {
-    case 'negocio':
-      return (
-        <svg viewBox="0 0 24 24">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-      );
-    case 'plan':
-      return (
-        <svg viewBox="0 0 24 24">
-          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-        </svg>
-      );
-    case 'ticket':
-      return (
-        <svg viewBox="0 0 24 24">
-          <path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />
-          <line x1="7" y1="10" x2="17" y2="10" />
-        </svg>
-      );
-    case 'pago':
-      return (
-        <svg viewBox="0 0 24 24">
-          <line x1="12" y1="1" x2="12" y2="23" />
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
-      );
-    default:
-      return (
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-      );
-  }
+const getAuditIcon = (accion: string) => {
+  const a = accion?.toLowerCase() ?? '';
+  if (a.includes('login') || a.includes('sesion') || a.includes('auth'))
+    return (
+      <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><polyline points="10 17 15 12 10 7" /><line x1="15" y1="12" x2="3" y2="12" /></svg>
+    );
+  if (a.includes('pago') || a.includes('cobro') || a.includes('factur'))
+    return (
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+    );
+  if (a.includes('plan') || a.includes('suscrip'))
+    return (
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
+    );
+  if (a.includes('tenant') || a.includes('negocio') || a.includes('crear') || a.includes('registr'))
+    return (
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+    );
+  // default: shield/audit icon
+  return (
+    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></svg>
+  );
 };
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardIngresos | null>(null);
+  const [estadoPagos, setEstadoPagos] = useState<EstadoPagosResumen | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(true);
 
   useEffect(() => {
     loadStats();
@@ -247,10 +181,20 @@ const Dashboard: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const data = await fetchDashboardIngresos();
-      setData(data);
+      const [dashData, pagosResumen, logsRes] = await Promise.all([
+        fetchDashboardIngresos(),
+        fetchEstadoPagos().catch(() => null),
+        fetchAuditLogs({ size: 10, page: 0 }).catch(() => null),
+      ]);
+      setData(dashData);
+      setEstadoPagos(pagosResumen);
+      // API returns { success, data: AuditLog[], pagination } — apiFetch unwraps to AuditLog[]
+      const logs = Array.isArray(logsRes) ? logsRes : (logsRes as any)?.content ?? [];
+      setAuditLogs(logs);
     } catch (err) {
       console.error('Error cargando dashboard:', err);
+    } finally {
+      setLogsLoading(false);
     }
   };
 
@@ -278,25 +222,44 @@ const Dashboard: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatLabel>Top Negocio</StatLabel>
-          <StatValue>{data?.topTenants?.[0]?.tenantNombre ?? '—'}</StatValue>
-          <StatChange $positive>S/ {data?.topTenants?.[0]?.totalPagado?.toFixed(2) ?? '0.00'}</StatChange>
+          <StatLabel>Por Vencer</StatLabel>
+          <StatValue style={{ color: COLORS.warning }}>{estadoPagos?.porVencer ?? 0}</StatValue>
+          <StatChange $positive={false}>Suscripciones próximas a vencer</StatChange>
+        </StatCard>
+
+        <StatCard>
+          <StatLabel>Vencidos</StatLabel>
+          <StatValue style={{ color: COLORS.error }}>{estadoPagos?.vencidas ?? 0}</StatValue>
+          <StatChange $positive={false}>Suscripciones vencidas</StatChange>
         </StatCard>
       </StatsGrid>
 
       <ActivitySection>
         <ActivityTitle>Actividad Reciente del Sistema</ActivityTitle>
-        <ActivityList>
-          {MOCK_ACTIVITIES.map(activity => (
-            <ActivityItem key={activity.id} $type={activity.type}>
-              <ActivityIcon>{getActivityIcon(activity.type)}</ActivityIcon>
-              <ActivityContent>
-                <ActivityDescription>{activity.description}</ActivityDescription>
-                <ActivityTime>{getTimeAgo(activity.timestamp)}</ActivityTime>
-              </ActivityContent>
-            </ActivityItem>
-          ))}
-        </ActivityList>
+        {logsLoading ? (
+          <div style={{ textAlign: 'center', padding: SPACING['2xl'], color: COLORS.textLighter }}>Cargando actividad...</div>
+        ) : auditLogs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: SPACING['2xl'], color: COLORS.textLight }}>No se encontraron registros de auditoría</div>
+        ) : (
+          <ActivityList>
+            {auditLogs.map(log => (
+              <ActivityItem key={log.id} $type={log.accion}>
+                <ActivityIcon>{getAuditIcon(log.accion)}</ActivityIcon>
+                <ActivityContent>
+                  <ActivityDescription>
+                    <strong>{log.accion}</strong> — {log.detalle || 'Sin detalle'}
+                  </ActivityDescription>
+                  <ActivityTime>
+                    {log.tenantNombre && <span style={{ marginRight: '8px', color: COLORS.textLight }}>{log.tenantNombre}</span>}
+                    {log.nombreUsuario && <span style={{ marginRight: '8px' }}>por {log.nombreUsuario}</span>}
+                    {log.createdAt ? getTimeAgo(new Date(log.createdAt)) : ''}
+                    {log.ipAddress && <span style={{ marginLeft: '8px', opacity: 0.6 }}>· {log.ipAddress}</span>}
+                  </ActivityTime>
+                </ActivityContent>
+              </ActivityItem>
+            ))}
+          </ActivityList>
+        )}
       </ActivitySection>
     </Layout>
   );

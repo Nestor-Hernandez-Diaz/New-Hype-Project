@@ -7,7 +7,6 @@ import GestionTenants from './modules/tenants/pages/GestionTenants';
 import GestionPlanes from './modules/planes/pages/GestionPlanes';
 import EstadoPagos from './modules/pagos/pages/EstadoPagos';
 import GestionCupones from './modules/cupones/pages/GestionCupones';
-import LogsAuditoria from './modules/auditoria/pages/LogsAuditoria';
 import GestionTickets from './modules/tickets/pages/GestionTickets';
 
 // Componente de ruta protegida
@@ -88,15 +87,6 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <GestionCupones />
-            </ProtectedRoute>
-          } 
-        />
-
-        <Route 
-          path="/auditoria" 
-          element={
-            <ProtectedRoute>
-              <LogsAuditoria />
             </ProtectedRoute>
           } 
         />

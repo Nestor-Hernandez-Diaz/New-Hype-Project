@@ -218,8 +218,8 @@ const CrearCuponModal: React.FC<Props> = ({ onClose, onCreated }) => {
                 step={form.tipoDescuento === 'PORCENTAJE' ? '1' : '0.01'}
                 min="0"
                 max={form.tipoDescuento === 'PORCENTAJE' ? '100' : undefined}
-                value={form.valorDescuento}
-                onChange={e => set('valorDescuento', +e.target.value)}
+                value={form.valorDescuento || ''}
+                onChange={e => set('valorDescuento', e.target.value === '' ? 0 : +e.target.value)}
                 placeholder={form.tipoDescuento === 'PORCENTAJE' ? '20' : '50.00'}
               />
             </Field>
@@ -239,8 +239,8 @@ const CrearCuponModal: React.FC<Props> = ({ onClose, onCreated }) => {
               <Input
                 type="number"
                 min="1"
-                value={form.usosMaximos}
-                onChange={e => set('usosMaximos', +e.target.value)}
+                value={form.usosMaximos || ''}
+                onChange={e => set('usosMaximos', e.target.value === '' ? 0 : +e.target.value)}
               />
             </Field>
           </Row>

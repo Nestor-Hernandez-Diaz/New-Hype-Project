@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { fetchPlanes, toggleEstadoPlan } from '../services/planesApi';
 import CrearPlanModal from '../components/CrearPlanModal';
+import EditarPlanModal from '../components/EditarPlanModal';
 import { Button, ActionButton } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Plan } from '../../../types/api';
@@ -168,6 +169,7 @@ const GestionPlanes: React.FC = () => {
   const [planes, setPlanes] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCrear, setShowCrear] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 
   useEffect(() => {
     loadPlanes();
@@ -223,7 +225,7 @@ const GestionPlanes: React.FC = () => {
                   </StatusBadge>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <ActionButton $variant="edit" title="Editar plan">✏️</ActionButton>
+                  <ActionButton $variant="edit" onClick={() => setEditingPlan(plan)} title="Editar plan">✏️</ActionButton>
                   <ActionButton
                     $variant={plan.estado ? 'delete' : 'view'}
                     onClick={() => handleToggleEstado(plan)}
@@ -283,6 +285,14 @@ const GestionPlanes: React.FC = () => {
         <CrearPlanModal
           onClose={() => setShowCrear(false)}
           onCreated={() => { setShowCrear(false); loadPlanes(); }}
+        />
+      )}
+
+      {editingPlan && (
+        <EditarPlanModal
+          plan={editingPlan}
+          onClose={() => setEditingPlan(null)}
+          onUpdated={() => { setEditingPlan(null); loadPlanes(); }}
         />
       )}
     </Layout>

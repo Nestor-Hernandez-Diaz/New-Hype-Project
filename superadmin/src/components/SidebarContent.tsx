@@ -140,7 +140,6 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
     { path: '/pagos', label: 'Pagos' },
     { path: '/cupones', label: 'Cupones' },
     { path: '/tickets', label: 'Tickets' },
-    { path: '/auditoria', label: 'Auditoría' },
   ];
 
   const getIcon = (path: string) => {
@@ -193,13 +192,6 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
             <path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />
             <line x1="7" y1="10" x2="17" y2="10" />
             <line x1="7" y1="13" x2="14" y2="13" />
-          </svg>
-        );
-      case '/auditoria':
-        return (
-          <svg viewBox="0 0 24 24">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <polyline points="9 12 11 14 15 10" />
           </svg>
         );
       default:

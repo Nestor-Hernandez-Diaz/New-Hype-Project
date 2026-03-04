@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { crearPlan } from '../services/planesApi';
+import { actualizarPlan } from '../services/planesApi';
 import { Button } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
-import type { PlanCreatePayload } from '../../../types/api';
+import type { Plan, PlanUpdatePayload } from '../../../types/api';
 
 // ============================================================================
-// STYLED
+// STYLED — reutiliza la misma estética que CrearPlanModal
 // ============================================================================
 
 const Overlay = styled.div`
@@ -82,15 +82,12 @@ const Row = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: ${SPACING.md};
-  @media (max-width: 500px) { grid-template-columns: 1fr; }
 `;
 
 const Row3 = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: ${SPACING.md};
-  @media (max-width: 600px) { grid-template-columns: 1fr 1fr; }
-  @media (max-width: 400px) { grid-template-columns: 1fr; }
 `;
 
 const Field = styled.div`
@@ -159,7 +156,7 @@ const CheckboxRow = styled.label`
 `;
 
 // ============================================================================
-// MODULOS DISPONIBLES  (se podrá cargar del backend después)
+// MODULOS
 // ============================================================================
 const MODULOS_DISPONIBLES = [
   { id: 1, nombre: 'Inventario' },
@@ -177,29 +174,28 @@ const MODULOS_DISPONIBLES = [
 // ============================================================================
 
 interface Props {
+  plan: Plan;
   onClose: () => void;
-  onCreated: () => void;
+  onUpdated: () => void;
 }
 
-const INITIAL: PlanCreatePayload = {
-  nombre: '',
-  descripcion: '',
-  precioMensual: 0,
-  precioAnual: 0,
-  maxProductos: 100,
-  maxUsuarios: 5,
-  maxAlmacenes: 1,
-  maxVentasMes: 500,
-  periodoPruebaDias: 14,
-  modulos: [],
-};
-
-const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
-  const [form, setForm] = useState<PlanCreatePayload>({ ...INITIAL });
+const EditarPlanModal: React.FC<Props> = ({ plan, onClose, onUpdated }) => {
+  const [form, setForm] = useState<PlanUpdatePayload>({
+    nombre: plan.nombre ?? '',
+    descripcion: plan.descripcion ?? '',
+    precioMensual: plan.precioMensual ?? 0,
+    precioAnual: plan.precioAnual ?? 0,
+    maxProductos: plan.maxProductos ?? 100,
+    maxUsuarios: plan.maxUsuarios ?? 5,
+    maxAlmacenes: plan.maxAlmacenes ?? 1,
+    maxVentasMes: plan.maxVentasMes ?? 500,
+    periodoPruebaDias: plan.periodoPruebaDias ?? 14,
+    modulos: plan.modulos ?? [],
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const set = (field: keyof PlanCreatePayload, value: string | number | number[]) =>
+  const set = (field: keyof PlanUpdatePayload, value: string | number | number[]) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
   const toggleModulo = (id: number) => {
@@ -228,10 +224,10 @@ const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
     setError('');
     setIsSaving(true);
     try {
-      await crearPlan(form);
-      onCreated();
+      await actualizarPlan(plan.id, form);
+      onUpdated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear plan');
+      setError(err instanceof Error ? err.message : 'Error al actualizar plan');
     } finally {
       setIsSaving(false);
     }
@@ -241,7 +237,7 @@ const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
     <Overlay onClick={onClose}>
       <Modal onClick={e => e.stopPropagation()}>
         <Header>
-          <Title>Nuevo Plan</Title>
+          <Title>Editar Plan — {plan.nombre}</Title>
           <CloseBtn onClick={onClose}>✕</CloseBtn>
         </Header>
 
@@ -251,7 +247,7 @@ const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
           <Row>
             <Field>
               <Label>Nombre del plan *</Label>
-              <Input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Básico Plus" />
+              <Input value={form.nombre} onChange={e => set('nombre', e.target.value)} />
             </Field>
             <Field>
               <Label>Período de prueba (días)</Label>
@@ -261,7 +257,7 @@ const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
 
           <Field>
             <Label>Descripción</Label>
-            <TextArea value={form.descripcion} onChange={e => set('descripcion', e.target.value)} placeholder="Ideal para tiendas pequeñas..." />
+            <TextArea value={form.descripcion} onChange={e => set('descripcion', e.target.value)} />
           </Field>
 
           <SectionTitle>Precios</SectionTitle>
@@ -324,7 +320,7 @@ const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
         <Footer>
           <Button $variant="outline" onClick={onClose} disabled={isSaving}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={isSaving}>
-            {isSaving ? 'Creando...' : 'Crear Plan'}
+            {isSaving ? 'Guardando...' : 'Guardar Cambios'}
           </Button>
         </Footer>
       </Modal>
@@ -332,4 +328,4 @@ const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
   );
 };
 
-export default CrearPlanModal;
+export default EditarPlanModal;

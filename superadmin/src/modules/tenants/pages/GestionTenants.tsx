@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
-import { fetchTenants, cambiarEstadoTenant, enviarRecordatorioPago } from '../services/tenantsApi';
+import { fetchTenants, cambiarEstadoTenant, enviarRecordatorioPago, eliminarTenant } from '../services/tenantsApi';
 import { Button, ActionButton, StatusBadge } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Tenant } from '../../../types/api';
 import CrearTenantModal from '../components/CrearTenantModal';
+import ActualizarTenantModal from '../components/ActualizarTenantModal';
+import CambiarPlanModal from '../components/CambiarPlanModal';
+import HistorialPagosModal from '../components/HistorialPagosModal';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -86,14 +89,38 @@ const FilterChip = styled.button<{ $active?: boolean }>`
   }
 `;
 
+const SearchWrapper = styled.div`
+  position: relative;
+  min-width: 280px;
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${COLORS.textLighter};
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+`;
+
 const SearchInput = styled.input`
-  padding: ${SPACING.sm} ${SPACING.lg};
+  width: 100%;
+  padding: ${SPACING.sm} ${SPACING.lg} ${SPACING.sm} 38px;
   border: 1.5px solid ${COLORS.border};
   border-radius: ${RADIUS.md};
   font-size: ${TYPOGRAPHY.fontSize.sm};
   color: ${COLORS.text};
   background: ${COLORS.surface};
-  min-width: 240px;
   transition: ${TRANSITION};
 
   &:focus {
@@ -203,6 +230,9 @@ const GestionTenants: React.FC = () => {
   const [busqueda, setBusqueda] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showCrear, setShowCrear] = useState(false);
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+  const [changingPlanTenant, setChangingPlanTenant] = useState<Tenant | null>(null);
+  const [historialTenant, setHistorialTenant] = useState<Tenant | null>(null);
 
   useEffect(() => {
     loadTenants();
@@ -236,6 +266,17 @@ const GestionTenants: React.FC = () => {
     if (!window.confirm(`¿Enviar recordatorio de pago a ${tenant.nombre}?`)) return;
     await enviarRecordatorioPago(tenant.id);
     window.alert('Recordatorio enviado');
+  };
+
+  const handleEliminar = async (tenant: Tenant) => {
+    if (!window.confirm(`¿Eliminar el negocio "${tenant.nombre}"? Esta acción no se puede deshacer.`)) return;
+    try {
+      await eliminarTenant(tenant.id);
+      await loadTenants();
+    } catch (err) {
+      console.error('Error eliminando tenant:', err);
+      window.alert('Error al eliminar negocio');
+    }
   };
 
   const getEstadoForBadge = (estado: string) => {
@@ -299,11 +340,16 @@ const GestionTenants: React.FC = () => {
             {f === 'todos' ? 'Todos' : f.charAt(0) + f.slice(1).toLowerCase()}
           </FilterChip>
         ))}
-        <SearchInput
-          placeholder="Buscar por nombre, email o subdominio..."
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-        />
+        <SearchWrapper>
+          <SearchIcon>
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          </SearchIcon>
+          <SearchInput
+            placeholder="Buscar por nombre, email o subdominio..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+          />
+        </SearchWrapper>
       </FiltersBar>
 
       {isLoading ? (
@@ -337,13 +383,15 @@ const GestionTenants: React.FC = () => {
                   <Td><StatusBadge $status={getEstadoForBadge(tenant.estado)}>{tenant.estado}</StatusBadge></Td>
                   <Td>{tenant.fechaVencimiento ?? tenant.createdAt?.split('T')[0] ?? '—'}</Td>
                   <Td>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <ActionButton $variant="view" title="Ver detalle">👁</ActionButton>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <ActionButton $variant="edit" onClick={() => setEditingTenant(tenant)} title="Editar negocio">✏️</ActionButton>
+                      <ActionButton $variant="view" onClick={() => setChangingPlanTenant(tenant)} title="Cambiar plan">📋</ActionButton>
+                      <ActionButton $variant="view" onClick={() => setHistorialTenant(tenant)} title="Historial de pagos">💰</ActionButton>
                       <ActionButton $variant="edit" onClick={() => handleSuspender(tenant)} title={tenant.estado === 'SUSPENDIDA' ? 'Activar' : 'Suspender'}>
                         {tenant.estado === 'SUSPENDIDA' ? '▶' : '⏸'}
                       </ActionButton>
                       <ActionButton $variant="view" onClick={() => handleRecordatorio(tenant)} title="Enviar recordatorio">📧</ActionButton>
-                      <ActionButton $variant="delete" title="Eliminar">🗑</ActionButton>
+                      <ActionButton $variant="delete" onClick={() => handleEliminar(tenant)} title="Eliminar">🗑</ActionButton>
                     </div>
                   </Td>
                 </Tr>
@@ -357,6 +405,29 @@ const GestionTenants: React.FC = () => {
         <CrearTenantModal
           onClose={() => setShowCrear(false)}
           onCreated={() => { setShowCrear(false); loadTenants(); }}
+        />
+      )}
+
+      {editingTenant && (
+        <ActualizarTenantModal
+          tenant={editingTenant}
+          onClose={() => setEditingTenant(null)}
+          onUpdated={() => { setEditingTenant(null); loadTenants(); }}
+        />
+      )}
+
+      {changingPlanTenant && (
+        <CambiarPlanModal
+          tenant={changingPlanTenant}
+          onClose={() => setChangingPlanTenant(null)}
+          onUpdated={() => { setChangingPlanTenant(null); loadTenants(); }}
+        />
+      )}
+
+      {historialTenant && (
+        <HistorialPagosModal
+          tenant={historialTenant}
+          onClose={() => setHistorialTenant(null)}
         />
       )}
     </Layout>

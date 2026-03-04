@@ -16,7 +16,7 @@ interface PagedResponse<T> {
 }
 
 // ── 2.7 LISTAR LOGS DE AUDITORÍA ───────────────────────────────────────────
-export async function fetchAuditLogs(filters?: AuditFilters): Promise<PagedResponse<AuditLog>> {
+export async function fetchAuditLogs(filters?: AuditFilters): Promise<AuditLog[]> {
   const query = buildQuery({
     tenantId: filters?.tenantId,
     accion: filters?.accion,
@@ -25,5 +25,6 @@ export async function fetchAuditLogs(filters?: AuditFilters): Promise<PagedRespo
     page: filters?.page,
     size: filters?.size,
   });
-  return apiFetch<PagedResponse<AuditLog>>(`/auditoria${query}`);
+  // Backend returns { success, data: AuditLog[], pagination } — apiFetch unwraps to AuditLog[]
+  return apiFetch<AuditLog[]>(`/auditoria${query}`);
 }
