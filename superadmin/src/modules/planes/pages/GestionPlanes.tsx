@@ -201,7 +201,7 @@ const GestionPlanes: React.FC = () => {
             Planes de Suscripción
           </h2>
           <p style={{ margin: `${SPACING.xs} 0 0`, fontSize: TYPOGRAPHY.fontSize.sm, color: COLORS.textLight }}>
-            {planes.filter(p => p.estado).length} planes activos · {planes.reduce((sum, p) => sum + (p.cantidadTenants ?? 0), 0)} tenants suscritos
+            {planes.filter(p => p.estado).length} planes activos · {planes.reduce((sum, p) => sum + (p.cantidadTenants ?? 0), 0)} negocios suscritos
           </p>
         </div>
         <Button onClick={() => setShowCrear(true)}>
@@ -268,7 +268,7 @@ const GestionPlanes: React.FC = () => {
 
               <PlanFooter>
                 <TenantCount>
-                  <strong>{plan.cantidadTenants ?? 0}</strong> tenants suscritos
+                  <strong>{plan.cantidadTenants ?? 0}</strong> negocios suscritos
                 </TenantCount>
                 <span style={{ fontSize: TYPOGRAPHY.fontSize.xs, color: COLORS.textLighter }}>
                   Prueba: {plan.periodoPruebaDias}d · {(plan.modulos ?? []).length} módulos

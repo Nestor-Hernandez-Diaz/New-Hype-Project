@@ -295,9 +295,16 @@ export interface ModuloTenant {
 
 export interface PagoTenant {
   id: number;
+  suscripcionId: number;
+  tenantId: number;
+  tenantNombre: string;
   monto: number;
   metodoPago: string;
   referenciaTransaccion: string;
   fechaPago: string;
-  estado: string;
+  periodoInicio: string;
+  periodoFin: string;
+  descuentoAplicado: number;
+  estado: string;               // "CONFIRMADO" | "PENDIENTE" | "RECHAZADO" etc.
+  createdAt: string;
 }

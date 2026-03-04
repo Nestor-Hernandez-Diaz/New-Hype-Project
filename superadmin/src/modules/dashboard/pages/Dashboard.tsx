@@ -125,7 +125,7 @@ const ActivityTime = styled.div`
 
 interface ActivityLog {
   id: string;
-  type: 'tenant' | 'plan' | 'pago' | 'ticket';
+  type: 'negocio' | 'plan' | 'pago' | 'ticket';
   description: string;
   timestamp: Date;
 }
@@ -133,8 +133,8 @@ interface ActivityLog {
 const MOCK_ACTIVITIES: ActivityLog[] = [
   {
     id: '1',
-    type: 'tenant',
-    description: 'Tenant "Boutique Fashion María" fue activado exitosamente',
+    type: 'negocio',
+    description: 'Negocio "Boutique Fashion María" fue activado exitosamente',
     timestamp: new Date(Date.now() - 15 * 60000)
   },
   {
@@ -157,8 +157,8 @@ const MOCK_ACTIVITIES: ActivityLog[] = [
   },
   {
     id: '5',
-    type: 'tenant',
-    description: 'Nuevo tenant registrado: "Trendy Kids"',
+    type: 'negocio',
+    description: 'Nuevo negocio registrado: "Trendy Kids"',
     timestamp: new Date(Date.now() - 5 * 3600000)
   },
   {
@@ -199,7 +199,7 @@ const getTimeAgo = (date: Date): string => {
 
 const getActivityIcon = (type: string) => {
   switch (type) {
-    case 'tenant':
+    case 'negocio':
       return (
         <svg viewBox="0 0 24 24">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -258,7 +258,7 @@ const Dashboard: React.FC = () => {
     <Layout title="Dashboard Global">
       <StatsGrid>
         <StatCard>
-          <StatLabel>Total Tenants</StatLabel>
+          <StatLabel>Total Negocios</StatLabel>
           <StatValue>{data?.totalTenants ?? 0}</StatValue>
           <StatChange $positive>{data?.tenantsActivos ?? 0} activos</StatChange>
         </StatCard>
@@ -278,7 +278,7 @@ const Dashboard: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatLabel>Top Tenant</StatLabel>
+          <StatLabel>Top Negocio</StatLabel>
           <StatValue>{data?.topTenants?.[0]?.tenantNombre ?? '—'}</StatValue>
           <StatChange $positive>S/ {data?.topTenants?.[0]?.totalPagado?.toFixed(2) ?? '0.00'}</StatChange>
         </StatCard>

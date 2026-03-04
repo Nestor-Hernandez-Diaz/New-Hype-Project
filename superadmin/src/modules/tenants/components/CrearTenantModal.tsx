@@ -175,7 +175,7 @@ const CrearTenantModal: React.FC<Props> = ({ onClose, onCreated }) => {
       await crearTenant(form);
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear tenant');
+      setError(err instanceof Error ? err.message : 'Error al crear negocio');
     } finally {
       setIsSaving(false);
     }
@@ -185,7 +185,7 @@ const CrearTenantModal: React.FC<Props> = ({ onClose, onCreated }) => {
     <Overlay onClick={onClose}>
       <Modal onClick={e => e.stopPropagation()}>
         <Header>
-          <Title>Nuevo Tenant</Title>
+          <Title>Nuevo Negocio</Title>
           <CloseBtn onClick={onClose}>✕</CloseBtn>
         </Header>
 
@@ -259,7 +259,7 @@ const CrearTenantModal: React.FC<Props> = ({ onClose, onCreated }) => {
         <Footer>
           <Button $variant="outline" onClick={onClose} disabled={isSaving}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={isSaving}>
-            {isSaving ? 'Creando...' : 'Crear Tenant'}
+            {isSaving ? 'Creando...' : 'Crear Negocio'}
           </Button>
         </Footer>
       </Modal>

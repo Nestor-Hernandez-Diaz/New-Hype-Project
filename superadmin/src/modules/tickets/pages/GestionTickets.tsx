@@ -407,7 +407,7 @@ const GestionTickets: React.FC = () => {
                   </Value>
                 </Field>
                 <Field>
-                  <Label>Tenant</Label>
+                  <Label>Negocio</Label>
                   <Value>{selected.tenantNombre}</Value>
                 </Field>
                 <Field>

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
-import { fetchEstadoPagos } from '../services/pagosApi';
-import { ActionButton, StatusBadge } from '../../../components/shared';
+import { fetchEstadoPagos, fetchAllPagos } from '../services/pagosApi';
+import { Button, ActionButton, StatusBadge } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
-import type { EstadoPagosResumen, SuscripcionDetallePago } from '../../../types/api';
+import type { EstadoPagosResumen, PagoTenant } from '../../../types/api';
+import RegistrarPagoModal from '../components/RegistrarPagoModal';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -135,32 +136,6 @@ const Td = styled.td`
   font-size: ${TYPOGRAPHY.fontSize.sm};
 `;
 
-const DiasIndicator = styled.span<{ $estado: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: ${SPACING.xs} ${SPACING.md};
-  border-radius: ${RADIUS.sm};
-  font-size: ${TYPOGRAPHY.fontSize.xs};
-  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
-  background: ${props => {
-    switch (props.$estado) {
-      case 'al_dia': return COLORS.successLight;
-      case 'por_vencer': return COLORS.warningLight;
-      case 'vencida': return COLORS.errorLight;
-      default: return COLORS.surfaceHover;
-    }
-  }};
-  color: ${props => {
-    switch (props.$estado) {
-      case 'al_dia': return COLORS.success;
-      case 'por_vencer': return COLORS.warning;
-      case 'vencida': return COLORS.error;
-      default: return COLORS.text;
-    }
-  }};
-`;
-
 const EmptyState = styled.div`
   text-align: center;
   padding: ${SPACING['3xl']};
@@ -177,14 +152,14 @@ const LoadingState = styled.div`
 // COMPONENT
 // ============================================================================
 
-type FiltroEstado = 'todos' | 'al_dia' | 'por_vencer' | 'vencida';
+type FiltroEstado = 'todos' | 'CONFIRMADO' | 'PENDIENTE' | 'RECHAZADO';
 
 const EstadoPagos: React.FC = () => {
   const [resumen, setResumen] = useState<EstadoPagosResumen | null>(null);
-  // detalle no viene del endpoint actual — la tabla queda preparada para cuando el backend lo implemente
-  const detalle: SuscripcionDetallePago[] = [];
+  const [pagos, setPagos] = useState<PagoTenant[]>([]);
   const [filtro, setFiltro] = useState<FiltroEstado>('todos');
   const [isLoading, setIsLoading] = useState(true);
+  const [showRegistrar, setShowRegistrar] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -193,118 +168,123 @@ const EstadoPagos: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetchEstadoPagos();
-      // El backend devuelve el resumen directamente (no wrapper)
+      const [res, allPagos] = await Promise.all([
+        fetchEstadoPagos().catch(() => null),
+        fetchAllPagos().catch(() => []),
+      ]);
       setResumen(res ?? null);
+      setPagos(allPagos);
     } catch (err) {
       console.error('Error cargando pagos:', err);
       setResumen(null);
+      setPagos([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCardClick = (nuevoFiltro: FiltroEstado) => {
-    setFiltro(nuevoFiltro === filtro ? 'todos' : nuevoFiltro);
-  };
-
-  const filteredDetalle = filtro === 'todos'
-    ? detalle
-    : detalle.filter(d => d.estado === filtro);
+  const filteredPagos = filtro === 'todos'
+    ? pagos
+    : pagos.filter(p => p.estado === filtro);
 
   const getEstadoLabel = (estado: string) => {
     switch (estado) {
-      case 'al_dia': return 'Al día';
-      case 'por_vencer': return 'Por vencer';
-      case 'vencida': return 'Vencida';
+      case 'CONFIRMADO': return 'Confirmado';
+      case 'PENDIENTE': return 'Pendiente';
+      case 'RECHAZADO': return 'Rechazado';
       default: return estado;
     }
   };
 
   const getStatusForBadge = (estado: string) => {
     switch (estado) {
-      case 'al_dia': return 'al_dia';
-      case 'por_vencer': return 'por_vencer';
-      case 'vencida': return 'vencida';
+      case 'CONFIRMADO': return 'al_dia';
+      case 'PENDIENTE': return 'por_vencer';
+      case 'RECHAZADO': return 'vencida';
       default: return estado;
     }
   };
 
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('es-PE', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+    });
+  };
+
   return (
-    <Layout title="Estado de Pagos">
+    <Layout title="Pagos">
       <StatsGrid>
-        <StatCard $color={COLORS.primary} $active={filtro === 'todos'} onClick={() => handleCardClick('todos')}>
+        <StatCard $color={COLORS.primary}>
           <StatIcon $bgColor={COLORS.primary}>💳</StatIcon>
           <StatLabel>Total Suscripciones</StatLabel>
           <StatValue>{isLoading ? '...' : resumen?.totalSuscripciones ?? 0}</StatValue>
         </StatCard>
 
-        <StatCard $color={COLORS.success} $active={filtro === 'al_dia'} onClick={() => handleCardClick('al_dia')}>
+        <StatCard $color={COLORS.success}>
           <StatIcon $bgColor={COLORS.success}>✓</StatIcon>
           <StatLabel>Al Día</StatLabel>
           <StatValue style={{ color: COLORS.success }}>{isLoading ? '...' : resumen?.alDia ?? 0}</StatValue>
         </StatCard>
 
-        <StatCard $color={COLORS.warning} $active={filtro === 'por_vencer'} onClick={() => handleCardClick('por_vencer')}>
+        <StatCard $color={COLORS.warning}>
           <StatIcon $bgColor={COLORS.warning}>⚠</StatIcon>
           <StatLabel>Por Vencer</StatLabel>
           <StatValue style={{ color: COLORS.warning }}>{isLoading ? '...' : resumen?.porVencer ?? 0}</StatValue>
         </StatCard>
 
-        <StatCard $color={COLORS.error} $active={filtro === 'vencida'} onClick={() => handleCardClick('vencida')}>
+        <StatCard $color={COLORS.error}>
           <StatIcon $bgColor={COLORS.error}>✗</StatIcon>
           <StatLabel>Vencidas</StatLabel>
           <StatValue style={{ color: COLORS.error }}>{isLoading ? '...' : resumen?.vencidas ?? 0}</StatValue>
         </StatCard>
       </StatsGrid>
 
-      <SectionTitle>Detalle de Pagos</SectionTitle>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.lg }}>
+        <SectionTitle style={{ marginBottom: 0 }}>Detalle de Pagos</SectionTitle>
+        <Button onClick={() => setShowRegistrar(true)}>+ Registrar Pago</Button>
+      </div>
 
       <FilterBar>
-        {(['todos', 'al_dia', 'por_vencer', 'vencida'] as FiltroEstado[]).map(f => (
+        {(['todos', 'CONFIRMADO', 'PENDIENTE', 'RECHAZADO'] as FiltroEstado[]).map(f => (
           <FilterChip key={f} $active={filtro === f} onClick={() => setFiltro(f)}>
-            {f === 'todos' ? 'Todos' : getEstadoLabel(f)}
+            {f === 'todos' ? `Todos (${pagos.length})` : `${getEstadoLabel(f)} (${pagos.filter(p => p.estado === f).length})`}
           </FilterChip>
         ))}
       </FilterBar>
 
       {isLoading ? (
         <LoadingState>Cargando estado de pagos...</LoadingState>
-      ) : filteredDetalle.length === 0 ? (
+      ) : filteredPagos.length === 0 ? (
         <EmptyState>No se encontraron registros</EmptyState>
       ) : (
         <TableWrapper>
           <Table>
             <Thead>
               <tr>
-                <Th>Tenant</Th>
-                <Th>Plan</Th>
+                <Th>Negocio</Th>
+                <Th>Fecha Pago</Th>
+                <Th>Periodo</Th>
+                <Th>Método</Th>
                 <Th>Estado</Th>
-                <Th>Último Pago</Th>
-                <Th>Próximo Pago</Th>
-                <Th>Días</Th>
                 <Th>Monto</Th>
+                <Th>Referencia</Th>
                 <Th>Acciones</Th>
               </tr>
             </Thead>
             <Tbody>
-              {filteredDetalle.map(item => (
-                <Tr key={item.id}>
-                  <Td style={{ fontWeight: TYPOGRAPHY.fontWeight.medium }}>{item.tenantNombre}</Td>
-                  <Td>{item.plan}</Td>
-                  <Td><StatusBadge $status={getStatusForBadge(item.estado)}>{getEstadoLabel(item.estado)}</StatusBadge></Td>
-                  <Td>{item.fechaUltimoPago}</Td>
-                  <Td>{item.fechaProximoPago}</Td>
-                  <Td>
-                    <DiasIndicator $estado={item.estado}>
-                      {item.diasRestantes > 0 ? `${item.diasRestantes}d` : `${Math.abs(item.diasRestantes)}d vencido`}
-                    </DiasIndicator>
-                  </Td>
-                  <Td style={{ fontWeight: TYPOGRAPHY.fontWeight.bold }}>S/ {item.montoUltimoPago.toFixed(2)}</Td>
+              {filteredPagos.map(pago => (
+                <Tr key={pago.id}>
+                  <Td style={{ fontWeight: TYPOGRAPHY.fontWeight.medium }}>{pago.tenantNombre}</Td>
+                  <Td>{formatDate(pago.fechaPago)}</Td>
+                  <Td>{formatDate(pago.periodoInicio)} – {formatDate(pago.periodoFin)}</Td>
+                  <Td>{pago.metodoPago}</Td>
+                  <Td><StatusBadge $status={getStatusForBadge(pago.estado)}>{getEstadoLabel(pago.estado)}</StatusBadge></Td>
+                  <Td style={{ fontWeight: TYPOGRAPHY.fontWeight.bold }}>S/ {pago.monto.toFixed(2)}</Td>
+                  <Td style={{ fontSize: TYPOGRAPHY.fontSize.xs, color: COLORS.textLighter }}>{pago.referenciaTransaccion}</Td>
                   <Td>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <ActionButton $variant="view" title="Ver factura">📄</ActionButton>
-                      <ActionButton $variant="edit" title="Registrar pago manual">💰</ActionButton>
                     </div>
                   </Td>
                 </Tr>
@@ -312,6 +292,12 @@ const EstadoPagos: React.FC = () => {
             </Tbody>
           </Table>
         </TableWrapper>
+      )}
+      {showRegistrar && (
+        <RegistrarPagoModal
+          onClose={() => setShowRegistrar(false)}
+          onCreated={() => { setShowRegistrar(false); loadData(); }}
+        />
       )}
     </Layout>
   );

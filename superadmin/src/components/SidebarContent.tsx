@@ -135,9 +135,9 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard Global' },
-    { path: '/tenants', label: 'Tenants' },
+    { path: '/tenants', label: 'Negocios' },
     { path: '/planes', label: 'Planes' },
-    { path: '/pagos', label: 'Estado de Pagos' },
+    { path: '/pagos', label: 'Pagos' },
     { path: '/cupones', label: 'Cupones' },
     { path: '/tickets', label: 'Tickets' },
     { path: '/auditoria', label: 'Auditoría' },

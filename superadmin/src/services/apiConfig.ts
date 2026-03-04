@@ -2,10 +2,10 @@
 // API CONFIG — Cliente HTTP centralizado para el backend Spring Boot
 // ============================================================================
 
-// En desarrollo Vite proxea /api/v1/* → http://spring.informaticapp.com:5001/New-Hype-Project/api/v1/*
-export const API_BASE_URL = '/api/v1/platform';
+// CORS habilitado en el backend — conexión directa sin proxy
+export const API_BASE_URL = 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1/platform';
 
-export const BEARER_TOKEN = 'eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwic2NvcGUiOiJwbGF0Zm9ybSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzI0MjIxNTYsImV4cCI6MTc3MjUwODU1Niwicm9sZSI6IlNVUEVSQURNSU4ifQ.But34rAvQA2cbOIeCEAKvffAaHBOe2kSi-k3H5U5UYyJp9LVC3Ok6E-289fiElfx';
+export const BEARER_TOKEN = 'eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwic2NvcGUiOiJwbGF0Zm9ybSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzI2Mzg0ODcsImV4cCI6MTc3MjcyNDg4Nywicm9sZSI6IlNVUEVSQURNSU4ifQ.XKQ-WaHA0uGXEgLc8N3AX7ny5VLkx7wPIUMkbuga5N8GSFKAH3piAhZKdxSzxQED';
 
 export const getHeaders = (): Record<string, string> => ({
   'Content-Type': 'application/json',

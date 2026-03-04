@@ -266,10 +266,10 @@ const GestionTenants: React.FC = () => {
   };
 
   return (
-    <Layout title="Gestión de Tenants">
+    <Layout title="Gestión de Negocios">
       <StatsGrid>
         <StatCard>
-          <StatLabel>Total Tenants</StatLabel>
+          <StatLabel>Total Negocios</StatLabel>
           <StatValue>{isLoading ? '...' : stats.total}</StatValue>
         </StatCard>
         <StatCard>
@@ -287,9 +287,9 @@ const GestionTenants: React.FC = () => {
       </StatsGrid>
 
       <PageHeader>
-        <Title>Listado de Tenants</Title>
+        <Title>Listado de Negocios</Title>
         <Button onClick={() => setShowCrear(true)}>
-          + Nuevo Tenant
+          + Nuevo Negocio
         </Button>
       </PageHeader>
 
@@ -307,15 +307,15 @@ const GestionTenants: React.FC = () => {
       </FiltersBar>
 
       {isLoading ? (
-        <LoadingState>Cargando tenants...</LoadingState>
+        <LoadingState>Cargando negocios...</LoadingState>
       ) : filteredTenants.length === 0 ? (
-        <EmptyState>No se encontraron tenants</EmptyState>
+        <EmptyState>No se encontraron negocios</EmptyState>
       ) : (
         <TableWrapper>
           <Table>
             <Thead>
               <tr>
-                <Th>Tenant</Th>
+                <Th>Negocio</Th>
                 <Th>Propietario</Th>
                 <Th>Plan</Th>
                 <Th>Estado</Th>
