@@ -38,7 +38,7 @@ const ErrorContainer = styled.div`
 const PurchaseOrdersPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: urlOrderId } = useParams<{ id?: string }>();
-  const { notify } = useNotification();
+  const { showSuccess } = useNotification();
 
   // Context
   const { ordenes, loading, error, loadOrdenes, getOrdenById, crearOrden, actualizarOrden, eliminarOrden, cambiarEstadoOrden } = usePurchases();
@@ -81,26 +81,18 @@ const PurchaseOrdersPage: React.FC = () => {
 
   const handleDelete = async (orderId: string) => {
     await eliminarOrden(orderId);
-    notify({ 
-      type: 'success', 
-      message: 'Orden eliminada correctamente',
-      title: 'Éxito'
-    });
+    showSuccess('Orden eliminada correctamente');
   };
 
   const handleRefresh = async () => {
     await loadOrdenes();
-    notify({ type: 'info', message: 'Lista actualizada', title: 'Éxito' });
+    showSuccess('Lista actualizada');
   };
 
   const handleCreateSuccess = async () => {
     setShowCreateModal(false);
     await loadOrdenes();
-    notify({ 
-      type: 'success', 
-      message: 'Orden creada correctamente',
-      title: 'Éxito'
-    });
+    showSuccess('Orden creada correctamente');
   };
 
   const handleEditSuccess = async () => {
@@ -144,7 +136,7 @@ const PurchaseOrdersPage: React.FC = () => {
         )}
 
         <PurchaseOrderList
-          onEdit={handleEdit}
+          onEdit={handleEdit as (order: unknown) => void}
           onView={handleView}
           onDelete={handleDelete}
           onRefresh={handleRefresh}
@@ -171,7 +163,7 @@ const PurchaseOrdersPage: React.FC = () => {
         >
           {selectedOrder && (
             <PurchaseOrderForm
-              order={selectedOrder}
+              order={selectedOrder as any}
               onSuccess={handleEditSuccess}
               onCancel={handleCancel}
             />

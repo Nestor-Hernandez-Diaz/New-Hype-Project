@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { apiService, tokenUtils } from '../../../utils/api';
+import type { BackendUserInfo } from '../../../utils/api';
+import { fetchPermissionsForRole } from '../../../utils/permissionsResolver';
 
 interface User {
   id: string;
@@ -14,6 +16,8 @@ interface User {
     name: string;
     permissions: string[];
   };
+  tenantId?: string;
+  tenantNombre?: string;
 }
 
 export interface AuthContextType {
@@ -32,6 +36,32 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Mapea la respuesta del backend (BackendUserInfo) al formato User del frontend.
+ * El backend devuelve: {id, email, nombre, apellido, username, rol, tenantId, tenantNombre, scope}
+ * El frontend necesita: {id, email, firstName, lastName, username, role:{id,name,permissions[]}}
+ */
+function mapBackendUserToFrontendUser(
+  backendUser: BackendUserInfo,
+  permissions: string[]
+): User {
+  return {
+    id: String(backendUser.id),
+    username: backendUser.username,
+    email: backendUser.email,
+    firstName: backendUser.nombre,
+    lastName: backendUser.apellido,
+    isActive: true, // Si puede hacer login, está activo
+    role: {
+      id: backendUser.rol,
+      name: backendUser.rol,
+      permissions,
+    },
+    tenantId: String(backendUser.tenantId),
+    tenantNombre: backendUser.tenantNombre,
+  };
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,23 +70,83 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       console.log('[AuthContext] Inicializando autenticación...');
-      
-      // ===== MODO DEMO SIN BACKEND =====
+
       try {
-        const savedUser = localStorage.getItem('alexatech_user');
-        console.log('[AuthContext] Usuario guardado encontrado:', !!savedUser);
-        
-        if (savedUser) {
+        const token = tokenUtils.getAccessToken();
+        console.log('[AuthContext] Token encontrado:', !!token);
+
+        if (token && !tokenUtils.isTokenExpired(token)) {
+          // Restaurar usuario de localStorage para carga rápida
+          const savedUser = localStorage.getItem('alexatech_user');
+          if (savedUser) {
+            try {
+              const userData = JSON.parse(savedUser);
+              setUser(userData);
+              console.log('[AuthContext] Usuario restaurado desde localStorage');
+            } catch {
+              console.warn('[AuthContext] Error parsing saved user');
+            }
+          }
+
+          // Validar token con backend asincrónamente
           try {
-            const userData = JSON.parse(savedUser);
-            setUser(userData);
-            console.log('[AuthContext] Usuario cargado desde localStorage');
-          } catch (error) {
-            console.error('[AuthContext] Error parsing saved user:', error);
-            localStorage.removeItem('alexatech_user');
+            console.log('[AuthContext] Validando token con backend...');
+            const response = await apiService.getCurrentUser();
+
+            if (response.success && response.data) {
+              const backendUser = response.data;
+              const permissions = await fetchPermissionsForRole(backendUser.rol);
+              const frontendUser = mapBackendUserToFrontendUser(backendUser, permissions);
+              setUser(frontendUser);
+              localStorage.setItem('alexatech_user', JSON.stringify(frontendUser));
+              console.log('[AuthContext] Usuario validado con backend');
+            } else {
+              console.log('[AuthContext] Token inválido, limpiando...');
+              tokenUtils.clearTokens();
+              localStorage.removeItem('alexatech_user');
+              setUser(null);
+            }
+          } catch {
+            // Token podría estar expirado, intentar refresh
+            console.log('[AuthContext] Error validando token, intentando refresh...');
+            const refreshToken = tokenUtils.getRefreshToken();
+            if (refreshToken) {
+              try {
+                const refreshResponse = await apiService.refreshToken();
+                if (refreshResponse.success && refreshResponse.data) {
+                  tokenUtils.setTokens(
+                    refreshResponse.data.accessToken,
+                    refreshResponse.data.refreshToken
+                  );
+                  // Re-validar usuario después del refresh
+                  const meResponse = await apiService.getCurrentUser();
+                  if (meResponse.success && meResponse.data) {
+                    const backendUser = meResponse.data;
+                    const permissions = await fetchPermissionsForRole(backendUser.rol);
+                    const frontendUser = mapBackendUserToFrontendUser(backendUser, permissions);
+                    setUser(frontendUser);
+                    localStorage.setItem('alexatech_user', JSON.stringify(frontendUser));
+                    console.log('[AuthContext] Token refreshed exitosamente');
+                  }
+                } else {
+                  throw new Error('Refresh failed');
+                }
+              } catch {
+                console.log('[AuthContext] Refresh falló, limpiando sesión');
+                tokenUtils.clearTokens();
+                localStorage.removeItem('alexatech_user');
+                setUser(null);
+              }
+            } else {
+              tokenUtils.clearTokens();
+              localStorage.removeItem('alexatech_user');
+              setUser(null);
+            }
           }
         } else {
-          console.log('[AuthContext] No hay usuario guardado');
+          console.log('[AuthContext] No hay token válido');
+          tokenUtils.clearTokens();
+          localStorage.removeItem('alexatech_user');
         }
       } catch (error) {
         console.error('[AuthContext] Error crítico en initializeAuth:', error);
@@ -64,42 +154,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('[AuthContext] Finalizando carga, setIsLoading(false)');
         setIsLoading(false);
       }
-
-      // ===== MODO REAL CON BACKEND (comentado) =====
-      // try {
-      //   const token = tokenUtils.getAccessToken();
-      //   console.log('[AuthContext] Token encontrado:', !!token);
-      //   
-      //   if (token && !tokenUtils.isTokenExpired(token)) {
-      //     try {
-      //       console.log('[AuthContext] Validando token con backend...');
-      //       const response = await apiService.getCurrentUser();
-      //       console.log('[AuthContext] Respuesta del backend:', response.success);
-      //       
-      //       if (response.success && response.data) {
-      //         setUser(response.data as User);
-      //         console.log('[AuthContext] Usuario autenticado');
-      //       } else {
-      //         console.log('[AuthContext] Token inválido, limpiando...');
-      //         tokenUtils.clearTokens();
-      //         localStorage.removeItem('alexatech_user');
-      //       }
-      //     } catch (error) {
-      //       console.error('[AuthContext] Error validating token:', error);
-      //       tokenUtils.clearTokens();
-      //       localStorage.removeItem('alexatech_user');
-      //     }
-      //   } else {
-      //     console.log('[AuthContext] No hay token válido');
-      //     tokenUtils.clearTokens();
-      //     localStorage.removeItem('alexatech_user');
-      //   }
-      // } catch (error) {
-      //   console.error('[AuthContext] Error crítico en initializeAuth:', error);
-      // } finally {
-      //   console.log('[AuthContext] Finalizando carga, setIsLoading(false)');
-      //   setIsLoading(false);
-      // }
     };
 
     initializeAuth();
@@ -107,94 +161,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
+
     try {
-      // ===== MODO DEMO SIN BACKEND =====
-      console.log('[AuthContext] Login DEMO - email:', email);
-      
-      // Simular login exitoso con usuario mock
-      const mockUser: User = {
-        id: 'demo-user-1',
-        username: email.split('@')[0],
-        email: email,
-        firstName: 'Usuario',
-        lastName: 'Demo',
-        isActive: true,
-        role: {
-          id: 'admin-role',
-          name: 'Administrador',
-          permissions: [
-            // Dashboard
-            'dashboard.read',
-            
-            // Productos
-            'products.read', 'products.create', 'products.update', 'products.delete',
-            
-            // Ventas
-            'sales.read', 'sales.create', 'sales.update', 'sales.delete',
-            
-            // Compras
-            'purchases.read', 'purchases.create', 'purchases.update', 'purchases.delete',
-            
-            // Inventario
-            'inventory.read', 'inventory.create', 'inventory.update', 'inventory.delete',
-            
-            // Almacenes
-            'warehouses.read', 'warehouses.create', 'warehouses.update', 'warehouses.delete',
-            
-            // Clientes/Entidades
-            'clients.read', 'clients.create', 'clients.update', 'clients.delete',
-            'commercial_entities.read', 'commercial_entities.create', 'commercial_entities.update', 'commercial_entities.delete',
-            
-            // Usuarios
-            'users.read', 'users.create', 'users.update', 'users.delete',
-            
-            // Caja
-            'cash-sessions.read', 'cash-sessions.create', 'cash-sessions.update', 'cash-sessions.delete',
-            
-            // Reportes
-            'reports.read', 'reports.export',
-            
-            // Configuración
-            'settings.read', 'settings.update',
-            'configuracion.read', 'configuracion.update',
-            
-            // Auditoría
-            'audit.read',
-            'auditoria.read',
-          ],
-        },
-      };
+      console.log('[AuthContext] Intentando login con backend...');
+      const response = await apiService.login({ email, password });
 
-      const mockAccessToken = 'demo-token-' + Date.now();
-      const mockRefreshToken = 'demo-refresh-' + Date.now();
+      if (response.success && response.data) {
+        const { accessToken, refreshToken, user: backendUser } = response.data;
 
-      tokenUtils.setTokens(mockAccessToken, mockRefreshToken);
-      setUser(mockUser);
-      localStorage.setItem('alexatech_user', JSON.stringify(mockUser));
+        // Guardar tokens
+        tokenUtils.setTokens(accessToken, refreshToken);
 
-      console.log('[AuthContext] Login DEMO exitoso');
-      setIsLoading(false);
-      return true;
+        // Obtener permisos reales del rol
+        const permissions = await fetchPermissionsForRole(backendUser.rol);
 
-      // ===== MODO REAL CON BACKEND (comentado) =====
-      // const response = await apiService.login({ email, password });
-      // 
-      // if (response.success && response.data) {
-      //   const { user: userData, accessToken, refreshToken } = response.data;
-      //   
-      //   tokenUtils.setTokens(accessToken, refreshToken);
-      //   setUser(userData as User);
-      //   localStorage.setItem('alexatech_user', JSON.stringify(userData));
-      //   
-      //   return true;
-      // }
-      // 
-      // throw new Error(response.message || 'Usuario o contraseña incorrectos');
+        // Mapear usuario backend → frontend
+        const frontendUser = mapBackendUserToFrontendUser(backendUser, permissions);
+        setUser(frontendUser);
+        localStorage.setItem('alexatech_user', JSON.stringify(frontendUser));
+
+        console.log('[AuthContext] Login exitoso:', frontendUser.email, '| Rol:', backendUser.rol);
+        return true;
+      }
+
+      throw new Error(response.message || 'Usuario o contraseña incorrectos');
     } catch (error: any) {
       console.error('Login error:', error);
-      setIsLoading(false);
       throw new Error(error.message || 'Error al conectar con el servidor. Inténtalo de nuevo.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -225,17 +220,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Intentar obtener permisos desde role.permissions (RBAC nuevo)
     let perms: string[] = [];
-    
+
     if (user.role?.permissions && Array.isArray(user.role.permissions)) {
       perms = user.role.permissions;
-    } 
+    }
     // Fallback: permisos directos (legacy, solo para compatibilidad temporal)
     else if ((user as any).permissions && Array.isArray((user as any).permissions)) {
       perms = (user as any).permissions;
-      console.warn('⚠️ [AuthContext] Usuario con permisos legacy (user.permissions). Debería reiniciar sesión para usar user.role.permissions');
-    } 
+      console.warn('[AuthContext] Usuario con permisos legacy (user.permissions). Debería reiniciar sesión.');
+    }
     else {
-      console.error('❌ [AuthContext] Usuario sin permisos:', user);
+      console.error('[AuthContext] Usuario sin permisos:', user);
       return false;
     }
 

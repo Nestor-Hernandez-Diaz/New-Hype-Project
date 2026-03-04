@@ -23,10 +23,10 @@ public class AuthController {
     }
 
     @PostMapping("/api/v1/auth/register")
-    @Operation(summary = "Registrar nuevo usuario + tenant")
+    @Operation(summary = "Generar token de acceso para probar endpoints (no crea datos en BD)")
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
-        return ResponseEntity.ok(ApiResponse.ok("Registro exitoso", response));
+        return ResponseEntity.ok(ApiResponse.ok("Token generado exitosamente", response));
     }
 
     @PostMapping("/api/v1/auth/login")

@@ -181,13 +181,43 @@ const SectionTitle = styled.h3`
   }
 `;
 
+const PasswordWrapper = styled.div`
+  position: relative;
+`;
+
+const TogglePasswordButton = styled.button`
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${COLORS.textLight};
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${BORDER_RADIUS.small};
+  transition: color ${TRANSITIONS.normal};
+
+  &:hover {
+    color: ${COLORS.text};
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
 const InfoBox = styled.div`
   background: ${COLORS.infoBg};
   border-left: 4px solid ${COLORS.info};
   padding: 1rem;
   border-radius: ${BORDER_RADIUS.small};
   margin: 1rem 0;
-  
+
   p {
     margin: 0;
     color: ${COLORS.infoText};
@@ -198,6 +228,26 @@ const InfoBox = styled.div`
 `;
 
 // ============================================================================
+// EYE ICONS
+// ============================================================================
+
+const EyeIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
@@ -206,6 +256,8 @@ const NuevoUsuarioModal: React.FC<NuevoUsuarioModalProps> = ({ isOpen, onClose, 
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [formData, setFormData] = useState<UserFormData>({
     username: '',
@@ -437,16 +489,22 @@ const NuevoUsuarioModal: React.FC<NuevoUsuarioModalProps> = ({ isOpen, onClose, 
               <Label>
                 Contraseña<RequiredMark>*</RequiredMark>
               </Label>
-              <Input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                $hasError={!!errors.password}
-                placeholder="Mínimo 8 caracteres"
-                disabled={isLoading}
-                autoComplete="new-password"
-              />
+              <PasswordWrapper>
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  $hasError={!!errors.password}
+                  placeholder="Mínimo 8 caracteres"
+                  disabled={isLoading}
+                  autoComplete="new-password"
+                  style={{ paddingRight: '40px' }}
+                />
+                <TogglePasswordButton type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </TogglePasswordButton>
+              </PasswordWrapper>
               {errors.password && <ValidationMessage $type="error">{errors.password}</ValidationMessage>}
             </FormGroup>
 
@@ -454,16 +512,22 @@ const NuevoUsuarioModal: React.FC<NuevoUsuarioModalProps> = ({ isOpen, onClose, 
               <Label>
                 Confirmar Contraseña<RequiredMark>*</RequiredMark>
               </Label>
-              <Input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                $hasError={!!errors.confirmPassword}
-                placeholder="Repita la contraseña"
-                disabled={isLoading}
-                autoComplete="new-password"
-              />
+              <PasswordWrapper>
+                <Input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  $hasError={!!errors.confirmPassword}
+                  placeholder="Repita la contraseña"
+                  disabled={isLoading}
+                  autoComplete="new-password"
+                  style={{ paddingRight: '40px' }}
+                />
+                <TogglePasswordButton type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} tabIndex={-1}>
+                  {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </TogglePasswordButton>
+              </PasswordWrapper>
               {errors.confirmPassword && <ValidationMessage $type="error">{errors.confirmPassword}</ValidationMessage>}
             </FormGroup>
           </FormRow>

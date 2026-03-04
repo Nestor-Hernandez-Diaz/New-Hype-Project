@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NewHype - Registro</title>
+    <title>API NewHype - Solicitud de Acceso</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -57,87 +57,71 @@
             border-color: #e94560;
             box-shadow: 0 0 0 0.2rem rgba(233, 69, 96, 0.25);
         }
-        #resultado {
-            display: none;
-            margin-top: 1.5rem;
-        }
-        #resultado.show {
-            display: block;
-        }
-        .token-box {
+        .intro-text {
             background: #f8f9fa;
-            border: 1px solid #dee2e6;
             border-radius: 8px;
             padding: 1rem;
-            word-break: break-all;
-            font-family: monospace;
-            font-size: 0.8rem;
-            max-height: 120px;
-            overflow-y: auto;
-        }
-        .copy-btn {
-            cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-5">
+            <div class="col-md-7 col-lg-6">
                 <div class="card">
                     <div class="card-header">
-                        <h2>NEW HYPE</h2>
-                        <p>ERP para Tienda de Ropa</p>
+                        <h2>API NEW HYPE</h2>
+                        <p>Desarrolla aplicaciones con nosotros</p>
                     </div>
                     <div class="card-body">
-                        <h5 class="mb-3 text-center text-muted">Crear Cuenta</h5>
+                        <div class="intro-text">
+                            La presente plataforma contiene la API desarrollada para el modelo de negocio.
+                            La API permite el acceso directo a la informacion de nuestra base de datos desde tu aplicacion.
+                            Usa una interfaz RESTful y retorna los datos en formato JSON.
+                            Registre sus datos y consiga la autorizacion para trabajar en nuestra plataforma.
+                        </div>
+
+                        <h5 class="mb-3 text-center text-muted">Solicitud de Acceso a Datos</h5>
+
                         <form id="registerForm">
                             <div class="mb-3">
                                 <label for="nombre" class="form-label">Nombres</label>
-                                <input type="text" class="form-control" id="nombre" required placeholder="Tu nombre">
+                                <input type="text" class="form-control" id="nombre" name="nombres" required placeholder="Nombres">
                             </div>
                             <div class="mb-3">
                                 <label for="apellido" class="form-label">Apellidos</label>
-                                <input type="text" class="form-control" id="apellido" required placeholder="Tu apellido">
+                                <input type="text" class="form-control" id="apellido" name="apellidos" required placeholder="Apellidos">
                             </div>
                             <div class="mb-3">
-                                <label for="email" class="form-label">Email</label>
-                                <input type="email" class="form-control" id="email" required placeholder="tu@email.com">
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" required minlength="6" placeholder="Min. 6 caracteres">
-                            </div>
-                            <div class="mb-3">
-                                <label for="nombreTienda" class="form-label">Nombre de Tienda <small class="text-muted">(opcional)</small></label>
-                                <input type="text" class="form-control" id="nombreTienda" placeholder="Mi Tienda de Ropa">
+                                <label for="email" class="form-label">E-mail</label>
+                                <input type="email" class="form-control" id="email" name="email" required placeholder="E-mail">
                             </div>
                             <button type="submit" class="btn btn-register btn-lg w-100 text-white" id="btnSubmit">
-                                Registrarse
+                                Registrar
                             </button>
                         </form>
 
-                        <div id="resultado">
-                            <div id="resultadoExito" class="alert alert-success" style="display:none">
-                                <h6 class="alert-heading mb-2">Registro exitoso</h6>
-                                <p class="mb-2"><strong>Usuario:</strong> <span id="resUsuario"></span></p>
-                                <p class="mb-2"><strong>Tenant:</strong> <span id="resTenant"></span></p>
-                                <p class="mb-1"><strong>Access Token:</strong></p>
-                                <div class="token-box" id="resToken"></div>
-                                <div class="mt-2 text-end">
-                                    <span class="badge bg-secondary copy-btn" onclick="copiarToken()">Copiar Token</span>
-                                </div>
-                            </div>
-                            <div id="resultadoError" class="alert alert-danger" style="display:none">
-                                <span id="resError"></span>
-                            </div>
+                        <!-- Token de acceso (exito) -->
+                        <div id="resultadoExito" class="alert alert-success mt-4" style="display:none">
+                            <h5 class="alert-heading">Token de acceso</h5>
+                            <p class="mb-2">Use este token en el header <code>Authorization: Bearer &lt;token&gt;</code> para probar los endpoints protegidos.</p>
+                            <textarea id="tokenDisplay" rows="5" class="form-control mb-2" readonly style="font-family:monospace; font-size:0.8rem;"></textarea>
+                            <button id="copyBtn" class="btn btn-primary" onclick="copiarToken()">Copiar token</button>
+                        </div>
+
+                        <!-- Error -->
+                        <div id="resultadoError" class="alert alert-danger mt-4" style="display:none">
+                            <strong>Error:</strong> <span id="resError"></span>
                         </div>
                     </div>
                 </div>
                 <p class="text-center text-white-50 mt-3 small">
-                    NewHype ERP &copy; 2026 &mdash; Swagger UI:
-                    <a href="/swagger-ui.html" class="text-white">swagger-ui.html</a>
+                    NewHype API &copy; 2026 &mdash;
+                    <a href="/New-Hype-Project/swagger-ui.html" class="text-white">Swagger UI</a>
                 </p>
             </div>
         </div>
@@ -147,63 +131,55 @@
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const btn = document.getElementById('btnSubmit');
-            btn.disabled = true;
-            btn.textContent = 'Registrando...';
+            // Ocultar resultados previos
+            document.getElementById('resultadoExito').style.display = 'none';
+            document.getElementById('resultadoError').style.display = 'none';
 
-            const body = {
+            var btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.textContent = 'Generando token...';
+
+            var body = {
                 nombre: document.getElementById('nombre').value.trim(),
                 apellido: document.getElementById('apellido').value.trim(),
-                email: document.getElementById('email').value.trim(),
-                password: document.getElementById('password').value
+                email: document.getElementById('email').value.trim()
             };
 
-            const nombreTienda = document.getElementById('nombreTienda').value.trim();
-            if (nombreTienda) body.nombreTienda = nombreTienda;
-
             try {
-                const res = await fetch('/api/v1/auth/register', {
+                var res = await fetch('/New-Hype-Project/api/v1/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
 
-                const json = await res.json();
-                const resultado = document.getElementById('resultado');
-                resultado.classList.add('show');
+                var json = await res.json();
 
-                if (json.success) {
+                if (json.success && json.data && json.data.accessToken) {
+                    document.getElementById('tokenDisplay').value = json.data.accessToken;
                     document.getElementById('resultadoExito').style.display = 'block';
-                    document.getElementById('resultadoError').style.display = 'none';
-                    document.getElementById('resUsuario').textContent = json.data.user.email;
-                    document.getElementById('resTenant').textContent = json.data.user.tenantNombre;
-                    document.getElementById('resToken').textContent = json.data.accessToken;
                 } else {
-                    document.getElementById('resultadoExito').style.display = 'none';
-                    document.getElementById('resultadoError').style.display = 'block';
                     document.getElementById('resError').textContent = json.message || 'Error desconocido';
+                    document.getElementById('resultadoError').style.display = 'block';
                 }
             } catch (err) {
-                const resultado = document.getElementById('resultado');
-                resultado.classList.add('show');
-                document.getElementById('resultadoExito').style.display = 'none';
-                document.getElementById('resultadoError').style.display = 'block';
                 document.getElementById('resError').textContent = 'Error de conexion: ' + err.message;
+                document.getElementById('resultadoError').style.display = 'block';
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Registrarse';
+                btn.textContent = 'Registrar';
             }
         });
 
         function copiarToken() {
-            const token = document.getElementById('resToken').textContent;
-            navigator.clipboard.writeText(token).then(() => {
-                const badge = document.querySelector('.copy-btn');
-                badge.textContent = 'Copiado!';
-                badge.classList.replace('bg-secondary', 'bg-success');
-                setTimeout(() => {
-                    badge.textContent = 'Copiar Token';
-                    badge.classList.replace('bg-success', 'bg-secondary');
+            var textarea = document.getElementById('tokenDisplay');
+            textarea.select();
+            navigator.clipboard.writeText(textarea.value).then(function() {
+                var btn = document.getElementById('copyBtn');
+                btn.textContent = 'Copiado!';
+                btn.classList.replace('btn-primary', 'btn-success');
+                setTimeout(function() {
+                    btn.textContent = 'Copiar token';
+                    btn.classList.replace('btn-success', 'btn-primary');
                 }, 2000);
             });
         }

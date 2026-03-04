@@ -36,7 +36,7 @@ export interface ComprobanteData {
   codigo: string;
   nombre: string;
   descripcion?: string;
-  tipo: 'factura' | 'boleta' | 'nota-credito' | 'nota-debito';
+  tipo: 'factura' | 'boleta' | 'nota-credito' | 'nota-debito' | 'orden-compra' | 'recepcion-compra';
   serie: string;
   numeroActual: number;
   numeroInicio: number;
@@ -60,73 +60,87 @@ export interface MetodoPagoData {
   updatedAt?: string;
 }
 
+/** Generic catalog item returned by /configuracion/{tallas,colores,marcas,materiales,generos} */
+export interface CatalogItem {
+  id: number;
+  codigo: string;
+  nombre?: string;
+  descripcion?: string;
+  codigoHex?: string;
+  logoUrl?: string;
+  ordenVisualizacion?: number;
+  estado: boolean;
+  createdAt?: string;
+}
+
+/** Generic catalog input for POST/PUT */
+export interface CatalogInput {
+  codigo: string;
+  nombre?: string;
+  descripcion?: string;
+  codigoHex?: string;
+  logoUrl?: string;
+  ordenVisualizacion?: number;
+}
+
 const configuracionApi = {
   // Empresa
   getEmpresa: async (): Promise<EmpresaData> => {
     const response = await apiService.get<EmpresaData>('/configuracion/empresa');
-    return (response as any).data ?? (response as any);
+    return response.data as EmpresaData;
   },
 
   updateEmpresa: async (data: Partial<EmpresaData>): Promise<EmpresaData> => {
-    const response = await apiService.request<EmpresaData>('/configuracion/empresa', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    return (response as any).data ?? (response as any);
+    const response = await apiService.put<EmpresaData>('/configuracion/empresa', data);
+    return response.data as EmpresaData;
   },
 
-  // Comprobantes
+  // Series de Comprobantes (SUNAT)
   getComprobantes: async (): Promise<ComprobanteData[]> => {
-    const response = await apiService.get<ComprobanteData[]>('/configuracion/comprobantes');
-    const result = (response as any).data ?? (response as any);
-    return Array.isArray(result) ? result : [];
+    const response = await apiService.get<ComprobanteData[]>('/configuracion/series-comprobantes');
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   createComprobante: async (data: ComprobanteData): Promise<ComprobanteData> => {
-    const response = await apiService.request<ComprobanteData>('/configuracion/comprobantes', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return (response as any).data ?? (response as any);
+    const response = await apiService.post<ComprobanteData>('/configuracion/series-comprobantes', data);
+    return response.data as ComprobanteData;
   },
 
   updateComprobante: async (id: string, data: Partial<ComprobanteData>): Promise<ComprobanteData> => {
-    const response = await apiService.request<ComprobanteData>(`/configuracion/comprobantes/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    return (response as any).data ?? (response as any);
+    const response = await apiService.put<ComprobanteData>(`/configuracion/series-comprobantes/${id}`, data);
+    return response.data as ComprobanteData;
+  },
+
+  toggleComprobanteEstado: async (id: string): Promise<void> => {
+    await apiService.patch(`/configuracion/series-comprobantes/${id}/estado`);
   },
 
   deleteComprobante: async (id: string): Promise<void> => {
-    await apiService.request(`/configuracion/comprobantes/${id}`, { method: 'DELETE' });
+    await apiService.patch(`/configuracion/series-comprobantes/${id}/estado`);
   },
 
   // Métodos de Pago
   getMetodosPago: async (): Promise<MetodoPagoData[]> => {
     const response = await apiService.get<MetodoPagoData[]>('/configuracion/metodos-pago');
-    const result = (response as any).data ?? (response as any);
-    return Array.isArray(result) ? result : [];
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   createMetodoPago: async (data: MetodoPagoData): Promise<MetodoPagoData> => {
-    const response = await apiService.request<MetodoPagoData>('/configuracion/metodos-pago', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return (response as any).data ?? (response as any);
+    const response = await apiService.post<MetodoPagoData>('/configuracion/metodos-pago', data);
+    return response.data as MetodoPagoData;
   },
 
   updateMetodoPago: async (id: string, data: Partial<MetodoPagoData>): Promise<MetodoPagoData> => {
-    const response = await apiService.request<MetodoPagoData>(`/configuracion/metodos-pago/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    return (response as any).data ?? (response as any);
+    const response = await apiService.put<MetodoPagoData>(`/configuracion/metodos-pago/${id}`, data);
+    return response.data as MetodoPagoData;
+  },
+
+  toggleMetodoPagoEstado: async (id: string): Promise<void> => {
+    await apiService.patch(`/configuracion/metodos-pago/${id}/estado`);
   },
 
   deleteMetodoPago: async (id: string): Promise<void> => {
-    await apiService.request(`/configuracion/metodos-pago/${id}`, { method: 'DELETE' });
+    await apiService.patch(`/configuracion/metodos-pago/${id}/estado`);
   },
 
   // Categorías
@@ -135,8 +149,8 @@ const configuracionApi = {
     if (filters?.activo !== undefined) params.append('activo', filters.activo.toString());
     if (filters?.q) params.append('q', filters.q);
     const url = `/configuracion/categorias${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiService.get<{ success: boolean; data: ProductCategory[] }>(url);
-    return (response as any).data?.data || (response as any).data || [];
+    const response = await apiService.get<ProductCategory[]>(url);
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getActiveCategories: async (): Promise<ProductCategory[]> => {
@@ -144,32 +158,26 @@ const configuracionApi = {
   },
 
   getCategoryById: async (id: string): Promise<ProductCategory> => {
-    const response = await apiService.get<{ success: boolean; data: ProductCategory }>(`/configuracion/categorias/${id}`);
-    return (response as any).data?.data || (response as any).data;
+    const response = await apiService.get<ProductCategory>(`/configuracion/categorias/${id}`);
+    return response.data as ProductCategory;
   },
 
   createCategory: async (data: CategoryInput): Promise<ProductCategory> => {
-    const response = await apiService.request<{ success: boolean; data: ProductCategory }>('/configuracion/categorias', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return (response as any).data?.data || (response as any).data;
+    const response = await apiService.post<ProductCategory>('/configuracion/categorias', data);
+    return response.data as ProductCategory;
   },
 
   updateCategory: async (id: string, data: Partial<CategoryInput>): Promise<ProductCategory> => {
-    const response = await apiService.request<{ success: boolean; data: ProductCategory }>(`/configuracion/categorias/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    return (response as any).data?.data || (response as any).data;
+    const response = await apiService.put<ProductCategory>(`/configuracion/categorias/${id}`, data);
+    return response.data as ProductCategory;
   },
 
   deleteCategory: async (id: string): Promise<void> => {
-    await apiService.request(`/configuracion/categorias/${id}`, { method: 'DELETE' });
+    await apiService.delete(`/configuracion/categorias/${id}`);
   },
 
   hardDeleteCategory: async (id: string): Promise<void> => {
-    await apiService.request(`/configuracion/categorias/${id}/hard`, { method: 'DELETE' });
+    await apiService.delete(`/configuracion/categorias/${id}/hard`);
   },
 
   // Unidades de Medida
@@ -177,9 +185,9 @@ const configuracionApi = {
     const params = new URLSearchParams();
     if (filters?.activo !== undefined) params.append('activo', filters.activo.toString());
     if (filters?.q) params.append('q', filters.q);
-    const url = `/configuracion/unidades${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiService.get<{ success: boolean; data: UnitOfMeasure[] }>(url);
-    return (response as any).data?.data || (response as any).data || [];
+    const url = `/configuracion/unidades-medida${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await apiService.get<UnitOfMeasure[]>(url);
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getActiveUnits: async (): Promise<UnitOfMeasure[]> => {
@@ -187,33 +195,55 @@ const configuracionApi = {
   },
 
   getUnitById: async (id: string): Promise<UnitOfMeasure> => {
-    const response = await apiService.get<{ success: boolean; data: UnitOfMeasure }>(`/configuracion/unidades/${id}`);
-    return (response as any).data?.data || (response as any).data;
+    const response = await apiService.get<UnitOfMeasure>(`/configuracion/unidades-medida/${id}`);
+    return response.data as UnitOfMeasure;
   },
 
   createUnit: async (data: UnitInput): Promise<UnitOfMeasure> => {
-    const response = await apiService.request<{ success: boolean; data: UnitOfMeasure }>('/configuracion/unidades', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return (response as any).data?.data || (response as any).data;
+    const response = await apiService.post<UnitOfMeasure>('/configuracion/unidades-medida', data);
+    return response.data as UnitOfMeasure;
   },
 
   updateUnit: async (id: string, data: Partial<UnitInput>): Promise<UnitOfMeasure> => {
-    const response = await apiService.request<{ success: boolean; data: UnitOfMeasure }>(`/configuracion/unidades/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    return (response as any).data?.data || (response as any).data;
+    const response = await apiService.put<UnitOfMeasure>(`/configuracion/unidades-medida/${id}`, data);
+    return response.data as UnitOfMeasure;
   },
 
   deleteUnit: async (id: string): Promise<void> => {
-    await apiService.request(`/configuracion/unidades/${id}`, { method: 'DELETE' });
+    await apiService.delete(`/configuracion/unidades-medida/${id}`);
   },
 
   hardDeleteUnit: async (id: string): Promise<void> => {
-    await apiService.request(`/configuracion/unidades/${id}/hard`, { method: 'DELETE' });
+    await apiService.delete(`/configuracion/unidades-medida/${id}/hard`);
   },
+
+  // ========== Generic Catalog CRUD (tallas, colores, marcas, materiales, generos) ==========
+
+  getCatalogItems: async (catalogType: string): Promise<CatalogItem[]> => {
+    const response = await apiService.get<CatalogItem[]>(`/configuracion/${catalogType}`);
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  createCatalogItem: async (catalogType: string, data: CatalogInput): Promise<CatalogItem> => {
+    const response = await apiService.post<CatalogItem>(`/configuracion/${catalogType}`, data);
+    return response.data as CatalogItem;
+  },
+
+  updateCatalogItem: async (catalogType: string, id: number, data: CatalogInput): Promise<CatalogItem> => {
+    const response = await apiService.put<CatalogItem>(`/configuracion/${catalogType}/${id}`, data);
+    return response.data as CatalogItem;
+  },
+
+  deleteCatalogItem: async (catalogType: string, id: number): Promise<void> => {
+    await apiService.delete(`/configuracion/${catalogType}/${id}`);
+  },
+
+  // Convenience methods for each catalog type
+  getTallas: async (): Promise<CatalogItem[]> => configuracionApi.getCatalogItems('tallas'),
+  getColores: async (): Promise<CatalogItem[]> => configuracionApi.getCatalogItems('colores'),
+  getMarcas: async (): Promise<CatalogItem[]> => configuracionApi.getCatalogItems('marcas'),
+  getMateriales: async (): Promise<CatalogItem[]> => configuracionApi.getCatalogItems('materiales'),
+  getGeneros: async (): Promise<CatalogItem[]> => configuracionApi.getCatalogItems('generos'),
 };
 
 export default configuracionApi;

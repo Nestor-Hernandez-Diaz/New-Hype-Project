@@ -35,7 +35,7 @@ const Select = styled.select<{ $hasError?: boolean }>`
   width: 100%;
   padding: ${SPACING.sm} ${SPACING.md};
   font-size: ${TYPOGRAPHY.fontSize.body};
-  border: 2px solid ${props => props.$hasError ? COLORS.danger : COLORS.border.medium};
+  border: 2px solid ${props => props.$hasError ? COLORS.danger : COLORS.border};
   border-radius: ${BORDER_RADIUS.md};
   background: white;
   color: ${COLORS.text.primary};
@@ -55,7 +55,7 @@ const Select = styled.select<{ $hasError?: boolean }>`
   }
 
   &:disabled {
-    background-color: ${COLORS.background.secondary};
+    background-color: ${COLORS.background};
     cursor: not-allowed;
     opacity: 0.6;
   }
@@ -68,7 +68,7 @@ const Select = styled.select<{ $hasError?: boolean }>`
 const RoleInfo = styled.div`
   margin-top: ${SPACING.sm};
   padding: ${SPACING.md};
-  background: ${COLORS.background.secondary};
+  background: ${COLORS.background};
   border-radius: ${BORDER_RADIUS.md};
   border-left: 4px solid ${COLORS.primary};
 `;
@@ -146,23 +146,40 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({
     try {
       setIsLoading(true);
       const response = await apiService.get<any>('/roles');
-      
+
       console.log('🔍 [RoleSelector] Response from /roles:', response);
-      
+
       // Extraer array de roles desde response.data o response directo
-      let rolesArray: Role[] = [];
-      
+      let rawArray: any[] = [];
+
       if (response.data && Array.isArray(response.data)) {
-        // Response es { success: true, data: [...] }
-        rolesArray = response.data;
+        rawArray = response.data;
       } else if (Array.isArray(response)) {
-        // Response es [...] directo
-        rolesArray = response;
+        rawArray = response;
       } else {
         console.warn('⚠️ [RoleSelector] Response format unknown:', typeof response, response);
         return;
       }
-      
+
+      // Map backend RolResponse → frontend Role interface
+      const rolesArray: Role[] = rawArray.map((r: any) => {
+        let permisos: string[] = [];
+        if (typeof r.permisos === 'string') {
+          try { permisos = JSON.parse(r.permisos); } catch { permisos = []; }
+        } else if (Array.isArray(r.permisos)) {
+          permisos = r.permisos;
+        }
+
+        return {
+          id: String(r.id),
+          name: r.nombre || r.name || r.nombreRol || '',
+          description: r.descripcion || r.description || '',
+          permissions: permisos,
+          isActive: r.estado !== undefined ? r.estado : (r.isActive !== undefined ? r.isActive : (r.activo !== undefined ? r.activo : true)),
+          isSystem: r.esSistema !== undefined ? r.esSistema : (r.isSystem || false),
+        };
+      });
+
       // Filtrar solo roles activos
       const activeRoles = rolesArray.filter((role: Role) => role.isActive);
       console.log(`✅ [RoleSelector] Loaded ${activeRoles.length} active roles out of ${rolesArray.length} total:`, activeRoles);

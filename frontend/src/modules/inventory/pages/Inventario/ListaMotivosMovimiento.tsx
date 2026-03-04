@@ -602,7 +602,7 @@ const ListaMotivosMovimiento: React.FC = () => {
 
   const handleActivateReason = async (id: string) => {
     try {
-      await movementReasonsApi.activateMovementReason(id);
+      await movementReasonsApi.toggleMovementReason(id);
       await fetchReasons();
     } catch (err: any) {
       alert(err.response?.data?.message || err.message);
@@ -909,9 +909,9 @@ const ListaMotivosMovimiento: React.FC = () => {
                 Esta acción desactivará el motivo.
               </DeleteConfirmMessage>
               <DeleteConfirmActions>
-                <ActionButton $variant="secondary" onClick={handleCancelDelete}>
+                <SharedButton onClick={handleCancelDelete}>
                   Cancelar
-                </ActionButton>
+                </SharedButton>
                 <ActionButton $variant="delete" onClick={handleConfirmDelete}>
                   Eliminar
                 </ActionButton>

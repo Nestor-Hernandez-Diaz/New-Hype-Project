@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { useAuth } from '../../auth/context/AuthContext';
-import { useNotification } from '../../../context/NotificationContext';
 import { useUsers } from '../context/UsersContext';
 import NuevoRolModal from '../components/NuevoRolModal';
 import EditarRolModal from '../components/EditarRolModal';
@@ -151,7 +150,7 @@ const DeleteConfirmContent = styled.div`
 const DeleteConfirmTitle = styled.h3`
   margin: 0 0 ${SPACING.md} 0;
   color: ${COLORS.text};
-  font-size: ${TYPOGRAPHY.fontSize.large};
+  font-size: ${TYPOGRAPHY.fontSize.lg};
   font-weight: ${TYPOGRAPHY.fontWeight.semibold};
 `;
 
@@ -173,9 +172,8 @@ const DeleteConfirmActions = styled.div`
 // ============================================================================
 
 const ListaRoles: React.FC = () => {
-  const { showSuccess, showError } = useNotification();
   const { hasPermission } = useAuth();
-  const { roles, loading, loadRoles, addRole, updateRole } = useUsers();
+  const { roles, loading, loadRoles, addRole, updateRole, changeRoleStatus } = useUsers();
 
   // Estados locales
   const [searchTerm, setSearchTerm] = useState('');
@@ -212,10 +210,11 @@ const ListaRoles: React.FC = () => {
         (filterStatus === 'active' && role.activo) ||
         (filterStatus === 'inactive' && !role.activo);
 
-      // Filtro de tipo (Rol no tiene isSystem, vamos a considerar todos como custom por ahora)
+      // Filtro de tipo
       const matchesType =
         filterType === 'all' ||
-        (filterType === 'custom'); // Por ahora todos los roles mock son custom
+        (filterType === 'system' && role.esSistema) ||
+        (filterType === 'custom' && !role.esSistema);
 
       return matchesSearch && matchesStatus && matchesType;
     });
@@ -227,13 +226,17 @@ const ListaRoles: React.FC = () => {
     const active = (roles || []).filter(r => r.activo).length;
     const inactive = total - active;
     
+    const system = (roles || []).filter(r => r.esSistema).length;
+    const custom = total - system;
+    const totalUsers = (roles || []).reduce((sum, r) => sum + (r.cantidadUsuarios || 0), 0);
+
     return {
       total,
       active,
       inactive,
-      system: 0, // No tenemos esta info en el mock
-      custom: total,
-      totalUsers: 0, // No tenemos esta info disponible aquí
+      system,
+      custom,
+      totalUsers,
       usersWithoutRole: 0
     };
   }, [roles]);
@@ -261,13 +264,33 @@ const ListaRoles: React.FC = () => {
   };
 
   const handleDeleteClick = (role: Rol) => {
-    // Por ahora no implementado, marcar como inactivo sería changeUserStatus pero para roles
-    showError('Función de eliminar rol aún no implementada');
+    setRoleToDelete(role);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!roleToDelete) return;
+    try {
+      await changeRoleStatus(roleToDelete.id, false);
+    } catch (error) {
+      // Error already shown by context
+    } finally {
+      setIsDeleteConfirmOpen(false);
+      setRoleToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteConfirmOpen(false);
+    setRoleToDelete(null);
   };
 
   const handleActivateRole = async (role: Rol) => {
-    // Por ahora no implementado
-    showError('Función de activar rol aún no implementada');
+    try {
+      await changeRoleStatus(role.id, true);
+    } catch (error) {
+      // Error already shown by context
+    }
   };
 
   const openEditModal = (role: Rol) => {
@@ -378,15 +401,19 @@ const ListaRoles: React.FC = () => {
                       <strong>{role.nombreRol}</strong>
                     </Td>
                     <Td>
-                      <TypeBadge $isSystem={false}>
-                        {'Personalizado'}
+                      <TypeBadge $isSystem={role.esSistema}>
+                        {role.esSistema ? 'Sistema' : 'Personalizado'}
                       </TypeBadge>
                     </Td>
                     <Td>{role.descripcion || 'Sin descripción'}</Td>
                     <Td>
-                      <PermissionCount>{role.permisos.length} permisos</PermissionCount>
+                      <PermissionCount>
+                        {role.esSistema && role.permisos.length === 0
+                          ? 'Acceso total'
+                          : `${role.permisos.length} permisos`}
+                      </PermissionCount>
                     </Td>
-                    <Td>0 usuarios</Td>
+                    <Td>{role.cantidadUsuarios || 0} usuarios</Td>
                     <Td>
                       <StatusBadge variant={role.activo ? 'success' : 'danger'} dot>
                         {role.activo ? 'Activo' : 'Inactivo'}
@@ -401,22 +428,22 @@ const ListaRoles: React.FC = () => {
                           >
                             Editar
                           </ActionButton>
-                          {(
-                            role.activo ? (
+                          {role.activo ? (
+                            !role.esSistema && (
                               <ActionButton
                                 $variant="delete"
                                 onClick={() => handleDeleteClick(role)}
                               >
                                 Eliminar
                               </ActionButton>
-                            ) : (
-                              <ActionButton
-                                $variant="activate"
-                                onClick={() => handleActivateRole(role)}
-                              >
-                                Activar
-                              </ActionButton>
                             )
+                          ) : (
+                            <ActionButton
+                              $variant="activate"
+                              onClick={() => handleActivateRole(role)}
+                            >
+                              Activar
+                            </ActionButton>
                           )}
                         </>
                       )}
@@ -432,25 +459,25 @@ const ListaRoles: React.FC = () => {
         {showNewModal && (
           <NuevoRolModal
             onClose={() => setShowNewModal(false)}
-            onSubmit={handleCreateRole}
+            onSubmit={(data: any) => handleCreateRole({ nombreRol: data.name, descripcion: data.description, permisos: data.permissions })}
           />
         )}
 
         {showEditModal && selectedRole && (
           <EditarRolModal
-            role={selectedRole}
+            role={selectedRole ? { id: selectedRole.id, name: selectedRole.nombreRol, description: selectedRole.descripcion || '', permissions: selectedRole.permisos || [], isActive: selectedRole.activo, isSystem: selectedRole.esSistema || false } : undefined}
             onClose={() => {
               setShowEditModal(false);
               setSelectedRole(null);
             }}
-            onSubmit={(data) => handleEditRole(selectedRole.id, data)}
+            onSubmit={(data: any) => handleEditRole(selectedRole!.id, { nombreRol: data.name, descripcion: data.description, permisos: data.permissions })}
           />
         )}
 
         {/* Modal de Confirmación de Eliminación */}
         {isDeleteConfirmOpen && roleToDelete && (
-          <DeleteConfirmModal>
-            <DeleteConfirmContent>
+          <DeleteConfirmModal onClick={handleCancelDelete}>
+            <DeleteConfirmContent onClick={(e) => e.stopPropagation()}>
               <DeleteConfirmTitle>¿Eliminar Rol?</DeleteConfirmTitle>
               <DeleteConfirmMessage>
                 ¿Estás seguro de que deseas eliminar el rol{' '}
@@ -458,12 +485,12 @@ const ListaRoles: React.FC = () => {
                 Esta acción marcará el rol como inactivo.
               </DeleteConfirmMessage>
               <DeleteConfirmActions>
-                <Button $variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
+                <Button $variant="secondary" onClick={handleCancelDelete}>
                   Cancelar
                 </Button>
-                <Button $variant="danger" onClick={() => setIsDeleteConfirmOpen(false)}>
+                <ActionButton $variant="delete" onClick={handleConfirmDelete}>
                   Eliminar
-                </Button>
+                </ActionButton>
               </DeleteConfirmActions>
             </DeleteConfirmContent>
           </DeleteConfirmModal>

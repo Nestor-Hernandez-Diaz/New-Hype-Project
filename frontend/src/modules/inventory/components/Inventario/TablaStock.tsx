@@ -52,7 +52,7 @@ const QuantityCell = styled.div<{ $isLow?: boolean; $isCritical?: boolean }>`
   color: ${props => {
     if (props.$isCritical) return COLOR_SCALES.danger[500];
     if (props.$isLow) return COLOR_SCALES.warning[500];
-    return COLORS.text;
+    return COLORS.text.primary;
   }};
 `;
 
@@ -61,7 +61,7 @@ const PageSizeSelect = styled.select`
   border: 1px solid ${COLORS.neutral[200]};
   border-radius: ${BORDER_RADIUS.md};
   font-size: ${TYPOGRAPHY.fontSize.sm};
-  color: ${COLORS.text};
+  color: ${COLORS.text.primary};
   background: ${COLORS.background};
   cursor: pointer;
   transition: ${TRANSITIONS.default};

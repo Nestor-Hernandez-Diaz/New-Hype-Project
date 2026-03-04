@@ -20,6 +20,14 @@ export default defineConfig({
     port: 5173,
     host: true,
     strictPort: true,
+    proxy: {
+      '/decolecta-api': {
+        target: 'https://api.decolecta.com/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/decolecta-api/, ''),
+        secure: true,
+      },
+    },
   },
   build: {
     chunkSizeWarningLimit: 1000,

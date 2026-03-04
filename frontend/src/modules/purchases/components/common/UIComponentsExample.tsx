@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { StatusBadge, ActionButton, ActionButtonsGroup, SearchFilters } from '../common';
-import { PurchaseOrderStatus, PurchaseReceiptStatus } from '../../types/purchases.types';
+import type { PurchaseOrderStatus, PurchaseReceiptStatus } from '../../types/purchases.types';
 
 const ExampleContainer = styled.div`
   padding: 2rem;

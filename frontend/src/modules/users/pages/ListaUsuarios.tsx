@@ -2,11 +2,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { useAuth } from '../../auth/context/AuthContext';
-import { useNotification } from '../../../context/NotificationContext';
 import { useUsers } from '../context/UsersContext';
 import NuevoUsuarioModal from '../components/NuevoUsuarioModal';
 import EditarUsuarioModal from '../components/EditarUsuarioModal';
 import type { Usuario } from '@monorepo/shared-types';
+import { EstadoUsuario } from '@monorepo/shared-types';
 
 // ============================================================================
 // IMPORTS DEL SISTEMA DE DISEÑO UNIFICADO
@@ -171,7 +171,7 @@ const DeleteConfirmContent = styled.div`
 const DeleteConfirmTitle = styled.h3`
   margin: 0 0 ${SPACING.md} 0;
   color: ${COLORS.text};
-  font-size: ${TYPOGRAPHY.fontSize.large};
+  font-size: ${TYPOGRAPHY.fontSize.lg};
   font-weight: ${TYPOGRAPHY.fontWeight.semibold};
 `;
 
@@ -194,7 +194,6 @@ const DeleteConfirmActions = styled.div`
 
 const ListaUsuarios: React.FC = () => {
   const { user: currentUser } = useAuth();
-  const { showError, showInfo } = useNotification();
   
   // ✅ USAR CONTEXT EN LUGAR DE apiService
   const { 
@@ -229,13 +228,13 @@ const ListaUsuarios: React.FC = () => {
       page: currentPage,
       limit: pageSize,
       q: searchTerm || undefined,
-      estadoUsuario: statusFilter === 'activo' ? 'ACTIVO' : statusFilter === 'inactivo' ? 'INACTIVO' : undefined
+      estadoUsuario: statusFilter === 'activo' ? EstadoUsuario.ACTIVO : statusFilter === 'inactivo' ? EstadoUsuario.INACTIVO : undefined
     });
   }, [currentPage, pageSize, searchTerm, statusFilter, loadUsers]);
 
   // Funciones de paginación
   const handlePageChange = (page: number) => {
-    if (pagination && page >= 1 && page <= pagination.totalPages) {
+    if (pagination && page >= 1 && page <= pagination.pages) {
       setCurrentPage(page);
     }
   };
@@ -301,18 +300,15 @@ const ListaUsuarios: React.FC = () => {
       if (selectedUser) {
         console.log('💾 [ListaUsuarios] Updating user:', selectedUser.id, userData);
         await updateUser(selectedUser.id, {
-          usuario: userData.usuario,
           email: userData.email,
           nombres: userData.nombres,
           apellidos: userData.apellidos,
           activo: userData.activo,
           rolId: userData.rolId
         });
-        showInfo('Usuario actualizado exitosamente');
       }
     } catch (error) {
       console.error('Error updating user:', error);
-      showError('Error al actualizar el usuario');
     } finally {
       setIsEditModalOpen(false);
       setSelectedUser(null);
@@ -329,12 +325,10 @@ const ListaUsuarios: React.FC = () => {
 
     try {
       await deleteUser(userToDelete.id);
-      showInfo('Usuario eliminado exitosamente');
       setIsDeleteConfirmOpen(false);
       setUserToDelete(null);
     } catch (error) {
       console.error('Error deleting user:', error);
-      showError('No se pudo eliminar el usuario');
     }
   };
 
@@ -346,10 +340,8 @@ const ListaUsuarios: React.FC = () => {
   const handleActivateUser = async (userId: string) => {
     try {
       await changeUserStatus(userId, true);
-      showInfo('Usuario activado exitosamente');
     } catch (error) {
       console.error('Error activating user:', error);
-      showError('No se pudo activar el usuario');
     }
   };
 
@@ -358,7 +350,7 @@ const ListaUsuarios: React.FC = () => {
       if (!userData.rolId) {
         throw new Error('Debe seleccionar un rol para el usuario');
       }
-      
+
       await addUser({
         usuario: userData.usuario,
         email: userData.email,
@@ -368,17 +360,44 @@ const ListaUsuarios: React.FC = () => {
         activo: userData.activo !== undefined ? userData.activo : true,
         rolId: userData.rolId
       });
-      
-      showInfo('Usuario creado exitosamente');
+
       setIsNuevoUsuarioModalOpen(false);
     } catch (error: any) {
       console.error('Error creating user:', error);
-      showError(error.message || 'Error al crear el usuario');
     }
   };
 
   const handleOpenCreateModal = () => {
     setIsNuevoUsuarioModalOpen(true);
+  };
+
+  const mapUsuarioToExtendedUser = (u: Usuario | null) => {
+    if (!u) return null;
+    return {
+      id: u.id,
+      username: u.usuario,
+      email: u.email,
+      firstName: u.nombres,
+      lastName: u.apellidos,
+      isActive: u.activo,
+      lastLogin: u.ultimoAcceso instanceof Date ? u.ultimoAcceso.toISOString() : u.ultimoAcceso,
+      createdAt: u.fechaCreacion instanceof Date ? u.fechaCreacion.toISOString() : String(u.fechaCreacion),
+      updatedAt: u.fechaActualizacion instanceof Date ? u.fechaActualizacion.toISOString() : String(u.fechaActualizacion || u.fechaCreacion),
+      roleId: u.rolId,
+      role: u.rol ? { id: u.rol.id, name: u.rol.nombreRol, description: u.rol.descripcion || '', permissions: u.rol.permisos || [], isActive: u.rol.activo, isSystem: false } : undefined,
+    };
+  };
+
+  const handleSaveUserFromModal = async (modalData: any) => {
+    await handleSaveUser({
+      usuario: modalData.username,
+      email: modalData.email,
+      nombres: modalData.firstName,
+      apellidos: modalData.lastName,
+      activo: modalData.isActive,
+      rolId: modalData.roleId,
+      password: modalData.password,
+    });
   };
 
   const handleCloseNuevoUsuarioModal = () => {
@@ -489,7 +508,7 @@ const ListaUsuarios: React.FC = () => {
                       </StatusBadge>
                     </Td>
                     <Td>
-                      {formatLastAccess(user.ultimoAcceso)}
+                      {formatLastAccess(user.ultimoAcceso instanceof Date ? user.ultimoAcceso.toISOString() : user.ultimoAcceso)}
                     </Td>
                     <Td>
                       <ButtonGroup>
@@ -551,14 +570,14 @@ const ListaUsuarios: React.FC = () => {
                     Anterior
                   </PageButton>
                   
-                  {Array.from({ length: Math.min(3, pagination.totalPages) }, (_, i) => {
+                  {Array.from({ length: Math.min(3, pagination.pages) }, (_, i) => {
                     let pageNum;
-                    if (pagination.totalPages <= 3) {
+                    if (pagination.pages <= 3) {
                       pageNum = i + 1;
                     } else if (currentPage <= 2) {
                       pageNum = i + 1;
-                    } else if (currentPage >= pagination.totalPages - 1) {
-                      pageNum = pagination.totalPages - 2 + i;
+                    } else if (currentPage >= pagination.pages - 1) {
+                      pageNum = pagination.pages - 2 + i;
                     } else {
                       pageNum = currentPage - 1 + i;
                     }
@@ -575,7 +594,7 @@ const ListaUsuarios: React.FC = () => {
                   
                   <PageButton
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === pagination.totalPages || pagination.totalPages === 0}
+                    disabled={currentPage === pagination.pages || pagination.pages === 0}
                   >
                     Siguiente
                   </PageButton>
@@ -598,8 +617,8 @@ const ListaUsuarios: React.FC = () => {
           setIsEditModalOpen(false);
           setSelectedUser(null);
         }}
-        user={selectedUser}
-        onSave={handleSaveUser}
+        user={mapUsuarioToExtendedUser(selectedUser)}
+        onSave={handleSaveUserFromModal}
       />
 
       {isDeleteConfirmOpen && (
@@ -611,9 +630,9 @@ const ListaUsuarios: React.FC = () => {
               Esta acción desactivará el usuario.
             </DeleteConfirmMessage>
             <DeleteConfirmActions>
-              <ActionButton $variant="secondary" onClick={handleCancelDelete}>
+              <Button $variant="secondary" onClick={handleCancelDelete}>
                 Cancelar
-              </ActionButton>
+              </Button>
               <ActionButton $variant="delete" onClick={handleConfirmDelete}>
                 Eliminar
               </ActionButton>

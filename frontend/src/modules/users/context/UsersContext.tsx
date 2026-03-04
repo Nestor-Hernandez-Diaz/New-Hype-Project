@@ -2,7 +2,7 @@
  * 👥 USERS CONTEXT - GESTIÓN DE ESTADO DE USUARIOS
  * 
  * Context refactorizado con useReducer para gestión de usuarios.
- * Conectado a Mock API local (usuariosMockApi.ts)
+ * Conectado a Mock API local (usuariosApi.ts)
  * 
  * @packageDocumentation
  */
@@ -18,7 +18,7 @@ import type {
   ActualizarUsuarioDTO,
   UsuarioFiltros
 } from '@monorepo/shared-types';
-import * as usuariosMockApi from '../services/usuariosMockApi';
+import * as usuariosApi from '../services/usuariosRealApi';
 
 // ============= TIPOS DE ESTADO Y ACCIONES =============
 
@@ -45,7 +45,8 @@ type UsersAction =
   | { type: 'DELETE_USUARIO_SUCCESS'; payload: string }
   | { type: 'CHANGE_ESTADO_SUCCESS'; payload: Usuario }
   | { type: 'CREATE_ROL_SUCCESS'; payload: Rol }
-  | { type: 'UPDATE_ROL_SUCCESS'; payload: Rol };
+  | { type: 'UPDATE_ROL_SUCCESS'; payload: Rol }
+  | { type: 'CHANGE_ROL_ESTADO_SUCCESS'; payload: Rol };
 
 // ============= REDUCER =============
 
@@ -124,6 +125,14 @@ function usersReducer(state: UsersState, action: UsersAction): UsersState {
         ),
       };
 
+    case 'CHANGE_ROL_ESTADO_SUCCESS':
+      return {
+        ...state,
+        roles: state.roles.map(r =>
+          r.id === action.payload.id ? action.payload : r
+        ),
+      };
+
     default:
       return state;
   }
@@ -151,6 +160,7 @@ interface UsersContextType {
   loadRoles: () => Promise<void>;
   addRole: (data: any) => Promise<void>;
   updateRole: (id: string, data: any) => Promise<void>;
+  changeRoleStatus: (id: string, activo: boolean) => Promise<void>;
   getRoleById: (id: string) => Rol | undefined;
 }
 
@@ -167,7 +177,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       dispatch({ type: 'FETCH_USUARIOS_START' });
 
-      const response = await usuariosMockApi.getUsuarios(filtros);
+      const response = await usuariosApi.getUsuarios(filtros);
       dispatch({ type: 'FETCH_USUARIOS_SUCCESS', payload: response });
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al cargar usuarios';
@@ -179,7 +189,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // ========== LOAD ROLES ==========
   const loadRoles = useCallback(async () => {
     try {
-      const roles = await usuariosMockApi.getRoles();
+      const roles = await usuariosApi.getRoles();
       dispatch({ type: 'FETCH_ROLES_SUCCESS', payload: roles });
     } catch (error) {
       console.error('Error cargando roles:', error);
@@ -189,7 +199,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // ========== CREATE USUARIO ==========
   const addUser = useCallback(async (data: CrearUsuarioDTO) => {
     try {
-      const nuevoUsuario = await usuariosMockApi.crearUsuario(data);
+      const nuevoUsuario = await usuariosApi.crearUsuario(data);
       dispatch({ type: 'CREATE_USUARIO_SUCCESS', payload: nuevoUsuario });
       showSuccess('Usuario creado exitosamente');
     } catch (error) {
@@ -202,7 +212,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // ========== UPDATE USUARIO ==========
   const updateUser = useCallback(async (id: string, data: ActualizarUsuarioDTO) => {
     try {
-      const usuarioActualizado = await usuariosMockApi.actualizarUsuario(id, data);
+      const usuarioActualizado = await usuariosApi.actualizarUsuario(id, data);
       if (!usuarioActualizado) {
         throw new Error('Usuario no encontrado');
       }
@@ -215,14 +225,14 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [showSuccess, showError]);
 
-  // ========== DELETE USUARIO ==========
+  // ========== DELETE USUARIO (desactivar) ==========
   const deleteUser = useCallback(async (id: string) => {
     try {
-      await usuariosMockApi.eliminarUsuario(id);
-      dispatch({ type: 'DELETE_USUARIO_SUCCESS', payload: id });
-      showSuccess('Usuario eliminado exitosamente');
+      const usuarioDesactivado = await usuariosApi.eliminarUsuario(id);
+      dispatch({ type: 'CHANGE_ESTADO_SUCCESS', payload: usuarioDesactivado });
+      showSuccess('Usuario desactivado exitosamente');
     } catch (error) {
-      const mensaje = error instanceof Error ? error.message : 'Error al eliminar usuario';
+      const mensaje = error instanceof Error ? error.message : 'Error al desactivar usuario';
       showError(mensaje);
       throw error;
     }
@@ -231,7 +241,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // ========== CHANGE ESTADO USUARIO ==========
   const changeUserStatus = useCallback(async (id: string, activo: boolean) => {
     try {
-      const usuarioActualizado = await usuariosMockApi.cambiarEstadoUsuario(id, activo);
+      const usuarioActualizado = await usuariosApi.cambiarEstadoUsuario(id, activo);
       if (!usuarioActualizado) {
         throw new Error('Usuario no encontrado');
       }
@@ -256,7 +266,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // ========== CREATE ROL ==========
   const addRole = useCallback(async (data: any) => {
     try {
-      const nuevoRol = await usuariosMockApi.crearRol(data);
+      const nuevoRol = await usuariosApi.crearRol(data);
       dispatch({ type: 'CREATE_ROL_SUCCESS', payload: nuevoRol });
       showSuccess('Rol creado exitosamente');
     } catch (error) {
@@ -269,7 +279,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // ========== UPDATE ROL ==========
   const updateRole = useCallback(async (id: string, data: any) => {
     try {
-      const rolActualizado = await usuariosMockApi.actualizarRol(id, data);
+      const rolActualizado = await usuariosApi.actualizarRol(id, data);
       if (!rolActualizado) {
         throw new Error('Rol no encontrado');
       }
@@ -277,6 +287,22 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       showSuccess('Rol actualizado exitosamente');
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al actualizar rol';
+      showError(mensaje);
+      throw error;
+    }
+  }, [showSuccess, showError]);
+
+  // ========== CHANGE ESTADO ROL ==========
+  const changeRoleStatus = useCallback(async (id: string, activo: boolean) => {
+    try {
+      const rolActualizado = await usuariosApi.cambiarEstadoRol(id, activo);
+      if (!rolActualizado) {
+        throw new Error('Rol no encontrado');
+      }
+      dispatch({ type: 'CHANGE_ROL_ESTADO_SUCCESS', payload: rolActualizado });
+      showSuccess(`Rol ${activo ? 'activado' : 'desactivado'} exitosamente`);
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al cambiar estado del rol';
       showError(mensaje);
       throw error;
     }
@@ -308,6 +334,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         getUserById,
         addRole,
         updateRole,
+        changeRoleStatus,
         getRoleById,
       }}
     >

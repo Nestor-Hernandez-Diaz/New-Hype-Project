@@ -833,9 +833,9 @@ const ListaAlmacenes: React.FC = () => {
                 Esta acción desactivará el almacén.
               </DeleteConfirmMessage>
               <DeleteConfirmActions>
-                <ActionButton $variant="secondary" onClick={handleCancelDelete}>
+                <SharedButton onClick={handleCancelDelete}>
                   Cancelar
-                </ActionButton>
+                </SharedButton>
                 <ActionButton $variant="delete" onClick={handleConfirmDelete}>
                   Eliminar
                 </ActionButton>

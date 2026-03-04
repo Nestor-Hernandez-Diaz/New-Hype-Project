@@ -66,7 +66,7 @@ const EmptyState = styled.div`
 
 const ListadoStock: React.FC = () => {
   const { stockItems, loading, error, pagination, clearError, debouncedFetchStock, crearAjuste, canUpdateInventory } = useInventarioWithDebounce();
-  const [filters, setFilters] = useState<StockFilters>({ page: 1, limit: 10, sortBy: 'producto', order: 'asc', almacenId: 'WH-PRINCIPAL' });
+  const [filters, setFilters] = useState<StockFilters>({ page: 1, limit: 10, sortBy: 'producto', order: 'asc' });
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [selectedStock, setSelectedStock] = useState<StockItem | null>(null);
   const [exportando, setExportando] = useState(false);
@@ -118,10 +118,9 @@ const ListadoStock: React.FC = () => {
     if (!selectedStock) return;
     await crearAjuste({
       productId: selectedStock.productId,
-      warehouseId: selectedStock.warehouseId ?? filters.almacenId ?? 'WH-PRINCIPAL',
+      warehouseId: selectedStock.warehouseId ?? filters.almacenId ?? '',
       cantidadAjuste: form.cantidadAjuste,
-      reasonId: form.reasonId, // Enviar el ID del motivo
-      adjustmentReason: form.adjustmentReason, // Mantener para compatibilidad
+      reasonId: form.reasonId,
       observaciones: form.observaciones || '',
     });
     handleCloseAjuste();
@@ -197,7 +196,7 @@ const ListadoStock: React.FC = () => {
         <FiltersStock 
           onFilterChange={handleFilterChange} 
           loading={loading} 
-          defaultWarehouseId="WH-PRINCIPAL"
+          defaultWarehouseId=""
           onExport={handleExportar}
           exportando={exportando}
         />

@@ -1,61 +1,78 @@
 // Configuración dinámica de la API
 /// <reference types="vite/client" />
 const getApiBaseUrl = (): string => {
-  // Si estamos en desarrollo y hay una variable de entorno específica, usarla
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-
-  // Detectar automáticamente la IP del servidor basándose en la URL actual
-  const currentHost = window.location.hostname;
-  const apiPort = 3001;
-
-  // Si estamos en localhost, mantener localhost
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return `http://localhost:${apiPort}/api`;
-  }
-
-  // Si estamos en una IP específica, usar esa misma IP para la API
-  return `http://${currentHost}:${apiPort}/api`;
+  // Default para desarrollo local con Spring Boot
+  return 'http://localhost:8080/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
+export { API_BASE_URL };
 
-// Tipos para las respuestas de la API
+// Tipos para las respuestas de la API (alineados con ApiResponse.java del backend)
 export interface ApiResponse<T = any> {
   success: boolean;
-  message: string;
+  message?: string;
   data?: T;
   error?: string;
+  pagination?: {
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+  };
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
-  firstName?: string;
-  lastName?: string;
 }
 
 export interface RegisterRequest {
-  username: string;
+  nombre: string;
+  apellido: string;
   email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
 }
 
+// Respuesta de AuthResponse.java del backend
 export interface AuthResponse {
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    isActive: boolean;
-    permissions?: string[];
-  };
   accessToken: string;
   refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+  scope: string;
+  user: BackendUserInfo;
+}
+
+export interface BackendUserInfo {
+  id: number;
+  email: string;
+  nombre: string;
+  apellido: string;
+  username: string;
+  rol: string;
+  tenantId: number;
+  tenantNombre: string;
+  scope: string;
+}
+
+// Utilidades de paginación: frontend (1-based) ↔ backend (0-based)
+export function toBackendPage(page: number, limit: number): { page: number; size: number } {
+  return { page: Math.max(0, page - 1), size: limit };
+}
+
+export function fromBackendPage(p?: ApiResponse['pagination']): {
+  page: number; limit: number; total: number; pages: number;
+} {
+  if (!p) return { page: 1, limit: 10, total: 0, pages: 0 };
+  return {
+    page: p.page + 1,
+    limit: p.size,
+    total: p.totalElements,
+    pages: p.totalPages,
+  };
 }
 
 // Clase para manejar las llamadas a la API
@@ -85,8 +102,8 @@ class ApiService {
   }
 
   // Obtener almacenes
-  async getWarehouses(): Promise<ApiResponse<{ warehouses: Array<{ id: string; codigo: string; nombre: string; activo: boolean }> }>> {
-    return this.request('/warehouses', { method: 'GET' });
+  async getWarehouses(): Promise<ApiResponse<any>> {
+    return this.request('/almacenes', { method: 'GET' });
   }
 
   // ==== Compras ====
@@ -157,7 +174,7 @@ class ApiService {
     if (params?.q) queryParams.append('q', params.q);
 
     const queryString = queryParams.toString();
-    const endpoint = queryString ? `/sales?${queryString}` : '/sales';
+    const endpoint = queryString ? `/ventas?${queryString}` : '/ventas';
     return this.request<{ sales: any[] }>(endpoint, { method: 'GET' });
   }
 
@@ -319,18 +336,17 @@ class ApiService {
         data,
       });
 
-      // Si el backend responde 401, limpiar tokens y redirigir a login
-      if (response.status === 401) {
+      // Si el backend responde 401 o 403, limpiar tokens y redirigir a login
+      if (response.status === 401 || response.status === 403) {
         // Limpiar posibles claves de token
         try {
           localStorage.removeItem('authToken');
           localStorage.removeItem('alexatech_token');
           localStorage.removeItem('alexatech_refresh_token');
         } catch (_err) { console.log('Error limpiando tokens'); }
-        console.log('401 Unauthorized: limpiando tokens');
+        console.log(`${response.status} ${response.status === 401 ? 'Unauthorized' : 'Forbidden'}: limpiando tokens`);
         // Evitar bucles de redirección: no redirigir si ya estamos en /login
         if (!window.location.pathname.includes('/login')) {
-          // Mostrar mensaje si está disponible
           (window as any).showToast?.('Sesión expirada. Inicia sesión nuevamente.');
           window.location.href = '/login';
         }
@@ -386,8 +402,8 @@ class ApiService {
     });
   }
 
-  async getCurrentUser(): Promise<ApiResponse<AuthResponse['user']>> {
-    return this.request<AuthResponse['user']>('/auth/me');
+  async getCurrentUser(): Promise<ApiResponse<BackendUserInfo>> {
+    return this.request<BackendUserInfo>('/auth/me');
   }
 
   async validateToken(): Promise<ApiResponse> {
@@ -399,7 +415,7 @@ class ApiService {
   }
 
   async checkEmail(email: string): Promise<ApiResponse<{ exists: boolean }>> {
-    return this.request<{ exists: boolean }>(`/auth/check-email/${email}`);
+    return this.request<{ exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`);
   }
 
   // Métodos de gestión de usuarios
@@ -425,13 +441,13 @@ class ApiService {
     if (params?.search) queryParams.append('search', params.search);
 
     const queryString = queryParams.toString();
-    const endpoint = queryString ? `/users?${queryString}` : '/users';
+    const endpoint = queryString ? `/usuarios?${queryString}` : '/usuarios';
 
     return this.request(endpoint);
   }
 
   async getUserById(id: string): Promise<ApiResponse<any>> {
-    return this.request(`/users/${id}`);
+    return this.request(`/usuarios/${id}`);
   }
 
   async createUser(userData: {
@@ -441,7 +457,7 @@ class ApiService {
     firstName?: string;
     lastName?: string;
   }): Promise<ApiResponse<any>> {
-    return this.request('/users', {
+    return this.request('/usuarios', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
@@ -474,9 +490,9 @@ class ApiService {
   }
 
   async updateUserStatus(id: string, isActive: boolean): Promise<ApiResponse<any>> {
-    return this.request(`/users/${id}/status`, {
+    return this.request(`/usuarios/${id}/estado`, {
       method: 'PATCH',
-      body: JSON.stringify({ isActive }),
+      body: JSON.stringify({ estado: isActive }),
     });
   }
 
@@ -487,7 +503,7 @@ class ApiService {
   }
 
   async changePassword(id: string, currentPassword: string, newPassword: string): Promise<ApiResponse<any>> {
-    return this.request(`/users/${id}/change-password`, {
+    return this.request(`/usuarios/${id}/password`, {
       method: 'PATCH',
       body: JSON.stringify({ currentPassword, newPassword }),
     });
@@ -548,40 +564,45 @@ class ApiService {
 
   // ==== Ubigeo ====
   async getDepartamentos(): Promise<ApiResponse<Array<{ id: string; nombre: string }>>> {
-    const res = await this.get<{ departamentos: Array<{ id: string; nombre: string }> }>(
-      '/ubigeo/departamentos'
-    );
-    if (res.success) {
-      const data = Array.isArray(res.data?.departamentos) ? res.data!.departamentos : [];
-      return { success: res.success, message: res.message, data, error: res.error };
+    const res = await this.get<any>('/ubigeo/departamentos');
+    if (res.success && res.data) {
+      const raw = Array.isArray(res.data) ? res.data : [];
+      const data = raw.map((d: any) => ({ id: String(d.id), nombre: d.nombre }));
+      return { success: true, message: res.message, data };
     }
-    return { success: res.success, message: res.message, data: [], error: res.error };
+    return { success: false, message: res.message, data: [], error: res.error };
   }
 
   async getProvincias(
     departamentoId: string
   ): Promise<ApiResponse<Array<{ id: string; nombre: string; departamentoId: string }>>> {
-    const res = await this.get<{ provincias: Array<{ id: string; nombre: string; departamentoId: string }> }>(
-      `/ubigeo/departamentos/${departamentoId}/provincias`
-    );
-    if (res.success) {
-      const data = Array.isArray(res.data?.provincias) ? res.data!.provincias : [];
-      return { success: res.success, message: res.message, data, error: res.error };
+    const res = await this.get<any>(`/ubigeo/provincias?departamentoId=${departamentoId}`);
+    if (res.success && res.data) {
+      const raw = Array.isArray(res.data) ? res.data : [];
+      const data = raw.map((p: any) => ({
+        id: String(p.id),
+        nombre: p.nombre,
+        departamentoId: String(p.parentId || departamentoId),
+      }));
+      return { success: true, message: res.message, data };
     }
-    return { success: res.success, message: res.message, data: [], error: res.error };
+    return { success: false, message: res.message, data: [], error: res.error };
   }
 
   async getDistritos(
     provinciaId: string
   ): Promise<ApiResponse<Array<{ id: string; nombre: string; provinciaId: string }>>> {
-    const res = await this.get<{ distritos: Array<{ id: string; nombre: string; provinciaId: string }> }>(
-      `/ubigeo/provincias/${provinciaId}/distritos`
-    );
-    if (res.success) {
-      const data = Array.isArray(res.data?.distritos) ? res.data!.distritos : [];
-      return { success: res.success, message: res.message, data, error: res.error };
+    const res = await this.get<any>(`/ubigeo/distritos?provinciaId=${provinciaId}`);
+    if (res.success && res.data) {
+      const raw = Array.isArray(res.data) ? res.data : [];
+      const data = raw.map((d: any) => ({
+        id: String(d.id),
+        nombre: d.nombre,
+        provinciaId: String(d.parentId || provinciaId),
+      }));
+      return { success: true, message: res.message, data };
     }
-    return { success: res.success, message: res.message, data: [], error: res.error };
+    return { success: false, message: res.message, data: [], error: res.error };
   }
 
   async createClient(clientData: {

@@ -151,7 +151,7 @@ const ModalAjuste: React.FC<ModalAjusteProps> = ({
   const isStockValid = stockResultante >= 0;
 
   // Manejar cambios en el formulario
-  const handleInputChange = (field: keyof AjusteFormData, value: any) => {
+  const handleInputChange = (field: string & keyof AjusteFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Limpiar error del campo
@@ -238,13 +238,13 @@ const ModalAjuste: React.FC<ModalAjusteProps> = ({
 
         {/* Cantidad ajuste */}
         <FormGroup>
-          <SharedLabel htmlFor="cantidadAjuste" required>Cantidad a ajustar</SharedLabel>
+          <SharedLabel htmlFor="cantidadAjuste">Cantidad a ajustar *</SharedLabel>
           <SharedInput
             id="cantidadAjuste"
             type="number"
             value={formData.cantidadAjuste}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('cantidadAjuste', Number(e.target.value))}
-            error={!!errors.cantidadAjuste}
+            $hasError={!!errors.cantidadAjuste}
             placeholder="Ingrese la cantidad"
             data-testid="ajuste-input-cantidad"
           />
@@ -260,12 +260,12 @@ const ModalAjuste: React.FC<ModalAjusteProps> = ({
 
         {/* Motivo */}
         <FormGroup>
-          <SharedLabel htmlFor="adjustmentReason" required>Motivo del ajuste</SharedLabel>
+          <SharedLabel htmlFor="adjustmentReason">Motivo del ajuste *</SharedLabel>
           <SharedSelect
             id="adjustmentReason"
             value={formData.adjustmentReason}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleInputChange('adjustmentReason', e.target.value)}
-            error={!!errors.adjustmentReason}
+            $hasError={!!errors.adjustmentReason}
             data-testid="ajuste-select-motivo"
             disabled={loadingMotivos}
           >

@@ -413,35 +413,33 @@ export async function getProductos(filtros?: ProductoFiltros): Promise<Productos
   let productos = [...MOCK_PRODUCTOS];
   
   // Aplicar filtros si existen
-  if (filtros?.q) {
-    const query = filtros.q.toLowerCase();
+  if (filtros?.busqueda) {
+    const query = filtros.busqueda.toLowerCase();
     productos = productos.filter(p => 
       p.nombreProducto.toLowerCase().includes(query) ||
       p.codigoProducto.toLowerCase().includes(query)
     );
   }
   
-  if (filtros?.categoria) {
-    productos = productos.filter(p => 
-      p.categoria?.nombreCategoria === filtros.categoria
+  if (filtros?.categoriaId) {
+    productos = productos.filter(p =>
+      String(p.categoriaId) === String(filtros.categoriaId)
     );
   }
   
   // Paginación
-  const page = filtros?.page || 1;
-  const limit = filtros?.limit || 10;
+  const page = filtros?.pagina || 1;
+  const limit = filtros?.tamañoPagina || 10;
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
   const productosPaginados = productos.slice(startIndex, endIndex);
   
   return {
     productos: productosPaginados,
-    pagination: {
-      page,
-      limit,
-      total: productos.length,
-      pages: Math.ceil(productos.length / limit)
-    }
+    total: productos.length,
+    pagina: page,
+    tamañoPagina: limit,
+    totalPaginas: Math.ceil(productos.length / limit)
   };
 }
 

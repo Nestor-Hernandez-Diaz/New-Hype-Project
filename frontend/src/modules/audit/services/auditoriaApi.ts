@@ -1,11 +1,5 @@
-import axios, { type AxiosInstance } from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
-// Función auxiliar para obtener el token
-const getAccessToken = (): string | null => {
-  return localStorage.getItem('authToken') || localStorage.getItem('alexatech_token');
-};
+import { apiService } from '../../../utils/api';
+import type { ApiResponse } from '../../../utils/api';
 
 export interface AuditLog {
   id: string;
@@ -70,31 +64,6 @@ export interface AuditFilters {
 }
 
 class AuditoriaApiService {
-  private api: AxiosInstance;
-
-  constructor() {
-    this.api = axios.create({
-      baseURL: API_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Interceptor para agregar el token en cada petición
-    this.api.interceptors.request.use(
-      (config) => {
-        const token = getAccessToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
-    );
-  }
-
   // Obtener logs de auditoría (solo admin)
   async getAuditLogs(filters?: AuditFilters): Promise<AuditLogsResponse> {
     const params = new URLSearchParams();
@@ -106,9 +75,19 @@ class AuditoriaApiService {
     if (filters?.userId) params.append('userId', filters.userId);
     if (filters?.action) params.append('action', filters.action);
 
-    const response = await this.api.get(`/audit/logs?${params.toString()}`);
+    try {
+      const response: ApiResponse<AuditLogsResponse> = await apiService.get(
+        `/audit/logs?${params.toString()}`
+      );
 
-    return response.data.data;
+      if (!response.success || !response.data) {
+        return { logs: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } };
+      }
+
+      return response.data as AuditLogsResponse;
+    } catch {
+      return { logs: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } };
+    }
   }
 
   // Obtener actividad de un usuario específico (solo admin)
@@ -117,11 +96,17 @@ class AuditoriaApiService {
     page: number = 1,
     limit: number = 10
   ): Promise<UserActivitiesResponse> {
-    const response = await this.api.get(
-      `/audit/user-activity/${userId}?page=${page}&limit=${limit}`
-    );
-
-    return response.data.data;
+    try {
+      const response: ApiResponse<UserActivitiesResponse> = await apiService.get(
+        `/audit/user-activity/${userId}?page=${page}&limit=${limit}`
+      );
+      if (!response.success || !response.data) {
+        return { activities: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+      }
+      return response.data as UserActivitiesResponse;
+    } catch {
+      return { activities: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+    }
   }
 
   // Obtener mi propia actividad
@@ -129,11 +114,17 @@ class AuditoriaApiService {
     page: number = 1,
     limit: number = 10
   ): Promise<UserActivitiesResponse> {
-    const response = await this.api.get(
-      `/audit/my-activity?page=${page}&limit=${limit}`
-    );
-
-    return response.data.data;
+    try {
+      const response: ApiResponse<UserActivitiesResponse> = await apiService.get(
+        `/audit/my-activity?page=${page}&limit=${limit}`
+      );
+      if (!response.success || !response.data) {
+        return { activities: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+      }
+      return response.data as UserActivitiesResponse;
+    } catch {
+      return { activities: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+    }
   }
 
   // Obtener eventos del sistema (solo admin)
@@ -141,11 +132,17 @@ class AuditoriaApiService {
     page: number = 1,
     limit: number = 10
   ): Promise<SystemEventsResponse> {
-    const response = await this.api.get(
-      `/audit/system-events?page=${page}&limit=${limit}`
-    );
-
-    return response.data.data;
+    try {
+      const response: ApiResponse<SystemEventsResponse> = await apiService.get(
+        `/audit/system-events?page=${page}&limit=${limit}`
+      );
+      if (!response.success || !response.data) {
+        return { events: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+      }
+      return response.data as SystemEventsResponse;
+    } catch {
+      return { events: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+    }
   }
 
   // Exportar logs a CSV

@@ -85,7 +85,7 @@ const SearchButton = styled.button<{ $loading?: boolean }>`
   opacity: ${(props) => (props.$loading ? 0.7 : 1)};
 
   &:hover:not(:disabled) {
-    background: ${COLORS.primaryDark};
+    background: ${COLORS.primaryHover};
     transform: translateY(-1px);
   }
 
@@ -808,13 +808,13 @@ const AsistenteVentas: React.FC = () => {
         productoId,
         nombre: producto?.nombre,
         precio: producto?.precio,
-        codigo: producto?.codigo
+        id: producto?.productoId
       });
       
       return {
         productId: productoId,
         nombreProducto: producto?.nombre || '',
-        codigo: producto?.codigo || '',
+        codigo: producto?.productoId || '',
         cantidad: cantidad,
         precioUnitario: producto?.precio || 0,
         subtotal: (producto?.precio || 0) * cantidad,

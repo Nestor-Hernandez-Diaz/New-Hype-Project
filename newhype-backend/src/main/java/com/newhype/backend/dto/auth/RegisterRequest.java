@@ -26,11 +26,4 @@ public class RegisterRequest {
     @Email(message = "Email inválido")
     @Size(max = 150)
     private String email;
-
-    @NotBlank(message = "El password es obligatorio")
-    @Size(min = 6, max = 100, message = "El password debe tener entre 6 y 100 caracteres")
-    private String password;
-
-    @Size(max = 150, message = "El nombre de tienda no debe superar 150 caracteres")
-    private String nombreTienda;
 }

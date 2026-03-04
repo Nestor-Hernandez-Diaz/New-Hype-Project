@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { useSales } from '../context/SalesContext';
+import type { TipoMovimientoCaja } from '@monorepo/shared-types';
 import { useNotification } from '../../../context/NotificationContext';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
 import { Button as SharedButton } from '../../../components/shared/Button';
@@ -469,7 +470,7 @@ const GestionCaja: React.FC = () => {
     }
 
     try {
-      await createCashMovement(movementType, {
+      await createCashMovement(movementType as TipoMovimientoCaja, {
         cashSessionId: activeCashSession.id,
         monto: parseFloat(movementAmount),
         motivo: movementMotivo,
@@ -620,7 +621,7 @@ const GestionCaja: React.FC = () => {
                   Ingreso de Efectivo
                 </SharedButton>
                 <SharedButton
-                  $variant="warning"
+                  $variant="danger"
                   onClick={() => handleOpenMovementModal('EGRESO')}
                 >
                   Retiro de Efectivo

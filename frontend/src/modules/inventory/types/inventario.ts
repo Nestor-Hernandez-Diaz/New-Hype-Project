@@ -102,3 +102,11 @@ export const ADJUSTMENT_REASONS = [
 
 export type AdjustmentReason = typeof ADJUSTMENT_REASONS[number];
 export type AjusteFormData = AjusteData;
+
+// Alias for compatibility with imports expecting AjusteInventarioRequest
+export type AjusteInventarioRequest = AjusteData;
+
+export interface AlertasStock {
+  stockBajo: StockItem[];
+  stockCritico: StockItem[];
+}

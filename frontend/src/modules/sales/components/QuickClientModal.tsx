@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { apiService } from '../../../utils/api';
+import { buscarPorRUC, buscarPorDNI } from '../../../services/decolectaApi';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, Z_INDEX } from '../../../styles/theme';
 import { Button as SharedButton, ButtonGroup as SharedButtonGroup, Input as SharedInput, Select as SharedSelect, Label as SharedLabel } from '../../../components/shared';
 
@@ -567,49 +568,35 @@ export const QuickClientModal: React.FC<QuickClientModalProps> = ({
     setSearchStatus(null);
 
     try {
-      const endpoint = tipoDocumento === 'RUC' 
-        ? `/sunat/ruc/${doc}` 
-        : `/sunat/dni/${doc}`;
+      if (tipoDocumento === 'RUC') {
+        const data = await buscarPorRUC(doc);
+        setRazonSocial(data.razonSocial || '');
+        setDireccion(data.direccion || '');
 
-      const response = await apiService.get<any>(endpoint);
-
-      if (response.success && response.data) {
-        if (tipoDocumento === 'RUC') {
-          const data = response.data as SunatRucData;
-          setRazonSocial(data.razonSocial || '');
-          setDireccion(data.direccion || '');
-          
-          // Autocompletar ubigeo desde SUNAT
-          if (data.departamento || data.provincia || data.distrito) {
-            autoSelectUbigeo(data.departamento, data.provincia, data.distrito);
-          }
-          
-          setSearchStatus({ 
-            type: 'success', 
-            message: `✅ Empresa encontrada: ${data.razonSocial}` 
-          });
-        } else {
-          const data = response.data as ReniecDniData;
-          setNombres(data.nombres || '');
-          setApellidos(`${data.apellidoPaterno || ''} ${data.apellidoMaterno || ''}`.trim());
-          setSearchStatus({ 
-            type: 'success', 
-            message: `✅ Persona encontrada: ${data.nombres} ${data.apellidoPaterno}` 
-          });
+        // Autocompletar ubigeo desde SUNAT
+        if (data.departamento || data.provincia || data.distrito) {
+          autoSelectUbigeo(data.departamento, data.provincia, data.distrito);
         }
-        setDataFound(true);
-      } else {
-        setSearchStatus({ 
-          type: 'error', 
-          message: response.message || 'No se encontró información' 
+
+        setSearchStatus({
+          type: 'success',
+          message: `Empresa encontrada: ${data.razonSocial}`
         });
-        setDataFound(false);
+      } else {
+        const data = await buscarPorDNI(doc);
+        setNombres(data.nombres || '');
+        setApellidos(`${data.apellidoPaterno || ''} ${data.apellidoMaterno || ''}`.trim());
+        setSearchStatus({
+          type: 'success',
+          message: `Persona encontrada: ${data.nombres} ${data.apellidoPaterno}`
+        });
       }
+      setDataFound(true);
     } catch (error: any) {
       console.error('Error al buscar:', error);
-      setSearchStatus({ 
-        type: 'error', 
-        message: error.message || 'Error al conectar con el servicio' 
+      setSearchStatus({
+        type: 'error',
+        message: error.message || 'Error al conectar con el servicio'
       });
       setDataFound(false);
     } finally {

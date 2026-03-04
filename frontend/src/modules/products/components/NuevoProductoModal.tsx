@@ -4,7 +4,9 @@ import { useProducts } from '../context/ProductContext';
 import { useNotification } from '../../../context/NotificationContext';
 import { apiService } from '../../../utils/api';
 import configuracionApi from '../../configuration/services/configuracionApi';
-import type { ProductCategory, UnitOfMeasure } from '../../configuracion/types/configuracion';
+import { verificarCodigoProducto } from '../services/productosRealApi';
+import type { ProductCategory, UnitOfMeasure } from '../../configuration/types/configuracion';
+import type { CatalogItem } from '../../configuration/services/configuracionApi';
 import { WAREHOUSE_OPTIONS as WAREHOUSE_SELECT_OPTIONS } from '../../inventory/constants/warehouses';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS, Z_INDEX, TRANSITIONS } from '../../../styles/theme';
 import { Button, Input, Select, Label, RequiredMark, ValidationMessage, ButtonGroup } from '../../../components/shared';
@@ -61,7 +63,7 @@ const ModalHeader = styled.div`
   align-items: center;
   margin-bottom: ${SPACING.xl};
   padding-bottom: ${SPACING.md};
-  border-bottom: 2px solid ${COLORS.border.light};
+  border-bottom: 2px solid ${COLORS.border};
   
   h2 {
     font-size: ${TYPOGRAPHY.fontSize.h3};
@@ -87,7 +89,7 @@ const CloseButton = styled.button`
   transition: ${TRANSITIONS.fast};
   
   &:hover {
-    background: ${COLORS.background.secondary};
+    background: ${COLORS.background};
     color: ${COLORS.text.primary};
   }
 `;
@@ -117,7 +119,7 @@ const FullWidthGroup = styled(FormGroup)`
 const Textarea = styled.textarea`
   width: 100%;
   padding: ${SPACING.sm};
-  border: 2px solid ${COLORS.border.medium};
+  border: 2px solid ${COLORS.border};
   border-radius: ${BORDER_RADIUS.sm};
   font-size: ${TYPOGRAPHY.fontSize.body};
   font-family: ${TYPOGRAPHY.fontFamily};
@@ -162,20 +164,36 @@ interface ProductFormData {
   productName: string;
   descripcion: string;
   category: string;
+  costPrice: string;
   price: string;
   initialStock: string;
   warehouseId: string;
   unit: string;
   minStock: string;
+  talla: string;
+  color: string;
+  marca: string;
+  material: string;
+  genero: string;
+  imagenUrl: string;
 }
+
+// Fallback options used only if API catalog is empty
+const TALLA_OPTIONS_FALLBACK = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Único', 'Ajustable'] as const;
+const GENERO_OPTIONS_FALLBACK = [
+  { value: 'MUJER', label: 'Mujer' },
+  { value: 'HOMBRE', label: 'Hombre' },
+  { value: 'UNISEX', label: 'Unisex' },
+  { value: 'NIÑO', label: 'Niño' },
+] as const;
 
 interface NuevoProductoModalProps {
   onClose: () => void;
 }
 
 const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
-  const { addProduct, products } = useProducts();
-  const { showSuccess, showError } = useNotification();
+  const { addProduct } = useProducts();
+  const { showError } = useNotification();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [codigoExists, setCodigoExists] = useState(false);
@@ -185,29 +203,51 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
     productName: '',
     descripcion: '',
     category: '',
+    costPrice: '',
     price: '',
     initialStock: '',
     warehouseId: '',
     unit: '',
-    minStock: ''
+    minStock: '',
+    talla: '',
+    color: '',
+    marca: '',
+    material: '',
+    genero: '',
+    imagenUrl: ''
   });
   const [warehouseOptions, setWarehouseOptions] = useState<{ id: string; name: string }[]>(WAREHOUSE_SELECT_OPTIONS.map(o => ({ id: o.value, name: o.label })));
   const [categorias, setCategorias] = useState<ProductCategory[]>([]);
   const [unidades, setUnidades] = useState<UnitOfMeasure[]>([]);
+  const [tallasApi, setTallasApi] = useState<CatalogItem[]>([]);
+  const [coloresApi, setColoresApi] = useState<CatalogItem[]>([]);
+  const [marcasApi, setMarcasApi] = useState<CatalogItem[]>([]);
+  const [materialesApi, setMaterialesApi] = useState<CatalogItem[]>([]);
+  const [generosApi, setGenerosApi] = useState<CatalogItem[]>([]);
 
   // Cargar maestros de configuración
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [cats, units] = await Promise.all([
+        const [cats, units, tallas, colores, marcas, materiales, generos] = await Promise.all([
           configuracionApi.getActiveCategories(),
-          configuracionApi.getActiveUnits()
+          configuracionApi.getActiveUnits(),
+          configuracionApi.getTallas().catch(() => []),
+          configuracionApi.getColores().catch(() => []),
+          configuracionApi.getMarcas().catch(() => []),
+          configuracionApi.getMateriales().catch(() => []),
+          configuracionApi.getGeneros().catch(() => []),
         ]);
         if (mounted) {
           setCategorias(cats);
           setUnidades(units);
-          console.log('[NuevoProductoModal] Maestros cargados:', { categorias: cats.length, unidades: units.length });
+          setTallasApi(tallas.filter(t => t.estado));
+          setColoresApi(colores.filter(c => c.estado));
+          setMarcasApi(marcas.filter(m => m.estado));
+          setMaterialesApi(materiales.filter(m => m.estado));
+          setGenerosApi(generos.filter(g => g.estado));
+          console.log('[NuevoProductoModal] Maestros cargados:', { categorias: cats.length, unidades: units.length, tallas: tallas.length, colores: colores.length, marcas: marcas.length, materiales: materiales.length, generos: generos.length });
         }
       } catch (e) {
         console.error('[NuevoProductoModal] Error cargando maestros:', e);
@@ -255,54 +295,37 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
     return () => { mounted = false; };
   }, []);
 
-  // Opciones de categorías desde maestros
+  // Opciones de categorías desde maestros (con ID para enviar al backend)
   const categoryOptions = useMemo(() => {
-    const opciones = [...categorias.map(c => c.nombre)];
-    // Agregar categorías existentes en productos que no estén en maestros
-    const fromProducts = Array.from(new Set(
-      (products || []).map(p => {
-        const cat = p.categoria?.nombre || p.category;
-        return typeof cat === 'string' ? cat : cat?.nombre || '';
-      }).filter(Boolean)
-    ));
-    fromProducts.forEach(cat => {
-      if (!opciones.includes(cat)) opciones.push(cat);
-    });
-    return opciones.sort();
-  }, [categorias, products]);
+    return categorias
+      .map(c => ({ id: String(c.id), nombre: c.nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [categorias]);
 
+  // Opciones de unidades desde maestros (con ID para enviar al backend)
   const unitOptions = useMemo(() => {
-    const opciones = [...unidades.map(u => u.nombre)];
-    // Agregar unidades existentes en productos que no estén en maestros
-    const fromProducts = Array.from(new Set(
-      (products || []).map(p => {
-        const unit = p.unidadMedida?.nombre || p.unit;
-        return typeof unit === 'string' ? unit : unit?.nombre || '';
-      }).filter(Boolean)
-    ));
-    fromProducts.forEach(unit => {
-      if (!opciones.includes(unit)) opciones.push(unit);
-    });
-    return opciones.sort();
-  }, [unidades, products]);
+    return unidades
+      .map(u => ({ id: String(u.id), nombre: u.nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [unidades]);
 
   // Función debounced para verificar código único
   const checkCodigoUnique = useCallback(
     async (codigo: string) => {
-      if (codigo.length < 3) {
+      if (codigo.length < 2) {
         setCodigoExists(false);
         return;
       }
-      
+
       setCheckingCodigo(true);
       try {
-        const response = await apiService.getProductByCodigo(codigo);
-        setCodigoExists(response.success && response.data ? true : false);
-        
-        if (response.success && response.data) {
-          setErrors(prev => ({ 
-            ...prev, 
-            productCode: `El código "${codigo}" ya existe` 
+        const exists = await verificarCodigoProducto(codigo);
+        setCodigoExists(exists);
+
+        if (exists) {
+          setErrors(prev => ({
+            ...prev,
+            productCode: `El código "${codigo}" ya existe`
           }));
         }
       } catch (error) {
@@ -351,6 +374,13 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
       }
     }
 
+    if (name === 'costPrice' && value) {
+      const costPrice = Number(value);
+      if (isNaN(costPrice) || costPrice < 0) {
+        setErrors(prev => ({ ...prev, costPrice: 'El precio de costo debe ser ≥ 0' }));
+      }
+    }
+
     if (name === 'initialStock' && value) {
       const stock = Number(value);
       if (isNaN(stock) || stock < 0 || !Number.isInteger(stock)) {
@@ -380,6 +410,13 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
     } else {
       const price = Number(formData.price);
       if (isNaN(price) || price <= 0) newErrors.price = 'Precio inválido';
+    }
+
+    if (!formData.costPrice.trim()) {
+      newErrors.costPrice = 'El precio de costo es requerido';
+    } else {
+      const costPrice = Number(formData.costPrice);
+      if (isNaN(costPrice) || costPrice < 0) newErrors.costPrice = 'Precio de costo inválido';
     }
 
     if (!formData.initialStock.trim()) {
@@ -417,44 +454,38 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
 
     try {
       const initial = parseInt(formData.initialStock || '0');
-      const minStock = formData.minStock.trim() ? parseInt(formData.minStock) : undefined;
-      
-      const payload = {
-        codigo: formData.productCode,
-        nombre: formData.productName,
+      const minStock = formData.minStock.trim() ? parseInt(formData.minStock) : 0;
+
+      // Usar addProduct del contexto que llama a productosRealApi.crearProducto()
+      // con el mapping correcto (codigoProducto→sku, categoriaId→categoriaId, etc.)
+      await addProduct({
+        codigoProducto: formData.productCode,
+        nombreProducto: formData.productName,
         descripcion: formData.descripcion.trim() || undefined,
-        categoria: formData.category,
+        categoriaId: Number(formData.category),
+        unidadMedidaId: Number(formData.unit),
         precioVenta: parseFloat(formData.price),
-        estado: true,
-        unidadMedida: formData.unit.toLowerCase(),
-        minStock: minStock,
-        stockInitial: initial > 0 ? { warehouseId: formData.warehouseId, cantidad: initial } : undefined,
-      };
+        precioCosto: parseFloat(formData.costPrice),
+        stockInicial: initial,
+        stockMinimo: minStock,
+        // Clothing fields: send IDs when from API catalog, strings as fallback
+        tallaId: formData.talla && tallasApi.length > 0 ? Number(formData.talla) : undefined,
+        talla: formData.talla && tallasApi.length === 0 ? formData.talla : undefined,
+        colorId: formData.color && coloresApi.length > 0 ? Number(formData.color) : undefined,
+        color: formData.color && coloresApi.length === 0 ? formData.color.trim() : undefined,
+        marcaId: formData.marca && marcasApi.length > 0 ? Number(formData.marca) : undefined,
+        marca: formData.marca && marcasApi.length === 0 ? formData.marca.trim() : undefined,
+        materialId: formData.material && materialesApi.length > 0 ? Number(formData.material) : undefined,
+        material: formData.material && materialesApi.length === 0 ? formData.material.trim() : undefined,
+        generoId: formData.genero && generosApi.length > 0 ? Number(formData.genero) : undefined,
+        genero: formData.genero && generosApi.length === 0 ? formData.genero : undefined,
+        imagenUrl: formData.imagenUrl.trim() || undefined,
+      } as any);
 
-      const response = await apiService.createProduct(payload);
-      if (!response.success) throw new Error(response.message || 'Error al registrar');
-
-      const stockStatus = initial > 0 ? 'disponible' : 'agotado';
-
-      addProduct({
-        productCode: payload.codigo,
-        productName: payload.nombre,
-        descripcion: payload.descripcion,
-        category: payload.categoria,
-        price: payload.precioVenta,
-        initialStock: initial,
-        currentStock: initial,
-        minStock: minStock,
-        status: stockStatus as 'disponible' | 'agotado',
-        unit: payload.unidadMedida,
-        isActive: payload.estado
-      });
-
-      showSuccess('Producto registrado exitosamente');
       onClose();
     } catch (err) {
+      // El contexto ya muestra la notificación de error
       console.error('Error creando producto:', err);
-      showError('No se pudo registrar el producto');
     } finally {
       setIsSubmitting(false);
     }
@@ -526,14 +557,22 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
           <Select id="category" name="category" value={formData.category} onChange={handleInputChange}>
             <option value="">Selecciona una categoría</option>
             {categoryOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
+              <option key={opt.id} value={opt.id}>{opt.nombre}</option>
             ))}
           </Select>
           {errors.category && <ValidationMessage $type="error">{errors.category}</ValidationMessage>}
         </FormGroup>
         <FormGroup>
+          <Label htmlFor="costPrice">
+            Precio de Costo
+            <RequiredMark />
+          </Label>
+          <Input id="costPrice" name="costPrice" type="number" step="0.01" min="0" value={formData.costPrice} onChange={handleInputChange} />
+          {errors.costPrice && <ValidationMessage $type="error">{errors.costPrice}</ValidationMessage>}
+        </FormGroup>
+        <FormGroup>
           <Label htmlFor="price">
-            Precio
+            Precio de Venta
             <RequiredMark />
           </Label>
           <Input id="price" name="price" type="number" step="0.01" min="0" value={formData.price} onChange={handleInputChange} />
@@ -555,7 +594,7 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
           <Select id="unit" name="unit" value={formData.unit} onChange={handleInputChange}>
             <option value="">Selecciona unidad</option>
             {unitOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
+              <option key={opt.id} value={opt.id}>{opt.nombre}</option>
             ))}
           </Select>
           {errors.unit && <ValidationMessage $type="error">{errors.unit}</ValidationMessage>}
@@ -589,7 +628,86 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
           {errors.minStock && <ValidationMessage $type="error">{errors.minStock}</ValidationMessage>}
         </FormGroup>
       </FormGrid>
-      <ButtonGroup style={{ justifyContent: 'flex-end', marginTop: SPACING.xl, paddingTop: SPACING.lg, borderTop: `1px solid ${COLORS.border.light}` }}>
+
+      <FullWidthGroup style={{ marginTop: SPACING.md }}>
+        <Label style={{ fontSize: TYPOGRAPHY.fontSize.sm, fontWeight: 600, color: COLORS.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Atributos de Producto (Ropa)
+        </Label>
+      </FullWidthGroup>
+      <FormGrid>
+        <FormGroup>
+          <Label htmlFor="talla">Talla</Label>
+          <Select id="talla" name="talla" value={formData.talla} onChange={handleInputChange}>
+            <option value="">Sin talla</option>
+            {tallasApi.length > 0
+              ? tallasApi.map(t => (
+                  <option key={t.id} value={String(t.id)}>{t.codigo}{t.nombre ? ` - ${t.nombre}` : ''}</option>
+                ))
+              : TALLA_OPTIONS_FALLBACK.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))
+            }
+          </Select>
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="genero">Género</Label>
+          <Select id="genero" name="genero" value={formData.genero} onChange={handleInputChange}>
+            <option value="">Sin género</option>
+            {generosApi.length > 0
+              ? generosApi.map(g => (
+                  <option key={g.id} value={String(g.id)}>{g.codigo}{g.nombre ? ` - ${g.nombre}` : ''}</option>
+                ))
+              : GENERO_OPTIONS_FALLBACK.map(g => (
+                  <option key={g.value} value={g.value}>{g.label}</option>
+                ))
+            }
+          </Select>
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="color">Color</Label>
+          {coloresApi.length > 0 ? (
+            <Select id="color" name="color" value={formData.color} onChange={handleInputChange}>
+              <option value="">Sin color</option>
+              {coloresApi.map(c => (
+                <option key={c.id} value={String(c.id)}>{c.codigo}{c.nombre ? ` - ${c.nombre}` : ''}</option>
+              ))}
+            </Select>
+          ) : (
+            <Input id="color" name="color" type="text" value={formData.color} onChange={handleInputChange} placeholder="Ej: Negro, Blanco" />
+          )}
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="marca">Marca</Label>
+          {marcasApi.length > 0 ? (
+            <Select id="marca" name="marca" value={formData.marca} onChange={handleInputChange}>
+              <option value="">Sin marca</option>
+              {marcasApi.map(m => (
+                <option key={m.id} value={String(m.id)}>{m.codigo}{m.nombre ? ` - ${m.nombre}` : ''}</option>
+              ))}
+            </Select>
+          ) : (
+            <Input id="marca" name="marca" type="text" value={formData.marca} onChange={handleInputChange} placeholder="Ej: New Hype, Nike" />
+          )}
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="material">Material</Label>
+          {materialesApi.length > 0 ? (
+            <Select id="material" name="material" value={formData.material} onChange={handleInputChange}>
+              <option value="">Sin material</option>
+              {materialesApi.map(m => (
+                <option key={m.id} value={String(m.id)}>{m.codigo}{m.nombre ? ` - ${m.nombre}` : ''}</option>
+              ))}
+            </Select>
+          ) : (
+            <Input id="material" name="material" type="text" value={formData.material} onChange={handleInputChange} placeholder="Ej: Algodón 100%" />
+          )}
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="imagenUrl">URL de Imagen</Label>
+          <Input id="imagenUrl" name="imagenUrl" type="url" value={formData.imagenUrl} onChange={handleInputChange} placeholder="https://ejemplo.com/imagen.jpg" />
+        </FormGroup>
+      </FormGrid>
+      <ButtonGroup style={{ justifyContent: 'flex-end', marginTop: SPACING.xl, paddingTop: SPACING.lg, borderTop: `1px solid ${COLORS.border}` }}>
         <Button type="button" $variant="secondary" onClick={onClose}>Cancelar</Button>
         <Button 
           type="submit" 

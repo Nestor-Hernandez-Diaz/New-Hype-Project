@@ -1,20 +1,5 @@
-import axios from 'axios';
-import type { AxiosInstance, AxiosResponse } from 'axios';
-
-const getApiBaseUrl = (): string => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  const currentHost = window.location.hostname;
-  const apiPort = 3001;
-  
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return `http://localhost:${apiPort}/api`;
-  }
-  
-  return `http://${currentHost}:${apiPort}/api`;
-};
+import { apiService } from '../../../utils/api';
+import type { ApiResponse } from '../../../utils/api';
 
 export interface Almacen {
   id: string;
@@ -38,60 +23,10 @@ export interface AlmacenFormData {
   capacidad?: number;
 }
 
-export interface AlmacenesResponse {
-  success: boolean;
-  message: string;
-  data: {
-    rows: Almacen[];
-    total: number;
-  };
-}
-
 class AlmacenesApiService {
-  private api: AxiosInstance;
-
-  constructor() {
-    this.api = axios.create({
-      baseURL: getApiBaseUrl(),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Request interceptor para agregar token
-    this.api.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('authToken') || localStorage.getItem('alexatech_token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    // Response interceptor para manejar errores 401
-    this.api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('alexatech_token');
-          localStorage.removeItem('alexatech_refresh_token');
-          
-          const isOnLogin = window.location.pathname.includes('/login');
-          if (!isOnLogin) {
-            window.location.href = '/login';
-          }
-        }
-        return Promise.reject(error);
-      }
-    );
-  }
-
   /**
    * Obtener todos los almacenes
-   * GET /api/almacenes
+   * GET /almacenes
    */
   async getAlmacenes(params?: { activo?: boolean; q?: string }): Promise<Almacen[]> {
     try {
@@ -99,95 +34,92 @@ class AlmacenesApiService {
       if (params?.activo !== undefined) queryParams.append('activo', String(params.activo));
       if (params?.q) queryParams.append('q', params.q);
 
-      const response: AxiosResponse<AlmacenesResponse> = await this.api.get(
-        `/almacenes?${queryParams.toString()}`
-      );
+      const queryString = queryParams.toString();
+      const endpoint = queryString ? `/almacenes?${queryString}` : '/almacenes';
+      const response: ApiResponse<Almacen[]> = await apiService.get(endpoint);
 
-      return response.data.data.rows;
+      // Backend puede retornar data como array directo o con wrapper
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      // Compatibilidad con formato {rows: [...]}
+      if (response.data && (response.data as any).rows) {
+        return (response.data as any).rows;
+      }
+      return response.data || [];
     } catch (error: any) {
       console.error('Error fetching almacenes:', error);
-      const message = error?.response?.data?.message || error?.message || 'Error al cargar almacenes';
-      throw new Error(message);
+      throw new Error(error.message || 'Error al cargar almacenes');
     }
   }
 
   /**
    * Obtener un almacén por ID
-   * GET /api/almacenes/:id
+   * GET /almacenes/:id
    */
   async getAlmacenById(id: string): Promise<Almacen> {
     try {
-      const response: AxiosResponse<{ success: boolean; data: Almacen }> = 
-        await this.api.get(`/almacenes/${id}`);
-      
-      return response.data.data;
+      const response: ApiResponse<Almacen> = await apiService.get(`/almacenes/${id}`);
+      return response.data as Almacen;
     } catch (error: any) {
       console.error('Error fetching almacén:', error);
-      const message = error?.response?.data?.message || error?.message || 'Error al cargar almacén';
-      throw new Error(message);
+      throw new Error(error.message || 'Error al cargar almacén');
     }
   }
 
   /**
    * Crear un nuevo almacén
-   * POST /api/almacenes
+   * POST /almacenes
    */
   async createAlmacen(data: AlmacenFormData): Promise<Almacen> {
     try {
-      const response: AxiosResponse<{ success: boolean; data: Almacen }> = 
-        await this.api.post('/almacenes', data);
-      
-      return response.data.data;
+      const response: ApiResponse<Almacen> = await apiService.post('/almacenes', data);
+      return response.data as Almacen;
     } catch (error: any) {
       console.error('Error creating almacén:', error);
-      const message = error?.response?.data?.message || error?.message || 'Error al crear almacén';
-      throw new Error(message);
+      throw new Error(error.message || 'Error al crear almacén');
     }
   }
 
   /**
    * Actualizar un almacén
-   * PUT /api/almacenes/:id
+   * PUT /almacenes/:id
    */
   async updateAlmacen(id: string, data: Partial<AlmacenFormData> & { activo?: boolean }): Promise<Almacen> {
     try {
-      const response: AxiosResponse<{ success: boolean; data: Almacen }> = 
-        await this.api.put(`/almacenes/${id}`, data);
-      
-      return response.data.data;
+      const response: ApiResponse<Almacen> = await apiService.put(`/almacenes/${id}`, data);
+      return response.data as Almacen;
     } catch (error: any) {
       console.error('Error updating almacén:', error);
-      const message = error?.response?.data?.message || error?.message || 'Error al actualizar almacén';
-      throw new Error(message);
+      throw new Error(error.message || 'Error al actualizar almacén');
     }
   }
 
   /**
-   * Desactivar un almacén
-   * DELETE /api/almacenes/:id
+   * Cambiar estado de un almacén (activar/desactivar)
+   * PATCH /almacenes/:id/estado
+   */
+  async toggleAlmacenEstado(id: string): Promise<void> {
+    try {
+      await apiService.patch(`/almacenes/${id}/estado`);
+    } catch (error: any) {
+      console.error('Error toggling almacén estado:', error);
+      throw new Error(error.message || 'Error al cambiar estado del almacén');
+    }
+  }
+
+  /**
+   * Desactivar un almacén (alias para compatibilidad)
    */
   async deleteAlmacen(id: string): Promise<void> {
-    try {
-      await this.api.delete(`/almacenes/${id}`);
-    } catch (error: any) {
-      console.error('Error deleting almacén:', error);
-      const message = error?.response?.data?.message || error?.message || 'Error al desactivar almacén';
-      throw new Error(message);
-    }
+    return this.toggleAlmacenEstado(id);
   }
 
   /**
-   * Activar un almacén
-   * POST /api/almacenes/:id/activate
+   * Activar un almacén (alias para compatibilidad)
    */
   async activateAlmacen(id: string): Promise<void> {
-    try {
-      await this.api.post(`/almacenes/${id}/activate`);
-    } catch (error: any) {
-      console.error('Error activating almacén:', error);
-      const message = error?.response?.data?.message || error?.message || 'Error al activar almacén';
-      throw new Error(message);
-    }
+    return this.toggleAlmacenEstado(id);
   }
 }
 

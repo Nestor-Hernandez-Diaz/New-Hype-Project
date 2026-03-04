@@ -43,80 +43,24 @@ public class AuthService {
         this.tokenBlacklist = tokenBlacklist;
     }
 
-    @Transactional
+    /**
+     * Genera un token JWT de desarrollador para probar endpoints.
+     * NO crea tenant, usuario ni datos en BD.
+     * El token se genera con tenantId=1, role=ADMIN para acceso completo.
+     */
     public AuthResponse register(RegisterRequest request) {
-        if (usuarioRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("El email ya está registrado");
-        }
+        Long devUserId = 0L;
+        Long devTenantId = 1L;
+        String devRole = "ADMIN";
 
-        String nombreTienda = request.getNombreTienda() != null
-                ? request.getNombreTienda()
-                : "Tienda de " + request.getNombre();
+        String accessToken = jwtUtil.generateAccessToken(devUserId, devTenantId, devRole);
 
-        String subdominio = nombreTienda.toLowerCase()
-                .replaceAll("[^a-z0-9]", "-")
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
-
-        String baseSubdominio = subdominio;
-        int counter = 1;
-        while (tenantRepository.existsBySubdominio(subdominio)) {
-            subdominio = baseSubdominio + "-" + counter++;
-        }
-
-        Tenant tenant = Tenant.builder()
-                .nombre(nombreTienda)
-                .subdominio(subdominio)
-                .propietarioNombre(request.getNombre() + " " + request.getApellido())
-                .propietarioTipoDocumento("DNI")
-                .propietarioNumeroDocumento("00000000")
-                .email(request.getEmail())
-                .build();
-        tenant = tenantRepository.save(tenant);
-
-        Rol rol = Rol.builder()
-                .tenantId(tenant.getId())
-                .nombre("ADMIN")
-                .descripcion("Administrador del tenant")
-                .permisos("{\"all\": true}")
-                .esSistema(true)
-                .build();
-        rol = rolRepository.save(rol);
-
-        String username = request.getEmail().split("@")[0];
-        String baseUsername = username;
-        int usernameCounter = 1;
-        while (usuarioRepository.existsByTenantIdAndUsername(tenant.getId(), username)) {
-            username = baseUsername + usernameCounter++;
-        }
-
-        Usuario usuario = Usuario.builder()
-                .tenantId(tenant.getId())
-                .rolId(rol.getId())
-                .email(request.getEmail())
-                .username(username)
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .nombre(request.getNombre())
-                .apellido(request.getApellido())
-                .build();
-        usuario = usuarioRepository.save(usuario);
-
-        String accessToken = jwtUtil.generateAccessToken(usuario.getId(), tenant.getId(), rol.getNombre());
-        String refreshToken = jwtUtil.generateRefreshToken(usuario.getId(), tenant.getId(), "tenant");
-
-        UserInfoResponse userInfo = UserInfoResponse.builder()
-                .id(usuario.getId())
-                .email(usuario.getEmail())
-                .nombre(usuario.getNombre())
-                .apellido(usuario.getApellido())
-                .username(usuario.getUsername())
-                .rol(rol.getNombre())
-                .tenantId(tenant.getId())
-                .tenantNombre(tenant.getNombre())
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .tokenType("Bearer")
+                .expiresIn(jwtUtil.getJwtExpirationMs() / 1000)
                 .scope("tenant")
                 .build();
-
-        return AuthResponse.of(accessToken, refreshToken, jwtUtil.getJwtExpirationMs(), "tenant", userInfo);
     }
 
     public AuthResponse login(LoginRequest request) {

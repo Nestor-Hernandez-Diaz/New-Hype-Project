@@ -367,6 +367,7 @@ export const recepcionesMockApi = {
       id: nuevoId,
       codigo: `RC-${ahora.toISOString().split('T')[0].replace(/-/g, '')}-${String(MOCK_RECEPCIONES.length + 1).padStart(3, '0')}`,
       ...data,
+      recibidoPorId: '',
       fecha: ahora,
       fechaRecepcion: ahora,
       estado: EstadoRecepcion.PENDIENTE,

@@ -1,0 +1,997 @@
+{
+	"info": {
+		"_postman_id": "newhype-api-completa-2026",
+		"name": "NewHype API Completa (169 endpoints)",
+		"description": "Coleccion completa del ERP NewHype - Multi-tenant para Tienda de Ropa.\n\nFlujo rapido:\n1. Ejecutar POST Register (obtener token)\n2. El token se guarda automaticamente en la variable {{token}}\n3. Probar cualquier endpoint",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://ventas.spfrancisco.edu.pe/New-Hype-Project",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "01. Auth",
+			"description": "Autenticacion, registro de token y login",
+			"item": [
+				{
+					"name": "Register (Obtener Token Dev)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.success && json.data && json.data.accessToken) {",
+									"    pm.collectionVariables.set('token', json.data.accessToken);",
+									"    console.log('Token guardado automaticamente');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre\": \"Desarrollador\",\n    \"apellido\": \"Pruebas\",\n    \"email\": \"dev@newhype.pe\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "register"]
+						},
+						"description": "Genera token JWT para probar endpoints. NO crea datos en BD. Ejecutar PRIMERO."
+					}
+				},
+				{
+					"name": "Login (Tenant User)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@newhype.pe\",\n    \"password\": \"Admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login Superadmin (Platform)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"emailOrUsername\": \"superadmin\",\n    \"password\": \"SuperAdmin2026!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/platform/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "platform", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"PEGAR_REFRESH_TOKEN_AQUI\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "refresh"]
+						}
+					}
+				},
+				{
+					"name": "Me (Info usuario autenticado)",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "me"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "logout"]
+						}
+					}
+				},
+				{
+					"name": "Check Email",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/check-email?email=admin@newhype.pe",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "check-email"],
+							"query": [
+								{ "key": "email", "value": "admin@newhype.pe" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Storefront Login (Cliente)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"tenantId\": 1,\n    \"email\": \"cliente@email.com\",\n    \"password\": \"Cliente123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/storefront/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "storefront", "auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "02. Configuracion - Catalogos",
+			"description": "7 catalogos x 4 operaciones = 28 endpoints",
+			"item": [
+				{
+					"name": "Categorias",
+					"item": [
+						{
+							"name": "Listar categorias",
+							"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/categorias", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","categorias"] } }
+						},
+						{
+							"name": "Crear categoria",
+							"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"CAM\",\n    \"nombre\": \"Camisetas\",\n    \"descripcion\": \"Camisetas y polos\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/categorias", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","categorias"] } }
+						},
+						{
+							"name": "Actualizar categoria",
+							"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"CAM\",\n    \"nombre\": \"Camisetas Actualizadas\",\n    \"descripcion\": \"Camisetas, polos y tops\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/categorias/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","categorias","1"] } }
+						},
+						{
+							"name": "Eliminar categoria",
+							"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/categorias/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","categorias","1"] } }
+						}
+					]
+				},
+				{
+					"name": "Colores",
+					"item": [
+						{
+							"name": "Listar colores",
+							"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/colores", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","colores"] } }
+						},
+						{
+							"name": "Crear color",
+							"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"NEG\",\n    \"nombre\": \"Negro\",\n    \"codigoHex\": \"#000000\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/colores", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","colores"] } }
+						},
+						{
+							"name": "Actualizar color",
+							"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"NEG\",\n    \"nombre\": \"Negro Mate\",\n    \"codigoHex\": \"#1a1a1a\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/colores/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","colores","1"] } }
+						},
+						{
+							"name": "Eliminar color",
+							"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/colores/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","colores","1"] } }
+						}
+					]
+				},
+				{
+					"name": "Generos",
+					"item": [
+						{
+							"name": "Listar generos",
+							"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/generos", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","generos"] } }
+						},
+						{
+							"name": "Crear genero",
+							"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"HOM\",\n    \"nombre\": \"Hombre\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/generos", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","generos"] } }
+						},
+						{
+							"name": "Actualizar genero",
+							"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"HOM\",\n    \"nombre\": \"Masculino\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/generos/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","generos","1"] } }
+						},
+						{
+							"name": "Eliminar genero",
+							"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/generos/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","generos","1"] } }
+						}
+					]
+				},
+				{
+					"name": "Marcas",
+					"item": [
+						{
+							"name": "Listar marcas",
+							"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/marcas", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","marcas"] } }
+						},
+						{
+							"name": "Crear marca",
+							"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"NIKE\",\n    \"nombre\": \"Nike\",\n    \"descripcion\": \"Marca deportiva\",\n    \"logoUrl\": \"https://logo.com/nike.png\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/marcas", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","marcas"] } }
+						},
+						{
+							"name": "Actualizar marca",
+							"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"NIKE\",\n    \"nombre\": \"Nike Inc.\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/marcas/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","marcas","1"] } }
+						},
+						{
+							"name": "Eliminar marca",
+							"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/marcas/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","marcas","1"] } }
+						}
+					]
+				},
+				{
+					"name": "Materiales",
+					"item": [
+						{
+							"name": "Listar materiales",
+							"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/materiales", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","materiales"] } }
+						},
+						{
+							"name": "Crear material",
+							"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"ALG\",\n    \"nombre\": \"Algodon\",\n    \"descripcion\": \"Algodon 100% pima\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/materiales", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","materiales"] } }
+						},
+						{
+							"name": "Actualizar material",
+							"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"ALG\",\n    \"nombre\": \"Algodon Pima\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/materiales/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","materiales","1"] } }
+						},
+						{
+							"name": "Eliminar material",
+							"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/materiales/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","materiales","1"] } }
+						}
+					]
+				},
+				{
+					"name": "Tallas",
+					"item": [
+						{
+							"name": "Listar tallas",
+							"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/tallas", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","tallas"] } }
+						},
+						{
+							"name": "Crear talla",
+							"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"XL\",\n    \"nombre\": \"Extra Large\",\n    \"ordenVisualizacion\": 4\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/tallas", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","tallas"] } }
+						},
+						{
+							"name": "Actualizar talla",
+							"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"XL\",\n    \"nombre\": \"Extra Grande\",\n    \"ordenVisualizacion\": 4\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/tallas/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","tallas","1"] } }
+						},
+						{
+							"name": "Eliminar talla",
+							"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/tallas/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","tallas","1"] } }
+						}
+					]
+				},
+				{
+					"name": "Unidades de Medida",
+					"item": [
+						{
+							"name": "Listar unidades de medida",
+							"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/unidades-medida", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","unidades-medida"] } }
+						},
+						{
+							"name": "Crear unidad de medida",
+							"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"UND\",\n    \"nombre\": \"Unidad\",\n    \"simbolo\": \"und\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/unidades-medida", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","unidades-medida"] } }
+						},
+						{
+							"name": "Actualizar unidad de medida",
+							"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"UND\",\n    \"nombre\": \"Unidad\",\n    \"simbolo\": \"u\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/unidades-medida/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","unidades-medida","1"] } }
+						},
+						{
+							"name": "Eliminar unidad de medida",
+							"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/unidades-medida/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","unidades-medida","1"] } }
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "03. Productos",
+			"description": "CRUD de productos, imagenes, busqueda, liquidacion",
+			"item": [
+				{
+					"name": "Listar productos (paginado)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/productos?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","productos"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"nombre","value":"","disabled":true},{"key":"categoriaId","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Crear producto",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"sku\": \"CAM-POLO-001\",\n    \"nombre\": \"Polo Algodon Pima\",\n    \"descripcion\": \"Polo de algodon pima peruano\",\n    \"categoriaId\": 1,\n    \"tallaId\": 1,\n    \"colorId\": 1,\n    \"marcaId\": 1,\n    \"materialId\": 1,\n    \"generoId\": 1,\n    \"unidadMedidaId\": 1,\n    \"precioCosto\": 25.00,\n    \"precioVenta\": 59.90,\n    \"stockMinimo\": 5,\n    \"controlaInventario\": true\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/productos", "host": ["{{baseUrl}}"], "path": ["api","v1","productos"] } }
+				},
+				{
+					"name": "Obtener producto por ID",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/productos/1", "host": ["{{baseUrl}}"], "path": ["api","v1","productos","1"] } }
+				},
+				{
+					"name": "Actualizar producto",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"sku\": \"CAM-POLO-001\",\n    \"nombre\": \"Polo Algodon Pima Premium\",\n    \"descripcion\": \"Polo premium de algodon pima\",\n    \"categoriaId\": 1,\n    \"precioCosto\": 28.00,\n    \"precioVenta\": 69.90,\n    \"stockMinimo\": 10,\n    \"controlaInventario\": true\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/productos/1", "host": ["{{baseUrl}}"], "path": ["api","v1","productos","1"] } }
+				},
+				{
+					"name": "Eliminar producto (soft delete)",
+					"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/productos/1", "host": ["{{baseUrl}}"], "path": ["api","v1","productos","1"] } }
+				},
+				{
+					"name": "Cambiar estado producto",
+					"request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"estado\": true\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/productos/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","productos","1","estado"] } }
+				},
+				{
+					"name": "Buscar productos",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/productos/buscar?q=polo&page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","productos","buscar"], "query": [{"key":"q","value":"polo"},{"key":"page","value":"0"},{"key":"size","value":"10"}] } }
+				},
+				{
+					"name": "Marcar liquidacion",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"productoIds\": [1, 2],\n    \"porcentaje\": 30.0,\n    \"fechaInicio\": \"2026-03-01\",\n    \"fechaFin\": \"2026-03-31\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/productos/liquidacion", "host": ["{{baseUrl}}"], "path": ["api","v1","productos","liquidacion"] } }
+				},
+				{
+					"name": "Listar imagenes producto",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/productos/1/imagenes", "host": ["{{baseUrl}}"], "path": ["api","v1","productos","1","imagenes"] } }
+				},
+				{
+					"name": "Agregar imagen a producto",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"url\": \"https://imagenes.newhype.pe/polo-001.jpg\",\n    \"altText\": \"Polo Algodon Pima\",\n    \"orden\": 1,\n    \"esPrincipal\": true\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/productos/1/imagenes", "host": ["{{baseUrl}}"], "path": ["api","v1","productos","1","imagenes"] } }
+				},
+				{
+					"name": "Eliminar imagen producto",
+					"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/productos/1/imagenes/1", "host": ["{{baseUrl}}"], "path": ["api","v1","productos","1","imagenes","1"] } }
+				}
+			]
+		},
+		{
+			"name": "04. Entidades Comerciales",
+			"description": "Clientes y proveedores",
+			"item": [
+				{
+					"name": "Listar entidades",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/entidades?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","entidades"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"tipoEntidad","value":"CLIENTE","disabled":true},{"key":"q","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Crear cliente",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tipoEntidad\": \"CLIENTE\",\n    \"tipoDocumento\": \"DNI\",\n    \"numeroDocumento\": \"12345678\",\n    \"nombres\": \"Juan\",\n    \"apellidos\": \"Perez\",\n    \"email\": \"juan@email.com\",\n    \"telefono\": \"987654321\",\n    \"direccion\": \"Av. Principal 123\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/entidades", "host": ["{{baseUrl}}"], "path": ["api","v1","entidades"] } }
+				},
+				{
+					"name": "Crear proveedor",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tipoEntidad\": \"PROVEEDOR\",\n    \"tipoDocumento\": \"RUC\",\n    \"numeroDocumento\": \"20123456789\",\n    \"razonSocial\": \"Textiles del Peru SAC\",\n    \"email\": \"ventas@textiles.pe\",\n    \"telefono\": \"01-4567890\",\n    \"direccion\": \"Jr. Industrial 456, Lima\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/entidades", "host": ["{{baseUrl}}"], "path": ["api","v1","entidades"] } }
+				},
+				{
+					"name": "Obtener entidad por ID",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/entidades/1", "host": ["{{baseUrl}}"], "path": ["api","v1","entidades","1"] } }
+				},
+				{
+					"name": "Actualizar entidad",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tipoEntidad\": \"CLIENTE\",\n    \"tipoDocumento\": \"DNI\",\n    \"numeroDocumento\": \"12345678\",\n    \"nombres\": \"Juan Carlos\",\n    \"apellidos\": \"Perez Lopez\",\n    \"email\": \"juancarlos@email.com\",\n    \"telefono\": \"987654321\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/entidades/1", "host": ["{{baseUrl}}"], "path": ["api","v1","entidades","1"] } }
+				},
+				{
+					"name": "Buscar por documento",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/entidades/buscar-documento?tipo=DNI&numero=12345678", "host": ["{{baseUrl}}"], "path": ["api","v1","entidades","buscar-documento"], "query": [{"key":"tipo","value":"DNI"},{"key":"numero","value":"12345678"}] } }
+				},
+				{
+					"name": "Buscar por email",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/entidades/buscar-email?email=juan@email.com", "host": ["{{baseUrl}}"], "path": ["api","v1","entidades","buscar-email"], "query": [{"key":"email","value":"juan@email.com"}] } }
+				},
+				{
+					"name": "Estadisticas entidades",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/entidades/estadisticas", "host": ["{{baseUrl}}"], "path": ["api","v1","entidades","estadisticas"] } }
+				}
+			]
+		},
+		{
+			"name": "05. Inventario / Stock",
+			"description": "Stock, kardex, alertas, ajustes, exportacion",
+			"item": [
+				{
+					"name": "Consultar stock por almacen",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/inventario/stock?almacenId=1", "host": ["{{baseUrl}}"], "path": ["api","v1","inventario","stock"], "query": [{"key":"almacenId","value":"1"}] } }
+				},
+				{
+					"name": "Consultar kardex",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/inventario/kardex?productoId=1&almacenId=1&page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","inventario","kardex"], "query": [{"key":"productoId","value":"1"},{"key":"almacenId","value":"1"},{"key":"page","value":"0"},{"key":"size","value":"10"}] } }
+				},
+				{
+					"name": "Alertas stock bajo",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/inventario/alertas", "host": ["{{baseUrl}}"], "path": ["api","v1","inventario","alertas"] } }
+				},
+				{
+					"name": "Ajuste manual de inventario",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"productoId\": 1,\n    \"almacenId\": 1,\n    \"tipo\": \"ENTRADA\",\n    \"cantidad\": 50,\n    \"motivo\": \"Inventario inicial\",\n    \"documentoReferencia\": \"INV-001\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/inventario/ajustes", "host": ["{{baseUrl}}"], "path": ["api","v1","inventario","ajustes"] } }
+				},
+				{
+					"name": "Exportar stock CSV",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/inventario/stock/exportar?almacenId=1", "host": ["{{baseUrl}}"], "path": ["api","v1","inventario","stock","exportar"], "query": [{"key":"almacenId","value":"1"}] } }
+				}
+			]
+		},
+		{
+			"name": "06. Transferencias",
+			"description": "Transferencias entre almacenes",
+			"item": [
+				{
+					"name": "Listar transferencias",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/transferencias?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","transferencias"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"estado","value":"","disabled":true},{"key":"almacenOrigenId","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Crear transferencia",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"almacenOrigenId\": 1,\n    \"almacenDestinoId\": 2,\n    \"motivo\": \"Reabastecimiento sucursal\",\n    \"observaciones\": \"Transferencia mensual\",\n    \"items\": [\n        { \"productoId\": 1, \"cantidad\": 10 },\n        { \"productoId\": 2, \"cantidad\": 5 }\n    ]\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/transferencias", "host": ["{{baseUrl}}"], "path": ["api","v1","transferencias"] } }
+				},
+				{
+					"name": "Detalle transferencia",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/transferencias/1", "host": ["{{baseUrl}}"], "path": ["api","v1","transferencias","1"] } }
+				},
+				{
+					"name": "Aprobar transferencia",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/transferencias/1/aprobar", "host": ["{{baseUrl}}"], "path": ["api","v1","transferencias","1","aprobar"] } }
+				},
+				{
+					"name": "Cancelar transferencia",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/transferencias/1/cancelar", "host": ["{{baseUrl}}"], "path": ["api","v1","transferencias","1","cancelar"] } }
+				}
+			]
+		},
+		{
+			"name": "07. Compras - Ordenes",
+			"description": "Ordenes de compra a proveedores",
+			"item": [
+				{
+					"name": "Listar ordenes de compra",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/compras/ordenes?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","ordenes"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"estado","value":"","disabled":true},{"key":"proveedorId","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Crear orden de compra",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"proveedorId\": 1,\n    \"almacenDestinoId\": 1,\n    \"fechaEntregaEstimada\": \"2026-04-01\",\n    \"condicionesPago\": \"Credito 30 dias\",\n    \"formaPago\": \"TRANSFERENCIA\",\n    \"observaciones\": \"Pedido mensual\",\n    \"items\": [\n        {\n            \"productoId\": 1,\n            \"cantidadOrdenada\": 100,\n            \"precioUnitario\": 25.00,\n            \"descuento\": 0\n        }\n    ]\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/compras/ordenes", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","ordenes"] } }
+				},
+				{
+					"name": "Detalle orden de compra",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/compras/ordenes/1", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","ordenes","1"] } }
+				},
+				{
+					"name": "Actualizar OC pendiente",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"proveedorId\": 1,\n    \"almacenDestinoId\": 1,\n    \"observaciones\": \"Pedido actualizado\",\n    \"items\": [\n        {\n            \"productoId\": 1,\n            \"cantidadOrdenada\": 150,\n            \"precioUnitario\": 24.00\n        }\n    ]\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/compras/ordenes/1", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","ordenes","1"] } }
+				},
+				{
+					"name": "Cambiar estado OC",
+					"request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"estado\": \"ENVIADA\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/compras/ordenes/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","ordenes","1","estado"] } }
+				},
+				{
+					"name": "Cancelar orden de compra",
+					"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/compras/ordenes/1", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","ordenes","1"] } }
+				},
+				{
+					"name": "Descargar OC PDF",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/compras/ordenes/1/pdf", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","ordenes","1","pdf"] } }
+				},
+				{
+					"name": "Estadisticas compras",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/compras/estadisticas", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","estadisticas"] } }
+				}
+			]
+		},
+		{
+			"name": "08. Compras - Recepciones",
+			"description": "Recepcion de mercaderia",
+			"item": [
+				{
+					"name": "Listar recepciones",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/compras/recepciones?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","recepciones"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"ordenCompraId","value":"","disabled":true},{"key":"estado","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Crear recepcion",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"ordenCompraId\": 1,\n    \"guiaRemision\": \"GR-001-0001\",\n    \"observaciones\": \"Mercaderia recibida\",\n    \"items\": [\n        {\n            \"detalleOrdenCompraId\": 1,\n            \"productoId\": 1,\n            \"cantidadRecibida\": 100,\n            \"cantidadAceptada\": 95,\n            \"cantidadRechazada\": 5,\n            \"motivoRechazo\": \"Defectuosos\"\n        }\n    ]\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/compras/recepciones", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","recepciones"] } }
+				},
+				{
+					"name": "Detalle recepcion",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/compras/recepciones/1", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","recepciones","1"] } }
+				},
+				{
+					"name": "Confirmar recepcion",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/compras/recepciones/1/confirmar", "host": ["{{baseUrl}}"], "path": ["api","v1","compras","recepciones","1","confirmar"] } }
+				}
+			]
+		},
+		{
+			"name": "09. Ventas",
+			"description": "Ventas, pagos, comprobantes",
+			"item": [
+				{
+					"name": "Listar ventas",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/ventas?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","ventas"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"estado","value":"","disabled":true},{"key":"fechaDesde","value":"","disabled":true},{"key":"clienteId","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Crear venta",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"almacenId\": 1,\n    \"clienteId\": 1,\n    \"sesionCajaId\": 1,\n    \"tipoComprobante\": \"BOLETA\",\n    \"serie\": \"B001\",\n    \"observaciones\": \"Venta en tienda\",\n    \"items\": [\n        {\n            \"productoId\": 1,\n            \"cantidad\": 2,\n            \"precioUnitario\": 59.90,\n            \"descuento\": 0\n        }\n    ]\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/ventas", "host": ["{{baseUrl}}"], "path": ["api","v1","ventas"] } }
+				},
+				{
+					"name": "Detalle venta",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/ventas/1", "host": ["{{baseUrl}}"], "path": ["api","v1","ventas","1"] } }
+				},
+				{
+					"name": "Cambiar estado venta",
+					"request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"estado\": \"CONFIRMADA\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/ventas/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","ventas","1","estado"] } }
+				},
+				{
+					"name": "Confirmar pago",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"montoRecibido\": 119.80,\n    \"pagos\": [\n        {\n            \"metodoPagoId\": 1,\n            \"monto\": 119.80,\n            \"referencia\": null\n        }\n    ]\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/ventas/1/confirmar-pago", "host": ["{{baseUrl}}"], "path": ["api","v1","ventas","1","confirmar-pago"] } }
+				},
+				{
+					"name": "Eliminar venta pendiente",
+					"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/ventas/1", "host": ["{{baseUrl}}"], "path": ["api","v1","ventas","1"] } }
+				},
+				{
+					"name": "Comprobante PDF",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/ventas/1/comprobante/pdf", "host": ["{{baseUrl}}"], "path": ["api","v1","ventas","1","comprobante","pdf"] } }
+				},
+				{
+					"name": "Comprobante Preview HTML",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/ventas/1/comprobante/preview", "host": ["{{baseUrl}}"], "path": ["api","v1","ventas","1","comprobante","preview"] } }
+				}
+			]
+		},
+		{
+			"name": "10. Notas de Credito",
+			"description": "Devoluciones y notas de credito",
+			"item": [
+				{
+					"name": "Listar notas de credito",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/notas-credito?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","notas-credito"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"ventaOrigenId","value":"","disabled":true},{"key":"estado","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Emitir nota de credito",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"ventaOrigenId\": 1,\n    \"serie\": \"NC01\",\n    \"numero\": \"0001\",\n    \"motivoSunat\": \"01\",\n    \"tipo\": \"PARCIAL\",\n    \"descripcion\": \"Devolucion por talla incorrecta\",\n    \"metodoDevolucion\": \"EFECTIVO\",\n    \"items\": [\n        {\n            \"detalleVentaId\": 1,\n            \"productoId\": 1,\n            \"cantidad\": 1\n        }\n    ]\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/notas-credito", "host": ["{{baseUrl}}"], "path": ["api","v1","notas-credito"] } }
+				},
+				{
+					"name": "Detalle nota de credito",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/notas-credito/1", "host": ["{{baseUrl}}"], "path": ["api","v1","notas-credito","1"] } }
+				}
+			]
+		},
+		{
+			"name": "11. Caja",
+			"description": "Sesiones de caja y movimientos",
+			"item": [
+				{
+					"name": "Listar sesiones de caja",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/caja/sesiones", "host": ["{{baseUrl}}"], "path": ["api","v1","caja","sesiones"], "query": [{"key":"estado","value":"","disabled":true},{"key":"cajaId","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Abrir sesion de caja",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"cajaRegistradoraId\": 1,\n    \"montoApertura\": 200.00\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/caja/sesiones", "host": ["{{baseUrl}}"], "path": ["api","v1","caja","sesiones"] } }
+				},
+				{
+					"name": "Cerrar sesion de caja",
+					"request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"montoCierre\": 1500.00,\n    \"observaciones\": \"Cierre normal\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/caja/sesiones/1/cerrar", "host": ["{{baseUrl}}"], "path": ["api","v1","caja","sesiones","1","cerrar"] } }
+				},
+				{
+					"name": "Registrar movimiento de caja",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tipo\": \"EGRESO\",\n    \"monto\": 50.00,\n    \"motivo\": \"Compra de utiles\",\n    \"descripcion\": \"Bolsas y papel\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/caja/sesiones/1/movimientos", "host": ["{{baseUrl}}"], "path": ["api","v1","caja","sesiones","1","movimientos"] } }
+				}
+			]
+		},
+		{
+			"name": "12. Configuracion General",
+			"description": "Empresa, series SUNAT, metodos pago, politica devoluciones",
+			"item": [
+				{
+					"name": "Obtener config empresa",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/empresa", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","empresa"] } }
+				},
+				{
+					"name": "Actualizar config empresa",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"ruc\": \"20123456789\",\n    \"razonSocial\": \"NewHype SAC\",\n    \"nombreComercial\": \"NewHype\",\n    \"direccion\": \"Av. La Marina 2500, Lima\",\n    \"telefono\": \"01-2345678\",\n    \"email\": \"info@newhype.pe\",\n    \"igvActivo\": true,\n    \"igvPorcentaje\": 18.00,\n    \"moneda\": \"PEN\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/empresa", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","empresa"] } }
+				},
+				{
+					"name": "Listar series comprobantes",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/series-comprobantes", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","series-comprobantes"], "query": [{"key":"tipoComprobante","value":"BOLETA","disabled":true}] } }
+				},
+				{
+					"name": "Crear serie comprobante",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tipoComprobante\": \"BOLETA\",\n    \"serie\": \"B001\",\n    \"numeroInicio\": 1,\n    \"puntoEmision\": \"Tienda principal\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/series-comprobantes", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","series-comprobantes"] } }
+				},
+				{
+					"name": "Actualizar serie",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tipoComprobante\": \"BOLETA\",\n    \"serie\": \"B001\",\n    \"puntoEmision\": \"Tienda central\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/series-comprobantes/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","series-comprobantes","1"] } }
+				},
+				{
+					"name": "Activar/desactivar serie",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/series-comprobantes/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","series-comprobantes","1","estado"] } }
+				},
+				{
+					"name": "Listar metodos de pago",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/metodos-pago", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","metodos-pago"] } }
+				},
+				{
+					"name": "Crear metodo de pago",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"EFECT\",\n    \"nombre\": \"Efectivo\",\n    \"descripcion\": \"Pago en efectivo\",\n    \"tipo\": \"EFECTIVO\",\n    \"requiereReferencia\": false,\n    \"predeterminado\": true\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/metodos-pago", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","metodos-pago"] } }
+				},
+				{
+					"name": "Actualizar metodo de pago",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"EFECT\",\n    \"nombre\": \"Efectivo\",\n    \"tipo\": \"EFECTIVO\",\n    \"predeterminado\": true\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/metodos-pago/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","metodos-pago","1"] } }
+				},
+				{
+					"name": "Activar/desactivar metodo pago",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/metodos-pago/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","metodos-pago","1","estado"] } }
+				},
+				{
+					"name": "Ver politica devoluciones",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/politica-devoluciones", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","politica-devoluciones"] } }
+				},
+				{
+					"name": "Actualizar politica devoluciones",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"diasDevolucionBoleta\": 7,\n    \"diasDevolucionFactura\": 15,\n    \"requiereEtiquetasOriginales\": true,\n    \"requiereProductoSinUso\": true,\n    \"diasVigenciaVale\": 30\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/politica-devoluciones", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","politica-devoluciones"] } }
+				}
+			]
+		},
+		{
+			"name": "13. Almacenes",
+			"item": [
+				{
+					"name": "Listar almacenes",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/almacenes", "host": ["{{baseUrl}}"], "path": ["api","v1","almacenes"] } }
+				},
+				{
+					"name": "Crear almacen",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"ALM-PRINCIPAL\",\n    \"nombre\": \"Almacen Principal\",\n    \"ubicacion\": \"Av. Industrial 100\",\n    \"capacidad\": 5000\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/almacenes", "host": ["{{baseUrl}}"], "path": ["api","v1","almacenes"] } }
+				},
+				{
+					"name": "Actualizar almacen",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"ALM-PRINCIPAL\",\n    \"nombre\": \"Almacen Central\",\n    \"ubicacion\": \"Av. Industrial 100\",\n    \"capacidad\": 8000\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/almacenes/1", "host": ["{{baseUrl}}"], "path": ["api","v1","almacenes","1"] } }
+				},
+				{
+					"name": "Activar/desactivar almacen",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/almacenes/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","almacenes","1","estado"] } }
+				}
+			]
+		},
+		{
+			"name": "14. Configuracion Extra",
+			"description": "Cajas registradoras y motivos de movimiento",
+			"item": [
+				{
+					"name": "Listar cajas registradoras",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/cajas-registradoras", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","cajas-registradoras"] } }
+				},
+				{
+					"name": "Crear caja registradora",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"CAJA-01\",\n    \"nombre\": \"Caja Principal\",\n    \"ubicacion\": \"Piso 1\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/cajas-registradoras", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","cajas-registradoras"] } }
+				},
+				{
+					"name": "Actualizar caja registradora",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"CAJA-01\",\n    \"nombre\": \"Caja Central\",\n    \"ubicacion\": \"Entrada principal\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/cajas-registradoras/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","cajas-registradoras","1"] } }
+				},
+				{
+					"name": "Activar/desactivar caja registradora",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/cajas-registradoras/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","cajas-registradoras","1","estado"] } }
+				},
+				{
+					"name": "Listar motivos movimiento",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/configuracion/motivos-movimiento", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","motivos-movimiento"], "query": [{"key":"tipo","value":"ENTRADA","disabled":true}] } }
+				},
+				{
+					"name": "Crear motivo movimiento",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tipo\": \"ENTRADA\",\n    \"codigo\": \"COMPRA\",\n    \"nombre\": \"Compra de mercaderia\",\n    \"descripcion\": \"Ingreso por compra a proveedor\",\n    \"requiereDocumento\": true\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/motivos-movimiento", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","motivos-movimiento"] } }
+				},
+				{
+					"name": "Actualizar motivo movimiento",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tipo\": \"ENTRADA\",\n    \"codigo\": \"COMPRA\",\n    \"nombre\": \"Compra de mercaderia actualizado\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/configuracion/motivos-movimiento/1", "host": ["{{baseUrl}}"], "path": ["api","v1","configuracion","motivos-movimiento","1"] } }
+				}
+			]
+		},
+		{
+			"name": "15. Roles",
+			"item": [
+				{
+					"name": "Listar roles",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","roles"] } }
+				},
+				{
+					"name": "Crear rol",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"nombre\": \"VENDEDOR\",\n    \"descripcion\": \"Personal de ventas\",\n    \"permisos\": \"{\\\"ventas\\\": true, \\\"productos\\\": {\\\"leer\\\": true}}\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","roles"] } }
+				},
+				{
+					"name": "Actualizar rol",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"nombre\": \"VENDEDOR\",\n    \"descripcion\": \"Vendedor actualizado\",\n    \"permisos\": \"{\\\"ventas\\\": true, \\\"productos\\\": {\\\"leer\\\": true, \\\"escribir\\\": false}}\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/roles/1", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","1"] } }
+				},
+				{
+					"name": "Desactivar rol",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/roles/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","roles","1","estado"] } }
+				}
+			]
+		},
+		{
+			"name": "16. Usuarios",
+			"item": [
+				{
+					"name": "Listar usuarios",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/usuarios?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"rolId","value":"","disabled":true},{"key":"estado","value":"","disabled":true},{"key":"q","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Crear usuario",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"email\": \"vendedor@newhype.pe\",\n    \"username\": \"vendedor01\",\n    \"password\": \"Vendedor123\",\n    \"nombre\": \"Maria\",\n    \"apellido\": \"Garcia\",\n    \"rolId\": 1\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/usuarios", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios"] } }
+				},
+				{
+					"name": "Detalle usuario",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/usuarios/1", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","1"] } }
+				},
+				{
+					"name": "Actualizar usuario",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"email\": \"vendedor@newhype.pe\",\n    \"nombre\": \"Maria Elena\",\n    \"apellido\": \"Garcia Lopez\",\n    \"rolId\": 1\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/usuarios/1", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","1"] } }
+				},
+				{
+					"name": "Cambiar password",
+					"request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"nuevaPassword\": \"NuevaClave123\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/usuarios/1/password", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","1","password"] } }
+				},
+				{
+					"name": "Activar/desactivar usuario",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/usuarios/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","usuarios","1","estado"] } }
+				}
+			]
+		},
+		{
+			"name": "17. Ubigeo",
+			"description": "Departamentos, provincias, distritos del Peru",
+			"item": [
+				{
+					"name": "Listar departamentos",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/ubigeo/departamentos", "host": ["{{baseUrl}}"], "path": ["api","v1","ubigeo","departamentos"] } }
+				},
+				{
+					"name": "Listar provincias",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/ubigeo/provincias?departamentoId=1", "host": ["{{baseUrl}}"], "path": ["api","v1","ubigeo","provincias"], "query": [{"key":"departamentoId","value":"1"}] } }
+				},
+				{
+					"name": "Listar distritos",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/ubigeo/distritos?provinciaId=1", "host": ["{{baseUrl}}"], "path": ["api","v1","ubigeo","distritos"], "query": [{"key":"provinciaId","value":"1"}] } }
+				}
+			]
+		},
+		{
+			"name": "18. Reportes",
+			"description": "Dashboard, reportes de ventas, inventario, compras, financiero",
+			"item": [
+				{
+					"name": "Dashboard resumen",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/reportes/resumen", "host": ["{{baseUrl}}"], "path": ["api","v1","reportes","resumen"] } }
+				},
+				{
+					"name": "Reporte de ventas",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/reportes/ventas?fechaDesde=2026-01-01&fechaHasta=2026-12-31", "host": ["{{baseUrl}}"], "path": ["api","v1","reportes","ventas"], "query": [{"key":"fechaDesde","value":"2026-01-01"},{"key":"fechaHasta","value":"2026-12-31"},{"key":"usuarioId","value":"","disabled":true},{"key":"clienteId","value":"","disabled":true},{"key":"tipoComprobante","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Reporte de inventario",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/reportes/inventario", "host": ["{{baseUrl}}"], "path": ["api","v1","reportes","inventario"], "query": [{"key":"almacenId","value":"","disabled":true},{"key":"categoriaId","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Reporte de compras",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/reportes/compras?fechaDesde=2026-01-01&fechaHasta=2026-12-31", "host": ["{{baseUrl}}"], "path": ["api","v1","reportes","compras"], "query": [{"key":"fechaDesde","value":"2026-01-01"},{"key":"fechaHasta","value":"2026-12-31"},{"key":"proveedorId","value":"","disabled":true},{"key":"estado","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Reporte financiero",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/reportes/financiero?fechaDesde=2026-01-01&fechaHasta=2026-12-31", "host": ["{{baseUrl}}"], "path": ["api","v1","reportes","financiero"], "query": [{"key":"fechaDesde","value":"2026-01-01"},{"key":"fechaHasta","value":"2026-12-31"}] } }
+				},
+				{
+					"name": "Reporte de caja",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/reportes/caja", "host": ["{{baseUrl}}"], "path": ["api","v1","reportes","caja"], "query": [{"key":"fechaDesde","value":"","disabled":true},{"key":"fechaHasta","value":"","disabled":true},{"key":"cajaId","value":"","disabled":true},{"key":"usuarioId","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Productos mas vendidos",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/reportes/productos-mas-vendidos?top=10", "host": ["{{baseUrl}}"], "path": ["api","v1","reportes","productos-mas-vendidos"], "query": [{"key":"top","value":"10"},{"key":"fechaDesde","value":"","disabled":true},{"key":"fechaHasta","value":"","disabled":true},{"key":"categoriaId","value":"","disabled":true}] } }
+				}
+			]
+		},
+		{
+			"name": "19. Storefront (B2C)",
+			"description": "Tienda online: catalogo publico, pedidos de clientes",
+			"item": [
+				{
+					"name": "Registrar cliente storefront",
+					"request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tenantId\": 1,\n    \"email\": \"cliente@email.com\",\n    \"password\": \"Cliente2026!\",\n    \"nombre\": \"Ana\",\n    \"apellido\": \"Lopez\",\n    \"telefono\": \"999888777\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/storefront/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","auth","register"] } }
+				},
+				{
+					"name": "Catalogo productos (publico)",
+					"request": { "auth": { "type": "noauth" }, "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/storefront/productos?tenantId=1&page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","productos"], "query": [{"key":"tenantId","value":"1"},{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"categoriaId","value":"","disabled":true},{"key":"marcaId","value":"","disabled":true},{"key":"q","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Detalle producto por slug (publico)",
+					"request": { "auth": { "type": "noauth" }, "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/storefront/productos/polo-algodon-pima?tenantId=1", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","productos","polo-algodon-pima"], "query": [{"key":"tenantId","value":"1"}] } }
+				},
+				{
+					"name": "Categorias storefront (publico)",
+					"request": { "auth": { "type": "noauth" }, "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/storefront/categorias?tenantId=1", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","categorias"], "query": [{"key":"tenantId","value":"1"}] } }
+				},
+				{
+					"name": "Ver perfil cliente",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/storefront/perfil", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","perfil"] } }
+				},
+				{
+					"name": "Actualizar perfil cliente",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"nombre\": \"Ana Maria\",\n    \"apellido\": \"Lopez Torres\",\n    \"telefono\": \"999888777\",\n    \"direccion\": \"Av. Arequipa 1500, Lima\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/storefront/perfil", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","perfil"] } }
+				},
+				{
+					"name": "Crear pedido online",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"items\": [\n        { \"productoId\": 1, \"cantidad\": 2 },\n        { \"productoId\": 2, \"cantidad\": 1 }\n    ],\n    \"direccionEnvio\": \"Av. Arequipa 1500, Lima\",\n    \"instrucciones\": \"Dejar en porteria\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/storefront/pedidos", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","pedidos"] } }
+				},
+				{
+					"name": "Mis pedidos",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/storefront/pedidos?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","pedidos"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"}] } }
+				},
+				{
+					"name": "Detalle pedido",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/storefront/pedidos/1", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","pedidos","1"] } }
+				},
+				{
+					"name": "Cancelar pedido",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/storefront/pedidos/1/cancelar", "host": ["{{baseUrl}}"], "path": ["api","v1","storefront","pedidos","1","cancelar"] } }
+				}
+			]
+		},
+		{
+			"name": "20. Platform - Tenants (Superadmin)",
+			"description": "Gestion de tenants por superadmin. Requiere token de plataforma.",
+			"item": [
+				{
+					"name": "Listar tenants",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"estado","value":"","disabled":true},{"key":"q","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Crear tenant + admin",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"nombre\": \"Tienda NewHype\",\n    \"subdominio\": \"newhype-store\",\n    \"propietarioNombre\": \"Carlos Mendoza\",\n    \"propietarioTipoDocumento\": \"DNI\",\n    \"propietarioNumeroDocumento\": \"45678912\",\n    \"email\": \"admin@newhype-store.pe\",\n    \"telefono\": \"987654321\",\n    \"adminPassword\": \"Admin2026!\",\n    \"planId\": 1\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants"] } }
+				},
+				{
+					"name": "Detalle tenant",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants/1", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants","1"] } }
+				},
+				{
+					"name": "Actualizar tenant",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"nombre\": \"Tienda NewHype Premium\",\n    \"email\": \"admin@newhype.pe\",\n    \"telefono\": \"987654322\",\n    \"overrideMaxProductos\": 500,\n    \"overrideMaxUsuarios\": 10\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants/1", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants","1"] } }
+				},
+				{
+					"name": "Suspender/activar tenant",
+					"request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"estado\": \"SUSPENDIDA\",\n    \"motivo\": \"Falta de pago\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants","1","estado"] } }
+				},
+				{
+					"name": "Eliminar tenant (soft delete)",
+					"request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants/1", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants","1"] } }
+				},
+				{
+					"name": "Modulos del tenant",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants/1/modulos", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants","1","modulos"] } }
+				},
+				{
+					"name": "Override modulos tenant",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"modulos\": [\n        { \"moduloId\": 1, \"activo\": true },\n        { \"moduloId\": 2, \"activo\": false }\n    ]\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants/1/modulos", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants","1","modulos"] } }
+				},
+				{
+					"name": "Asignar plan a tenant",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"planId\": 1,\n    \"fechaInicio\": \"2026-03-01\",\n    \"fechaFin\": \"2026-04-01\",\n    \"autoRenovar\": true\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants/1/suscripcion", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants","1","suscripcion"] } }
+				},
+				{
+					"name": "Recordatorio de pago",
+					"request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants/1/recordatorio-pago", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants","1","recordatorio-pago"] } }
+				},
+				{
+					"name": "Historial pagos tenant",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/tenants/1/pagos", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tenants","1","pagos"] } }
+				}
+			]
+		},
+		{
+			"name": "21. Platform - Planes",
+			"description": "Planes de suscripcion",
+			"item": [
+				{
+					"name": "Listar planes",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/planes", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","planes"] } }
+				},
+				{
+					"name": "Crear plan",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"nombre\": \"Basico\",\n    \"descripcion\": \"Plan para tiendas pequenas\",\n    \"precioMensual\": 49.90,\n    \"precioAnual\": 499.00,\n    \"maxProductos\": 100,\n    \"maxUsuarios\": 3,\n    \"maxAlmacenes\": 1,\n    \"maxVentasMes\": 500,\n    \"periodoPruebaDias\": 14\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/planes", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","planes"] } }
+				},
+				{
+					"name": "Actualizar plan",
+					"request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"nombre\": \"Basico Plus\",\n    \"descripcion\": \"Plan actualizado\",\n    \"precioMensual\": 59.90,\n    \"maxProductos\": 200\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/planes/1", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","planes","1"] } }
+				},
+				{
+					"name": "Activar/desactivar plan",
+					"request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/v1/platform/planes/1/estado", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","planes","1","estado"] } }
+				}
+			]
+		},
+		{
+			"name": "22. Platform - Operaciones",
+			"description": "Dashboard ingresos, pagos, tickets, auditoria",
+			"item": [
+				{
+					"name": "Dashboard ingresos",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/dashboard/ingresos", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","dashboard","ingresos"] } }
+				},
+				{
+					"name": "Estado de pagos",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/suscripciones/estado-pagos", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","suscripciones","estado-pagos"] } }
+				},
+				{
+					"name": "Registrar pago manual",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"tenantId\": 1,\n    \"monto\": 49.90,\n    \"metodoPago\": \"TRANSFERENCIA\",\n    \"referenciaTransaccion\": \"TRF-2026-001\",\n    \"cuponCodigo\": null\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/pagos", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","pagos"] } }
+				},
+				{
+					"name": "Factura de pago",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/pagos/1/factura", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","pagos","1","factura"] } }
+				},
+				{
+					"name": "Listar tickets soporte",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/tickets?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tickets"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"estado","value":"","disabled":true},{"key":"prioridad","value":"","disabled":true},{"key":"tenantId","value":"","disabled":true}] } }
+				},
+				{
+					"name": "Detalle ticket",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/tickets/1", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tickets","1"] } }
+				},
+				{
+					"name": "Responder ticket",
+					"request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"estado\": \"EN_PROCESO\",\n    \"prioridad\": \"ALTA\",\n    \"respuesta\": \"Estamos revisando su caso\"\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/tickets/1", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","tickets","1"] } }
+				},
+				{
+					"name": "Logs de auditoria",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/auditoria?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","auditoria"], "query": [{"key":"page","value":"0"},{"key":"size","value":"20"},{"key":"tenantId","value":"","disabled":true},{"key":"accion","value":"","disabled":true},{"key":"fechaDesde","value":"","disabled":true},{"key":"fechaHasta","value":"","disabled":true}] } }
+				}
+			]
+		},
+		{
+			"name": "23. Platform - Cupones",
+			"description": "Cupones promocionales",
+			"item": [
+				{
+					"name": "Listar cupones",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/platform/cupones", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","cupones"] } }
+				},
+				{
+					"name": "Crear cupon",
+					"request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n    \"codigo\": \"BIENVENIDO2026\",\n    \"tipoDescuento\": \"PORCENTAJE\",\n    \"valorDescuento\": 20.00,\n    \"fechaExpiracion\": \"2026-12-31\",\n    \"usosMaximos\": 100\n}"}, "url": { "raw": "{{baseUrl}}/api/v1/platform/cupones", "host": ["{{baseUrl}}"], "path": ["api","v1","platform","cupones"] } }
+				}
+			]
+		}
+	]
+}

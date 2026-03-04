@@ -12,11 +12,14 @@ import type {
   KardexFilters,
   StockResponse,
   KardexResponse,
-  AjusteInventarioRequest,
-  AlertasStock,
-  EstadoStock,
-  TipoMovimiento,
-} from '@monorepo/shared-types';
+  AjusteData as AjusteInventarioRequest,
+} from '../types/inventario';
+
+// AlertasStock is not in the local types file
+interface AlertasStock {
+  stockBajo: StockItem[];
+  stockCritico: StockItem[];
+}
 
 // ========== DATOS MOCK ==========
 
@@ -30,7 +33,7 @@ const MOCK_STOCK_ITEMS: StockItem[] = [
     warehouseId: 'WH-PRINCIPAL',
     cantidad: 45,
     stockMinimo: 10,
-    estado: 'NORMAL' as EstadoStock,
+    estado: 'NORMAL',
     updatedAt: '2025-01-15T10:30:00.000Z',
   },
   {
@@ -42,7 +45,7 @@ const MOCK_STOCK_ITEMS: StockItem[] = [
     warehouseId: 'WH-PRINCIPAL',
     cantidad: 8,
     stockMinimo: 15,
-    estado: 'BAJO' as EstadoStock,
+    estado: 'BAJO',
     updatedAt: '2025-01-14T14:20:00.000Z',
   },
   {
@@ -54,7 +57,7 @@ const MOCK_STOCK_ITEMS: StockItem[] = [
     warehouseId: 'WH-PRINCIPAL',
     cantidad: 2,
     stockMinimo: 5,
-    estado: 'CRITICO' as EstadoStock,
+    estado: 'CRITICO',
     updatedAt: '2025-01-13T09:15:00.000Z',
   },
   {
@@ -66,7 +69,7 @@ const MOCK_STOCK_ITEMS: StockItem[] = [
     warehouseId: 'WH-SECUNDARIO',
     cantidad: 12,
     stockMinimo: 5,
-    estado: 'NORMAL' as EstadoStock,
+    estado: 'NORMAL',
     updatedAt: '2025-01-12T16:45:00.000Z',
   },
   {
@@ -78,7 +81,7 @@ const MOCK_STOCK_ITEMS: StockItem[] = [
     warehouseId: 'WH-PRINCIPAL',
     cantidad: 30,
     stockMinimo: 20,
-    estado: 'NORMAL' as EstadoStock,
+    estado: 'NORMAL',
     updatedAt: '2025-01-11T11:00:00.000Z',
   },
   {
@@ -90,7 +93,7 @@ const MOCK_STOCK_ITEMS: StockItem[] = [
     warehouseId: 'WH-PRINCIPAL',
     cantidad: 1,
     stockMinimo: 8,
-    estado: 'CRITICO' as EstadoStock,
+    estado: 'CRITICO',
     updatedAt: '2025-01-10T08:00:00.000Z',
   },
 ];
@@ -103,7 +106,7 @@ const MOCK_KARDEX_MOVIMIENTOS: MovimientoKardex[] = [
     codigo: 'LAP-001',
     nombre: 'Laptop Dell Inspiron 15',
     almacen: 'Almacén Principal',
-    tipo: 'ENTRADA' as TipoMovimiento,
+    tipo: 'ENTRADA',
     cantidad: 10,
     stockAntes: 35,
     stockDespues: 45,
@@ -118,7 +121,7 @@ const MOCK_KARDEX_MOVIMIENTOS: MovimientoKardex[] = [
     codigo: 'MOU-001',
     nombre: 'Mouse Logitech MX Master 3',
     almacen: 'Almacén Principal',
-    tipo: 'SALIDA' as TipoMovimiento,
+    tipo: 'SALIDA',
     cantidad: -5,
     stockAntes: 13,
     stockDespues: 8,
@@ -133,7 +136,7 @@ const MOCK_KARDEX_MOVIMIENTOS: MovimientoKardex[] = [
     codigo: 'TEC-001',
     nombre: 'Teclado Mecánico Razer',
     almacen: 'Almacén Principal',
-    tipo: 'AJUSTE' as TipoMovimiento,
+    tipo: 'AJUSTE',
     cantidad: -3,
     stockAntes: 5,
     stockDespues: 2,
@@ -147,7 +150,7 @@ const MOCK_KARDEX_MOVIMIENTOS: MovimientoKardex[] = [
     codigo: 'MON-001',
     nombre: 'Monitor LG 27" 4K',
     almacen: 'Almacén Secundario',
-    tipo: 'ENTRADA' as TipoMovimiento,
+    tipo: 'ENTRADA',
     cantidad: 7,
     stockAntes: 5,
     stockDespues: 12,
@@ -162,7 +165,7 @@ const MOCK_KARDEX_MOVIMIENTOS: MovimientoKardex[] = [
     codigo: 'HDD-001',
     nombre: 'Disco Duro Externo 1TB',
     almacen: 'Almacén Principal',
-    tipo: 'ENTRADA' as TipoMovimiento,
+    tipo: 'ENTRADA',
     cantidad: 30,
     stockAntes: 0,
     stockDespues: 30,
@@ -238,8 +241,8 @@ const filterKardexMovimientos = (
     filtered = filtered.filter(item => item.productId === filters.productId);
   }
 
-  if (filters.tipo) {
-    filtered = filtered.filter(item => item.tipo === filters.tipo);
+  if (filters.tipoMovimiento) {
+    filtered = filtered.filter(item => item.tipo === filters.tipoMovimiento);
   }
 
   if (filters.fechaDesde) {
@@ -338,11 +341,11 @@ class InventoryMockApiService {
       // Recalcular estado
       if (stockItem.stockMinimo) {
         if (stockItem.cantidad <= stockItem.stockMinimo * 0.2) {
-          stockItem.estado = 'CRITICO' as EstadoStock;
+          stockItem.estado = 'CRITICO';
         } else if (stockItem.cantidad <= stockItem.stockMinimo) {
-          stockItem.estado = 'BAJO' as EstadoStock;
+          stockItem.estado = 'BAJO';
         } else {
-          stockItem.estado = 'NORMAL' as EstadoStock;
+          stockItem.estado = 'NORMAL';
         }
       }
 
@@ -354,7 +357,7 @@ class InventoryMockApiService {
         codigo: stockItem.codigo,
         nombre: stockItem.nombre,
         almacen: stockItem.almacen,
-        tipo: 'AJUSTE' as TipoMovimiento,
+        tipo: 'AJUSTE',
         cantidad: ajusteData.cantidadAjuste,
         stockAntes,
         stockDespues: stockItem.cantidad,

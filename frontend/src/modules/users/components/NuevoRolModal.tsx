@@ -371,11 +371,16 @@ const NuevoRolModal: React.FC<NuevoRolModalProps> = ({ onClose, onSubmit }) => {
   const loadValidPermissions = async () => {
     try {
       const response = await apiService.get<string[]>('/roles/permissions');
-      setValidPermissions(response.data || []);
+      const perms = response.data;
+      if (Array.isArray(perms) && perms.length > 0) {
+        setValidPermissions(perms);
+        return;
+      }
     } catch (error) {
-      console.error('Error cargando permisos:', error);
-      showError('Error al cargar permisos disponibles');
+      console.warn('[NuevoRolModal] /roles/permissions not available, using local metadata');
     }
+    // Fallback: use PERMISSION_METADATA keys
+    setValidPermissions(Object.keys(PERMISSION_METADATA));
   };
 
   // Agrupar permisos por módulo

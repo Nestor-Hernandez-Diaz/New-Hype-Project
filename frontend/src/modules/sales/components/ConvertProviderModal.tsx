@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { useClients, type Client } from '../../clients/context/ClientContext';
+import { useClients } from '../../clients/context/ClientContext';
+import type { Entidad, ActualizarEntidadDTO } from '@monorepo/shared-types';
+type Client = Entidad;
 import { useNotification } from '../../../context/NotificationContext';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, Z_INDEX } from '../../../styles/theme';
 import { Button as SharedButton } from '../../../components/shared/Button';
@@ -215,8 +217,8 @@ export const ConvertProviderModal: React.FC<ConvertProviderModalProps> = ({
 
     setIsConverting(true);
     try {
-      const updatedData = {
-        tipoEntidad: selectedOption
+      const updatedData: ActualizarEntidadDTO = {
+        tipoEntidad: selectedOption as any
       };
 
       // Actualizar en el backend (esto ya recarga la lista de clientes)
@@ -225,7 +227,7 @@ export const ConvertProviderModal: React.FC<ConvertProviderModalProps> = ({
       // Crear objeto Client actualizado para pasar al callback
       const updatedClient: Client = {
         ...provider,
-        tipoEntidad: selectedOption
+        tipoEntidad: selectedOption as any
       };
 
       // Llamar callback DESPUÉS de que se actualice

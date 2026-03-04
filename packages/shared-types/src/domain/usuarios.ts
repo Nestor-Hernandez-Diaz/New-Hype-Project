@@ -62,6 +62,10 @@ export interface Rol {
   permisos: string[];
   /** Indica si el rol está activo */
   activo: boolean;
+  /** Indica si es un rol del sistema (no eliminable) */
+  esSistema?: boolean;
+  /** Cantidad de usuarios asignados a este rol */
+  cantidadUsuarios?: number;
   /** Fecha de creación */
   fechaCreacion: Date;
   /** Fecha de última actualización */

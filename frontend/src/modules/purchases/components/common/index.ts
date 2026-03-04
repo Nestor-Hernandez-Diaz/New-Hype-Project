@@ -8,5 +8,5 @@ export { default as ActionButton, ActionButtonsGroup } from './ActionButtons';
 export { default as SearchFilters } from './SearchFilters';
 
 export type { default as StatusBadgeProps } from './StatusBadge';
-export type { default as ActionButtonProps, ActionButtonsGroupProps } from './ActionButtons';
+export type { default as ActionButtonProps } from './ActionButtons';
 export type { default as SearchFiltersProps } from './SearchFilters';

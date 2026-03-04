@@ -2,7 +2,7 @@
  * 📦 PURCHASES CONTEXT - GESTIÓN CENTRALIZADA DE COMPRAS
  * 
  * Context refactorizado con useReducer para gestión de órdenes y recepciones.
- * Conectado a Mock APIs locales (ordenesComprasMockApi y recepcionesMockApi)
+ * Conectado al backend real via comprasRealApi (ordenesComprasApi y recepcionesApi)
  * 
  * @packageDocumentation
  */
@@ -26,8 +26,7 @@ import type {
   CambiarEstadoRecepcionDTO,
 } from '@monorepo/shared-types';
 
-import * as ordenesComprasMockApi from '../services/ordenesComprasMockApi';
-import * as recepcionesMockApi from '../services/recepcionesMockApi';
+import { ordenesComprasApi, recepcionesApi } from '../services/comprasRealApi';
 
 // ============= TIPOS DE ESTADO Y ACCIONES =============
 
@@ -210,21 +209,21 @@ interface PurchasesProviderProps {
 
 export const PurchasesProvider: React.FC<PurchasesProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(purchasesReducer, initialState);
-  const { showNotification } = useNotification();
+  const { showSuccess, showError } = useNotification();
 
   // === ÓRDENES ===
 
   const loadOrdenes = useCallback(async (filtros?: FiltrosOrdenCompra) => {
     dispatch({ type: 'FETCH_ORDENES_START' });
     try {
-      const resultado = await ordenesComprasMockApi.ordenesComprasMockApi.getOrdenes(filtros);
+      const resultado = await ordenesComprasApi.getOrdenes(filtros);
       dispatch({ type: 'FETCH_ORDENES_SUCCESS', payload: resultado });
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al cargar órdenes';
       dispatch({ type: 'FETCH_ORDENES_ERROR', payload: mensaje });
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showError]);
 
   const getOrdenById = useCallback((id: string): OrdenCompra | undefined => {
     return state.ordenes.find(o => o.id === id);
@@ -232,67 +231,67 @@ export const PurchasesProvider: React.FC<PurchasesProviderProps> = ({ children }
 
   const crearOrden = useCallback(async (data: CrearOrdenCompraDTO) => {
     try {
-      const nuevaOrden = await ordenesComprasMockApi.ordenesComprasMockApi.crearOrden(data);
+      const nuevaOrden = await ordenesComprasApi.crearOrden(data);
       dispatch({ type: 'CREATE_ORDEN_SUCCESS', payload: nuevaOrden });
-      showNotification({ type: 'success', message: `Orden ${nuevaOrden.codigo} creada`, title: 'Éxito' });
+      showSuccess(`Orden ${nuevaOrden.codigo} creada`);
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al crear orden';
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showSuccess, showError]);
 
   const actualizarOrden = useCallback(async (id: string, data: ActualizarOrdenCompraDTO) => {
     try {
-      const ordenActualizada = await ordenesComprasMockApi.ordenesComprasMockApi.actualizarOrden(id, data);
+      const ordenActualizada = await ordenesComprasApi.actualizarOrden(id, data);
       if (ordenActualizada) {
         dispatch({ type: 'UPDATE_ORDEN_SUCCESS', payload: ordenActualizada });
-        showNotification({ type: 'success', message: 'Orden actualizada', title: 'Éxito' });
+        showSuccess('Orden actualizada');
       }
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al actualizar orden';
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showSuccess, showError]);
 
   const eliminarOrden = useCallback(async (id: string) => {
     try {
-      const eliminada = await ordenesComprasMockApi.ordenesComprasMockApi.eliminarOrden(id);
+      const eliminada = await ordenesComprasApi.eliminarOrden(id);
       if (eliminada) {
         dispatch({ type: 'DELETE_ORDEN_SUCCESS', payload: id });
-        showNotification({ type: 'success', message: 'Orden eliminada', title: 'Éxito' });
+        showSuccess('Orden eliminada');
       }
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al eliminar orden';
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showSuccess, showError]);
 
   const cambiarEstadoOrden = useCallback(async (id: string, data: CambiarEstadoOrdenDTO) => {
     try {
-      const ordenActualizada = await ordenesComprasMockApi.ordenesComprasMockApi.cambiarEstado(id, data);
+      const ordenActualizada = await ordenesComprasApi.cambiarEstado(id, data);
       if (ordenActualizada) {
         dispatch({ type: 'CHANGE_ORDEN_STATE_SUCCESS', payload: ordenActualizada });
-        showNotification({ type: 'success', message: `Estado cambiado a ${data.estado}`, title: 'Éxito' });
+        showSuccess(`Estado cambiado a ${data.estado}`);
       }
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al cambiar estado';
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showSuccess, showError]);
 
   // === RECEPCIONES ===
 
   const loadRecepciones = useCallback(async (filtros?: FiltrosRecepcion) => {
     dispatch({ type: 'FETCH_RECEPCIONES_START' });
     try {
-      const resultado = await recepcionesMockApi.recepcionesMockApi.getRecepciones(filtros);
+      const resultado = await recepcionesApi.getRecepciones(filtros);
       dispatch({ type: 'FETCH_RECEPCIONES_SUCCESS', payload: resultado });
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al cargar recepciones';
       dispatch({ type: 'FETCH_RECEPCIONES_ERROR', payload: mensaje });
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showError]);
 
   const getRecepcionById = useCallback((id: string): Recepcion | undefined => {
     return state.recepciones.find(r => r.id === id);
@@ -300,53 +299,53 @@ export const PurchasesProvider: React.FC<PurchasesProviderProps> = ({ children }
 
   const crearRecepcion = useCallback(async (data: CrearRecepcionDTO) => {
     try {
-      const nuevaRecepcion = await recepcionesMockApi.recepcionesMockApi.crearRecepcion(data);
+      const nuevaRecepcion = await recepcionesApi.crearRecepcion(data);
       dispatch({ type: 'CREATE_RECEPCION_SUCCESS', payload: nuevaRecepcion });
-      showNotification({ type: 'success', message: `Recepción ${nuevaRecepcion.codigo} creada`, title: 'Éxito' });
+      showSuccess(`Recepción ${nuevaRecepcion.codigo} creada`);
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al crear recepción';
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showSuccess, showError]);
 
   const actualizarRecepcion = useCallback(async (id: string, data: ActualizarRecepcionDTO) => {
     try {
-      const recepcionActualizada = await recepcionesMockApi.recepcionesMockApi.actualizarRecepcion(id, data);
+      const recepcionActualizada = await recepcionesApi.actualizarRecepcion(id, data);
       if (recepcionActualizada) {
         dispatch({ type: 'UPDATE_RECEPCION_SUCCESS', payload: recepcionActualizada });
-        showNotification({ type: 'success', message: 'Recepción actualizada', title: 'Éxito' });
+        showSuccess('Recepción actualizada');
       }
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al actualizar recepción';
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showSuccess, showError]);
 
   const eliminarRecepcion = useCallback(async (id: string) => {
     try {
-      const eliminada = await recepcionesMockApi.recepcionesMockApi.eliminarRecepcion(id);
+      const eliminada = await recepcionesApi.eliminarRecepcion(id);
       if (eliminada) {
         dispatch({ type: 'DELETE_RECEPCION_SUCCESS', payload: id });
-        showNotification({ type: 'success', message: 'Recepción eliminada', title: 'Éxito' });
+        showSuccess('Recepción eliminada');
       }
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al eliminar recepción';
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showSuccess, showError]);
 
   const cambiarEstadoRecepcion = useCallback(async (id: string, data: CambiarEstadoRecepcionDTO) => {
     try {
-      const recepcionActualizada = await recepcionesMockApi.recepcionesMockApi.cambiarEstado(id, data);
+      const recepcionActualizada = await recepcionesApi.cambiarEstado(id, data);
       if (recepcionActualizada) {
         dispatch({ type: 'CHANGE_RECEPCION_STATE_SUCCESS', payload: recepcionActualizada });
-        showNotification({ type: 'success', message: `Estado cambiado a ${data.estado}`, title: 'Éxito' });
+        showSuccess(`Estado cambiado a ${data.estado}`);
       }
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al cambiar estado';
-      showNotification({ type: 'error', message: mensaje, title: 'Error' });
+      showError(mensaje);
     }
-  }, [showNotification]);
+  }, [showSuccess, showError]);
 
   // Auto-inicializar
   useEffect(() => {

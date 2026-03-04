@@ -7,7 +7,6 @@ import { useNotification } from '../../../context/NotificationContext';
 import { useModal } from '../../../context/ModalContext';
 import NuevoProductoModal from '../components/NuevoProductoModal';
 import EditarProductoModal from '../components/EditarProductoModal';
-import { apiService } from '../../../utils/api';
 import { media } from '../../../styles/breakpoints';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../../../styles/theme';
 import { 
@@ -262,11 +261,12 @@ const DeleteConfirmActions = styled.div`
 
 
 const ListaProductos: React.FC = () => {
-  const { products, pagination, updateProduct, loadProducts } = useProducts();
+  const { products, pagination, loading, updateProduct, toggleProductStatus, deleteProduct, loadProducts, unidadesMedida, categorias } = useProducts();
   const { showSuccess, showError } = useNotification();
   const { openModal, closeModal } = useModal();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
@@ -297,6 +297,7 @@ const ListaProductos: React.FC = () => {
 
       if (debouncedSearchTerm) filters.q = debouncedSearchTerm;
       if (selectedCategory) filters.categoria = selectedCategory;
+      if (selectedStatus) filters.estadoProducto = selectedStatus;
       if (minPrice) filters.minPrecio = parseFloat(minPrice);
       if (maxPrice) filters.maxPrecio = parseFloat(maxPrice);
 
@@ -304,7 +305,7 @@ const ListaProductos: React.FC = () => {
     } catch (err) {
       console.error('Error fetching products:', err);
     }
-  }, [currentPage, pageSize, debouncedSearchTerm, selectedCategory, minPrice, maxPrice, loadProducts]);
+  }, [currentPage, pageSize, debouncedSearchTerm, selectedCategory, selectedStatus, minPrice, maxPrice, loadProducts]);
 
   // Cargar productos cuando cambien los filtros o la página
   useEffect(() => {
@@ -315,12 +316,26 @@ const ListaProductos: React.FC = () => {
     openModal(<NuevoProductoModal onClose={closeModal} />, 'Registrar Producto', 'large');
   };
 
-  // Obtener categorías únicas para el filtro (de los productos actuales)
-  const categories = Array.from(
-    new Set(
-      products.map(product => product.categoria?.nombreCategoria || '').filter(Boolean)
-    )
-  ).sort();
+  // Obtener categorías para el filtro desde maestros cargados en contexto
+  const categories = useMemo(() => {
+    // Priorizar categorías de configuración, fallback a las de productos
+    if (categorias.length > 0) {
+      return categorias.map(c => c.nombreCategoria).filter(Boolean).sort();
+    }
+    return Array.from(
+      new Set(products.map(p => p.categoria?.nombreCategoria || '').filter(Boolean))
+    ).sort();
+  }, [categorias, products]);
+
+  // Resolver nombre de unidad de medida por ID
+  const getUnitName = useCallback((product: Producto): string => {
+    if (product.unidadMedida?.nombreUnidad) return product.unidadMedida.nombreUnidad;
+    if (product.unidadMedidaId && unidadesMedida.length > 0) {
+      const unit = unidadesMedida.find(u => Number(u.id) === Number(product.unidadMedidaId));
+      return unit?.nombreUnidad || '-';
+    }
+    return '-';
+  }, [unidadesMedida]);
 
   const handleEdit = (productId: string | number) => {
     const product = products.find(p => p.id === productId);
@@ -343,18 +358,12 @@ const ListaProductos: React.FC = () => {
     if (!productToDelete) return;
 
     try {
-      const response = await apiService.deleteProduct(productToDelete.productCode);
-      if (!response.success) {
-        throw new Error(response.message || 'Error al eliminar el producto');
-      }
-      // Actualizar el producto localmente marcándolo como inactivo
-      updateProduct(productToDelete.id, { isActive: false });
-      showSuccess('Producto eliminado exitosamente');
+      // Usar deleteProduct del contexto (usa ID numérico correcto)
+      await deleteProduct(String(productToDelete.id));
       setIsDeleteConfirmOpen(false);
       setProductToDelete(null);
     } catch (error) {
       console.error('Error deleting product:', error);
-      showError('No se pudo eliminar el producto');
     }
   };
 
@@ -365,15 +374,10 @@ const ListaProductos: React.FC = () => {
 
   const handleActivateProduct = async (product: Producto) => {
     try {
-      const response = await apiService.updateProductStatus(product.codigoProducto, true);
-      if (!response.success) {
-        throw new Error(response.message || 'Error al activar el producto');
-      }
-      updateProduct(product.id, { isActive: true });
-      showSuccess('Producto activado exitosamente');
+      // Use PATCH /productos/{id}/status instead of PUT (which requires all fields)
+      await toggleProductStatus(String(product.id), true);
     } catch (error) {
       console.error('Error activating product:', error);
-      showError('No se pudo activar el producto');
     }
   };
 
@@ -382,6 +386,7 @@ const ListaProductos: React.FC = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedCategory('');
+    setSelectedStatus('');
     setMinPrice('');
     setMaxPrice('');
     setCurrentPage(1); // Resetear a la primera página
@@ -469,6 +474,23 @@ const ListaProductos: React.FC = () => {
             </FilterGroup>
 
             <FilterGroup>
+              <FilterLabel>Estado</FilterLabel>
+              <Input
+                as="select"
+                value={selectedStatus}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  setSelectedStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+                style={{ width: '150px' }}
+              >
+                <option value="">Todos</option>
+                <option value="ACTIVO">Activos</option>
+                <option value="INACTIVO">Inactivos</option>
+              </Input>
+            </FilterGroup>
+
+            <FilterGroup>
               <FilterLabel>Precio Mínimo</FilterLabel>
               <Input
                 type="number"
@@ -530,7 +552,7 @@ const ListaProductos: React.FC = () => {
                     </StatusBadge>
                   </Td>
                   <Td>
-                    {product.unidadMedida?.nombreUnidadMedida || '-'}
+                    {getUnitName(product)}
                   </Td>
                   <Td>
                     <ActionButton 
@@ -613,7 +635,7 @@ const ListaProductos: React.FC = () => {
                   
                   <MobileCardField>
                     <MobileCardLabel>Unidad</MobileCardLabel>
-                    <MobileCardValue>{product.unidadMedida?.nombreUnidadMedida || '-'}</MobileCardValue>
+                    <MobileCardValue>{getUnitName(product)}</MobileCardValue>
                   </MobileCardField>
                 </MobileCardBody>
                 

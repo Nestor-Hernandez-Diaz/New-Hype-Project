@@ -16,8 +16,8 @@ import type {
   AjusteInventarioRequest,
   StockStats,
   AlertasStock,
-} from '@monorepo/shared-types';
-import { inventoryMockApi } from '../services/inventoryMockApi';
+} from '../types/inventario';
+import { inventoryMockApi } from '../services/inventoryRealApi';
 import { useAuth } from '../../auth/context/AuthContext';
 
 // ========== TIPOS DEL ESTADO ==========

@@ -114,9 +114,8 @@ const FiltersStock: React.FC<FiltersStockProps> = ({ onFilterChange, loading = f
 
   // Prefill almacén por defecto si no está seleccionado
   useEffect(() => {
-    if (!filters.almacenId) {
-      const def = defaultWarehouseId || 'WH-PRINCIPAL';
-      setFilters(prev => ({ ...prev, almacenId: def }));
+    if (!filters.almacenId && defaultWarehouseId) {
+      setFilters(prev => ({ ...prev, almacenId: defaultWarehouseId }));
     }
   }, [defaultWarehouseId]);
 
@@ -132,12 +131,12 @@ const FiltersStock: React.FC<FiltersStockProps> = ({ onFilterChange, loading = f
   // Aplicar filtros
   const handleSearch = () => {
     // Limpiar valores vacíos
-    const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+    const cleanFilters = Object.entries(filters).reduce<Record<string, unknown>>((acc, [key, value]) => {
       if (value !== '' && value !== undefined && value !== null) {
-        acc[key as keyof StockFilters] = value;
+        acc[key] = value;
       }
       return acc;
-    }, {} as StockFilters);
+    }, {}) as StockFilters;
 
     onFilterChange(cleanFilters);
   };

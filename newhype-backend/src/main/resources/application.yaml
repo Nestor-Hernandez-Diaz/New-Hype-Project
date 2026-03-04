@@ -7,7 +7,7 @@ spring:
   application:
     name: NewHype Backend
 
-  # ── Datasource (MySQL XAMPP) ──────────────────────────────────
+  # ── Datasource (MySQL XAMPP local) ───────────────────────────
   datasource:
     url: jdbc:mysql://localhost:3306/newhype_dev?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Lima
     username: root

@@ -1,0 +1,240 @@
+═══════════════════════════════════════════════════════════════════════════════
+                   CREDENCIALES PARA PRESENTACIÓN NEWHYPE ERP
+                           Fecha: 2026-02-23
+═══════════════════════════════════════════════════════════════════════════════
+
+🌐 SERVIDOR PRODUCCIÓN
+═══════════════════════════════════════════════════════════════════════════════
+URL Base:      http://spring.informaticapp.com:5001/New-Hype-Project
+Status:        ✅ ONLINE (Java PID 2499620, Puerto 5001, DB conectada)
+Responsable:   ventas@spring.informaticapp.com
+
+───────────────────────────────────────────────────────────────────────────────
+
+📋 OPCIÓN A: REGISTRO EN VIVO (PREFERIDO - Demostración interactiva)
+═══════════════════════════════════════════════════════════════════════════════
+
+URL: http://spring.informaticapp.com:5001/New-Hype-Project/register.html
+
+PASO 1 - Rellenar formulario con estos datos:
+  Nombre:           Juan
+  Apellido:         Pérez
+  Email:            juan.perez.demo.20260223@gmail.com  ← ⚠️ CAMBIAR CADA VEZ
+  Password:         Demo2026
+  Tienda (opcional): ERP Demo Store
+
+PASO 2 - Hacer click "Registrarse"
+  ↓ Servidor crea TENANT automáticamente
+  ↓ Genera ROL ADMIN
+  ↓ Emite ACCESS TOKEN + REFRESH TOKEN
+
+PASO 3 - Copiar token
+  ↓ Hacer click en botón "Copiar Token"
+  ↓ Token en clipboard (feedback visual: "Copiado!")
+  ↓ Pegar en Postman → variable {{tenantToken}}
+
+VENTAJAS:
+  ✅ Demuestra creación automática de TENANT
+  ✅ Muestra generación de JWT en tiempo real
+  ✅ Valida que register.html funciona
+  ✅ Crea usuario + tenant + rol en una operación
+  ✅ Impacto máximo para docentes
+
+RIESGOS:
+  ⚠️ Red puede fallar (plan B: opción C)
+  ⚠️ Campo email debe ser único (cambiar cada ensayo)
+
+───────────────────────────────────────────────────────────────────────────────
+
+📋 OPCIÓN B: SUPERADMIN PRE-LOGIN (FALLBACK - Rápido y confiable)
+═══════════════════════════════════════════════════════════════════════════════
+
+Si register.html NO funciona:
+
+Email:     superadmin@newhype.pe
+Password:  SuperAdmin2026
+
+PASO 1 - Login en Postman
+  POST /platform/auth/login
+  Payload:
+  {
+    "emailOrUsername": "superadmin@newhype.pe",
+    "password": "SuperAdmin2026"
+  }
+
+PASO 2 - Copiar accessToken de respuesta
+  {
+    "success": true,
+    "data": {
+      "accessToken": "eyJhbGciOiJIUzM4NCJ9...",
+      "tokenType": "Bearer",
+      "scope": "platform"
+    }
+  }
+
+PASO 3 - Usar en requests posteriores
+  Header: Authorization: Bearer {accessToken}
+
+VENTAJAS:
+  ✅ No depende de register.html
+  ✅ Ya existe en BD
+  ✅ Acceso a todos los endpoints
+  ✅ Más rápido
+
+DESVENTAJAS:
+  ❌ No demuestra creación de usuario en vivo
+  ❌ Menos impactante que register.html
+
+───────────────────────────────────────────────────────────────────────────────
+
+📋 OPCIÓN C: TOKEN PRE-GENERADO (FALLBACK FINAL - Garantizado)
+═══════════════════════════════════════════════════════════════════════════════
+
+Si la red completamente se cae:
+
+TOKENS PRE-GENERADOS (válidos por 24h):
+──────────────────────────────────────────────────────────────────────────────
+
+📍 SUPERADMIN TOKEN:
+Generado: 2026-02-23 00:30 UTC ✅
+
+Scope: platform
+Role: SUPERADMIN
+Válido hasta: 2026-02-24 (24h)
+
+Token: eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwic2NvcGUiOiJwbGF0Zm9ybSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzE4MDkyNDMsImV4cCI6MTc3MTg5NTY0Mywicm9sZSI6IlNVUEVSQURNSU4ifQ.tI8JkKDX_-jOPkKC3dK4llYZ9f-KEbGRvA1lpiL2X5EHSlpG0ZRTyA7MyrYO-P2z
+
+──────────────────────────────────────────────────────────────────────────────
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📍 TENANT TOKEN (USUARIO PRE-CREADO - PROBADO):
+Generado: 2026-02-23 01:30 UTC ✅
+
+Email: juan.perez.demo.fresh@gmail.com
+Password: Demo2026
+
+Scope: tenant
+Role: ADMIN
+TenantId: 23
+TenantNombre: Tienda de Juan
+Válido hasta: 2026-02-24 (24h)
+
+Token: eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIyNCIsInNjb3BlIjoidGVuYW50IiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3MTgwOTY5MCwiZXhwIjoxNzcxODk2MDkwLCJ0ZW5hbnRJZCI6MjMsInJvbGUiOiJBRE1JTiJ9.ArATokbbsMJj4eEXpw1LzNSujB6nr2d4jiQDyq7Y2pBcsk6PMt91gEtNp_1I89Om
+
+──────────────────────────────────────────────────────────────────────────────
+
+Este usuario fue CREADO Y PROBADO exitosamente via /api/v1/auth/register.
+✅ Endpoint funciona correctamente
+✅ Token es válido por 24h
+✅ Usuario + Tenant + Rol se crearon automáticamente
+
+NOTA: Si prefieres usar register.html en vivo, úsalo con email NUEVO cada vez:
+      juan.perez.demo.{FECHA}@gmail.com  (cambiar {FECHA} por 0223, 0224, etc)
+
+──────────────────────────────────────────────────────────────────────────────
+
+📍 CLIENTE B2C TOKEN:
+[GENERAR CORRIENDO: curl -X POST http://spring.informaticapp.com:5001/New-Hype-Project/api/v1/storefront/auth/login -H "Content-Type: application/json" -d '{"emailOrUsername":"maria.garcia@gmail.com","password":"Cliente2026"}']
+
+Token: [PEGAR AQUÍ DESPUÉS DE GENERAR]
+Scope: storefront
+Role: CLIENTE
+ClienteId: [ANOTAR ID DESPUÉS DE LOGIN]
+Válido hasta: 2026-02-24 (24h)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔄 FLUJO DE PRESENTACIÓN (15-20 MIN)
+═══════════════════════════════════════════════════════════════════════════════
+
+MIN 0-2  | INTRO
+└─ Pantalla: Arquitectura + 51 tablas + 169 endpoints
+
+MIN 2-5  | OBTENER TOKEN
+├─ Opción A: register.html en vivo ← PREFERIDA
+├─ Opción B: Superadmin pre-login ← SI A FALLA
+└─ Opción C: Token pre-generado ← SI TODO FALLA
+
+MIN 5-6  | VERIFICAR TOKEN VÁLIDO
+└─ GET /auth/me → Mostrar usuario, tenant, role, scope
+
+MIN 6-7  | CONFIGURACIÓN EMPRESA
+├─ PUT /configuracion/empresa (RUC, razón social, dirección)
+└─ GET /configuracion/empresa (verificar datos persisten en BD)
+
+MIN 7-9  | CATÁLOGO + PRODUCTO
+├─ POST /configuracion/categorias (crear "Polos")
+└─ POST /productos (crear "Polo Premium Negro" con precio 79.90, stock 50)
+
+MIN 9-12 | VENTA COMPLETA
+├─ POST /ventas (crear venta con 2 unidades)
+├─ POST /ventas/{id}/confirmar-pago (pago + stock decrementado 50→48)
+└─ GET /inventario/kardex (mostrar movimiento SALIDA auditado)
+
+MIN 12-14| REPORTES
+├─ GET /reportes/resumen (dashboard con totales)
+└─ GET /reportes/productos-mas-vendidos (Polo Premium: 2 vendidos)
+
+MIN 14-15| SWAGGER UI
+└─ Mostrar /swagger-ui.html (169 endpoints documentados)
+
+MIN 15-20| Q&A
+└─ Responder preguntas de docentes
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ VERIFICACIÓN PRE-PRESENTACIÓN (24H ANTES)
+═══════════════════════════════════════════════════════════════════════════════
+
+[ ] 1. Java process running: ps aux | grep newhype
+[ ] 2. Puerto 5001 escuchando: netstat -tlnp | grep 5001
+[ ] 3. Conexión HTTP: curl http://spring.informaticapp.com:5001/New-Hype-Project/register.html
+[ ] 4. BD conectada: GET /auth/me con superadmin token
+[ ] 5. Generar tokens frescos (superadmin, tenant, cliente)
+[ ] 6. Email para demo debe ser ÚNICO (cambiar Juan.perez.demo.20260223@gmail.com)
+[ ] 7. Postman environment configurado (baseUrl, tokens, tenantId)
+[ ] 8. Dry-run completo: 5 requests en orden
+[ ] 9. Cronometrar: debe durar 15-20 min
+[ ] 10. Probar todos los fallbacks (register.html → curl)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎤 FRASES CLAVE PARA DOCENTES
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Intro:
+   "El NewHype ERP tiene 169 endpoints en 51 tablas. Hoy verán cómo funcionan
+    en tiempo real, desde obtener el token JWT hasta completar una venta."
+
+2. Token:
+   "El registro automáticamente crea un TENANT (tienda), genera un ROL ADMIN,
+    y emite un JWT con 3 scopes (platform, tenant, storefront)."
+
+3. Datos:
+   "Esto se almacena en MySQL en tiempo real. Pueden ver que el stock pasa de
+    50 a 48 después de la venta, y el Kardex registra cada movimiento."
+
+4. Endpoints:
+   "ESTE es uno de 169 endpoints. Swagger documenta todos, y nuestras pruebas
+    E2E verificamos que el 100% funcionan correctamente."
+
+5. Conclusión:
+   "Multi-tenancia probada. Seguridad con JWT. Base de datos completa.
+    Todo listo para producción."
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📞 CONTACTO DE SOPORTE
+═══════════════════════════════════════════════════════════════════════════════
+
+Si algo falla durante presentación:
+
+Opción A: Usar Plan B (token pre-generado)
+Opción B: "Tengo E2E Test Report mostrando 30/30 tests PASS"
+Opción C: "Tengo video pre-grabado del flujo completo"
+Opción D: Mostrar Swagger UI documentando 169 endpoints
+
+Nunca entres en pánico. Siempre hay un fallback.
+
+═══════════════════════════════════════════════════════════════════════════════

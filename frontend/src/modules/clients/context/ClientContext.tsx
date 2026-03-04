@@ -17,7 +17,7 @@ import type {
   ActualizarEntidadDTO,
   EntidadFiltros
 } from '@monorepo/shared-types';
-import * as entidadesMockApi from '../services/entidadesMockApi';
+import * as entidadesMockApi from '../services/entidadesRealApi';
 
 // ============= TIPOS DE ESTADO Y ACCIONES =============
 
@@ -27,7 +27,7 @@ interface ClientsState {
     page: number;
     limit: number;
     total: number;
-    pages: number;
+    totalPages: number;
   } | null;
   loading: boolean;
   error: string | null;

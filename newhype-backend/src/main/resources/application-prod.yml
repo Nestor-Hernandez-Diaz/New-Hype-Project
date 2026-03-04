@@ -1,0 +1,68 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  NewHype Backend — PRODUCCION (cPanel)                     ║
+# ║  Perfil: prod                                              ║
+# ║  Activar con: --spring.profiles.active=prod                ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+spring:
+  application:
+    name: NewHype Backend
+
+  # ── Datasource (MySQL cPanel) ───────────────────────────────
+  datasource:
+    url: jdbc:mysql://localhost:3306/ventas_newhype_prod?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Lima&characterEncoding=UTF-8
+    username: ventas_newhype_prod
+    password: Tarapoto2026
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      max-lifetime: 600000
+      connection-timeout: 20000
+
+  # ── JPA / Hibernate ─────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+# ── Server ────────────────────────────────────────────────────
+server:
+  port: 5001
+  servlet:
+    context-path: /New-Hype-Project
+
+# ── SpringDoc / Swagger UI ────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+
+# ── JWT (PRODUCCION — clave segura) ──────────────────────────
+app:
+  jwt:
+    secret: NH_PROD_2026_s3cur3_jwt_k3y_!@#_spr1ngB00t_4_0_2_cP4n3L_d3pl0y
+    expiration-ms: 86400000          # 24 horas
+    refresh-expiration-ms: 604800000 # 7 dias
+
+# ── Logging (produccion) ─────────────────────────────────────
+logging:
+  level:
+    root: WARN
+    com.newhype: INFO
+    org.hibernate.SQL: WARN
+  file:
+    name: /home/ventas/logs/newhype-backend.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 7

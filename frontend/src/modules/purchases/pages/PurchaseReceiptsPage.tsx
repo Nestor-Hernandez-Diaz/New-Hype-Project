@@ -39,7 +39,7 @@ const PurchaseReceiptsPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: urlReceiptId } = useParams<{ id?: string }>();
   const [searchParams] = useSearchParams();
-  const { notify } = useNotification();
+  const { showSuccess } = useNotification();
 
   // Context
   const { recepciones, loading, error, loadRecepciones, getRecepcionById, crearRecepcion, actualizarRecepcion, eliminarRecepcion, cambiarEstadoRecepcion } = usePurchases();
@@ -84,26 +84,18 @@ const PurchaseReceiptsPage: React.FC = () => {
 
   const handleDelete = async (receiptId: string) => {
     await eliminarRecepcion(receiptId);
-    notify({ 
-      type: 'success', 
-      message: 'Recepción eliminada correctamente',
-      title: 'Éxito'
-    });
+    showSuccess('Recepción eliminada correctamente');
   };
 
   const handleRefresh = async () => {
     await loadRecepciones();
-    notify({ type: 'info', message: 'Lista actualizada', title: 'Éxito' });
+    showSuccess('Lista actualizada');
   };
 
   const handleCreateSuccess = async () => {
     setShowCreateModal(false);
     await loadRecepciones();
-    notify({ 
-      type: 'success', 
-      message: 'Recepción creada correctamente',
-      title: 'Éxito'
-    });
+    showSuccess('Recepción creada correctamente');
     
     // Limpiar query params
     if (preselectedOrderId) {
@@ -136,7 +128,6 @@ const PurchaseReceiptsPage: React.FC = () => {
         <PurchaseReceiptList
           onCreate={handleCreate}
           onView={handleView}
-          onDelete={handleDelete}
           onRefresh={handleRefresh}
         />
 

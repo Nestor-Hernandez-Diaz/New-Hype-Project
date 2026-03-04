@@ -364,7 +364,7 @@ const ListaEntidades: React.FC = () => {
 
   const handleActivateClient = async (client: any) => {
     try {
-      await updateClient(client.id, { isActive: true });
+      await updateClient(client.id, { activo: true });
       showSuccess('Entidad comercial activada exitosamente');
     } catch (error) {
       console.error('Error activating client:', error);
@@ -566,15 +566,15 @@ const ListaEntidades: React.FC = () => {
                           </ActionButton>
                         )}
                         {canDelete && (
-                          client.isActive ? (
-                            <ActionButton 
+                          client.activo ? (
+                            <ActionButton
                               onClick={() => handleDeleteClick(client)}
                               $variant="delete"
                             >
                               Eliminar
                             </ActionButton>
                           ) : (
-                            <ActionButton 
+                            <ActionButton
                               onClick={() => handleActivateClient(client)}
                               $variant="activate"
                             >
@@ -661,12 +661,12 @@ const ListaEntidades: React.FC = () => {
               <MobileCard key={client.id}>
                 <MobileCardHeader>
                   <MobileCardTitle>
-                    {client.tipoDocumento === 'RUC' 
+                    {client.tipoDocumento === 'RUC'
                       ? client.razonSocial || ''
                       : `${client.nombres || ''} ${client.apellidos || ''}`.trim()
                     }
                   </MobileCardTitle>
-                  <StatusBadge 
+                  <StatusBadge
                     variant={
                       client.tipoEntidad === 'Cliente' ? 'info' :
                       client.tipoEntidad === 'Proveedor' ? 'warning' :
@@ -678,32 +678,32 @@ const ListaEntidades: React.FC = () => {
                      '🤝'}
                   </StatusBadge>
                 </MobileCardHeader>
-                
+
                 <MobileCardBody>
                   <MobileCardField>
                     <MobileCardLabel>Email</MobileCardLabel>
                     <MobileCardValue>{client.email}</MobileCardValue>
                   </MobileCardField>
-                  
+
                   <MobileCardField>
                     <MobileCardLabel>Teléfono</MobileCardLabel>
                     <MobileCardValue>{client.telefono}</MobileCardValue>
                   </MobileCardField>
-                  
+
                   <MobileCardField>
                     <MobileCardLabel>Documento</MobileCardLabel>
                     <MobileCardValue>{client.tipoDocumento} {formatNumeroDocumento(client.numeroDocumento)}</MobileCardValue>
                   </MobileCardField>
-                  
+
                   <MobileCardField>
                     <MobileCardLabel>Dirección</MobileCardLabel>
                     <MobileCardValue>{client.direccion}</MobileCardValue>
                   </MobileCardField>
                 </MobileCardBody>
-                
+
                 <MobileCardActions>
                   {canUpdate && (
-                    <ActionButton 
+                    <ActionButton
                       onClick={() => handleEdit(client.id)}
                       $variant="edit"
                     >
@@ -711,7 +711,7 @@ const ListaEntidades: React.FC = () => {
                     </ActionButton>
                   )}
                   {canDelete && (
-                    client.isActive ? (
+                    client.activo ? (
                       <ActionButton 
                         onClick={() => handleDeleteClick(client)}
                         $variant="delete"

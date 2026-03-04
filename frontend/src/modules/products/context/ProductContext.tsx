@@ -12,7 +12,7 @@ import type {
   Categoria,
   UnidadMedida,
 } from '@monorepo/shared-types';
-import * as productosMockApi from '../services/productosMockApi';
+import * as productosMockApi from '../services/productosRealApi';
 
 // ============= TIPOS DE ESTADO Y ACCIONES =============
 
@@ -61,7 +61,12 @@ function productosReducer(state: ProductosState, action: ProductosAction): Produ
         ...state,
         loading: false,
         productos: action.payload.productos,
-        pagination: action.payload.pagination,
+        pagination: {
+          page: action.payload.pagina,
+          limit: action.payload.tamañoPagina,
+          total: action.payload.total,
+          pages: action.payload.totalPaginas,
+        },
       };
 
     case 'FETCH_PRODUCTOS_ERROR':
@@ -93,7 +98,7 @@ function productosReducer(state: ProductosState, action: ProductosAction): Produ
     case 'DELETE_PRODUCTO_SUCCESS':
       return {
         ...state,
-        productos: state.productos.filter(p => p.id !== action.payload),
+        productos: state.productos.filter(p => String(p.id) !== action.payload),
         pagination: state.pagination
           ? { ...state.pagination, total: state.pagination.total - 1 }
           : null,
@@ -119,6 +124,7 @@ interface ProductContextType {
   loadProducts: (filtros?: ProductoFiltros) => Promise<void>;
   addProduct: (data: CrearProductoDTO) => Promise<void>;
   updateProduct: (id: string, data: ActualizarProductoDTO) => Promise<void>;
+  toggleProductStatus: (id: string, activo: boolean) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Producto | undefined;
   loadCategorias: () => Promise<void>;
@@ -171,7 +177,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   const updateProduct = useCallback(async (id: string, data: ActualizarProductoDTO) => {
     try {
       setIsLoading(true);
-      const productoActualizado = await productosMockApi.actualizarProducto(id, data);
+      const productoActualizado = await productosMockApi.actualizarProducto(Number(id), data);
       dispatch({ type: 'UPDATE_PRODUCTO_SUCCESS', payload: productoActualizado });
       showSuccess('Producto actualizado exitosamente');
     } catch (error) {
@@ -183,11 +189,29 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, [setIsLoading, showSuccess, showError]);
 
+  // ========== TOGGLE PRODUCT STATUS (PATCH) ==========
+  const toggleProductStatus = useCallback(async (id: string, activo: boolean) => {
+    try {
+      setIsLoading(true);
+      const productoActualizado = await productosMockApi.cambiarEstadoProducto(Number(id), activo);
+      if (productoActualizado) {
+        dispatch({ type: 'UPDATE_PRODUCTO_SUCCESS', payload: productoActualizado });
+        showSuccess(activo ? 'Producto activado exitosamente' : 'Producto desactivado exitosamente');
+      }
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al cambiar estado del producto';
+      showError(mensaje);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setIsLoading, showSuccess, showError]);
+
   // ========== DELETE PRODUCTO ==========
   const deleteProduct = useCallback(async (id: string) => {
     try {
       setIsLoading(true);
-      await productosMockApi.eliminarProducto(id);
+      await productosMockApi.eliminarProducto(Number(id));
       dispatch({ type: 'DELETE_PRODUCTO_SUCCESS', payload: id });
       showSuccess('Producto eliminado exitosamente');
     } catch (error) {
@@ -201,7 +225,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // ========== GET BY ID ==========
   const getProductById = useCallback((id: string) => {
-    return state.productos.find(p => p.id === id);
+    return state.productos.find(p => String(p.id) === id);
   }, [state.productos]);
 
   // ========== LOAD CATEGORIAS ==========
@@ -246,6 +270,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         loadProducts,
         addProduct,
         updateProduct,
+        toggleProductStatus,
         deleteProduct,
         getProductById,
         loadCategorias,

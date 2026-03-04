@@ -4,7 +4,7 @@ import configuracionApi from '../services/configuracionApi';
 import type { ProductCategory, CategoryInput } from '../types/configuracion';
 import { useNotification } from '../../../context/NotificationContext';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
-import { Button as SharedButton } from '../../../components/shared/Button';
+import { Button } from '../../../components/shared/Button';
 import { Input as SharedInput } from '../../../components/shared/Input';
 import { Label as SharedLabel } from '../../../components/shared/Label';
 

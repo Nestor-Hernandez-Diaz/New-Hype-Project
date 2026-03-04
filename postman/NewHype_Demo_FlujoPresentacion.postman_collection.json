@@ -1,0 +1,597 @@
+{
+  "info": {
+    "name": "NewHype ERP — Demo Flujo Presentación",
+    "_postman_id": "newhype-demo-flujo-venta-2026",
+    "description": "Colección de demostración completa: Register → Setup → Catálogo → Cliente → Caja → Venta → Kardex.\nToken se guarda automáticamente tras el Register.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://spring.informaticapp.com:5001/New-Hype-Project", "type": "string" },
+    { "key": "token",        "value": "",  "type": "string" },
+    { "key": "almacen_id",   "value": "",  "type": "string" },
+    { "key": "categoria_id", "value": "",  "type": "string" },
+    { "key": "color_id",     "value": "",  "type": "string" },
+    { "key": "genero_id",    "value": "",  "type": "string" },
+    { "key": "marca_id",     "value": "",  "type": "string" },
+    { "key": "material_id",  "value": "",  "type": "string" },
+    { "key": "producto_id",  "value": "",  "type": "string" },
+    { "key": "cliente_id",   "value": "",  "type": "string" },
+    { "key": "caja_id",      "value": "",  "type": "string" },
+    { "key": "sesion_id",    "value": "",  "type": "string" },
+    { "key": "metodo_pago_id","value": "",  "type": "string" },
+    { "key": "venta_id",     "value": "",  "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+
+    {
+      "name": "00 - AUTENTICACIÓN",
+      "item": [
+
+        {
+          "name": "01 - Register (Obtener Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.accessToken) {",
+                  "    pm.collectionVariables.set('token', res.data.accessToken);",
+                  "    console.log('✅ Token guardado:', res.data.accessToken.substring(0,30) + '...');",
+                  "} else {",
+                  "    console.error('❌ No se encontró accessToken en la respuesta');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Demo\",\n  \"apellido\": \"Presentacion\",\n  \"email\": \"demo.flujo2026@newhype.com\",\n  \"password\": \"Demo2026!\",\n  \"nombreTienda\": \"NewHype Tienda Demo\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/register", "host": ["{{base_url}}"], "path": ["api","v1","auth","register"] }
+          }
+        },
+
+        {
+          "name": "02 - Check Email (Verificar si existe)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/check-email?email=demo.flujo2026@newhype.com",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","auth","check-email"],
+              "query": [{ "key": "email", "value": "demo.flujo2026@newhype.com" }]
+            }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "01 - SETUP INICIAL",
+      "item": [
+
+        {
+          "name": "03 - Crear Almacén Principal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('almacen_id', res.data.id);",
+                  "    console.log('✅ Almacen ID:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"ALM-001\",\n  \"nombre\": \"Almacén Principal\",\n  \"ubicacion\": \"Piso 1 - Tienda Central\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/almacenes", "host": ["{{base_url}}"], "path": ["api","v1","almacenes"] }
+          }
+        },
+
+        {
+          "name": "04 - Crear Método de Pago (Efectivo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('metodo_pago_id', res.data.id);",
+                  "    console.log('✅ Metodo Pago ID:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"EFEC\",\n  \"nombre\": \"Efectivo\",\n  \"tipo\": \"EFECTIVO\",\n  \"requiereReferencia\": false,\n  \"predeterminado\": true\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/configuracion/metodos-pago", "host": ["{{base_url}}"], "path": ["api","v1","configuracion","metodos-pago"] }
+          }
+        },
+
+        {
+          "name": "05 - Crear Serie Comprobante (BOLETA B001)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoComprobante\": \"BOLETA\",\n  \"serie\": \"B001\",\n  \"numeroInicio\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/configuracion/series-comprobantes", "host": ["{{base_url}}"], "path": ["api","v1","configuracion","series-comprobantes"] }
+          }
+        },
+
+        {
+          "name": "06 - Crear Caja Registradora",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('caja_id', res.data.id);",
+                  "    console.log('✅ Caja ID:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"CJ-001\",\n  \"nombre\": \"Caja Principal\",\n  \"ubicacion\": \"Mostrador Principal\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/configuracion/cajas-registradoras", "host": ["{{base_url}}"], "path": ["api","v1","configuracion","cajas-registradoras"] }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "02 - CATÁLOGO (Categoría / Color / Género / Marca / Material)",
+      "item": [
+
+        {
+          "name": "07 - Crear Categoría (Camisetas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('categoria_id', res.data.id);",
+                  "    console.log('✅ Categoria ID:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"CAT-CAM\",\n  \"nombre\": \"Camisetas\",\n  \"slug\": \"camisetas\",\n  \"descripcion\": \"Camisetas y polos para dama y caballero\",\n  \"ordenVisualizacion\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/configuracion/categorias", "host": ["{{base_url}}"], "path": ["api","v1","configuracion","categorias"] }
+          }
+        },
+
+        {
+          "name": "08 - Crear Color (Azul Marino)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('color_id', res.data.id);",
+                  "    console.log('✅ Color ID:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"COL-AZM\",\n  \"nombre\": \"Azul Marino\",\n  \"codigoHex\": \"#001F5B\",\n  \"slug\": \"azul-marino\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/configuracion/colores", "host": ["{{base_url}}"], "path": ["api","v1","configuracion","colores"] }
+          }
+        },
+
+        {
+          "name": "09 - Crear Género (Unisex)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('genero_id', res.data.id);",
+                  "    console.log('✅ Genero ID:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"GEN-UNI\",\n  \"nombre\": \"Unisex\",\n  \"slug\": \"unisex\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/configuracion/generos", "host": ["{{base_url}}"], "path": ["api","v1","configuracion","generos"] }
+          }
+        },
+
+        {
+          "name": "10 - Crear Marca (Nike)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('marca_id', res.data.id);",
+                  "    console.log('✅ Marca ID:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"MRC-NIK\",\n  \"nombre\": \"Nike\",\n  \"slug\": \"nike\",\n  \"descripcion\": \"Just Do It\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/configuracion/marcas", "host": ["{{base_url}}"], "path": ["api","v1","configuracion","marcas"] }
+          }
+        },
+
+        {
+          "name": "11 - Crear Material (Algodón 100%)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('material_id', res.data.id);",
+                  "    console.log('✅ Material ID:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"MAT-ALG\",\n  \"nombre\": \"Algodón 100%\",\n  \"slug\": \"algodon-100\",\n  \"descripcion\": \"Tela de algodón peinado premium\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/configuracion/materiales", "host": ["{{base_url}}"], "path": ["api","v1","configuracion","materiales"] }
+          }
+        },
+
+        {
+          "name": "12 - Crear Producto (Camiseta Polo Nike Azul M)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('producto_id', res.data.id);",
+                  "    console.log('✅ Producto ID:', res.data.id);",
+                  "    console.log('   SKU:', res.data.sku);",
+                  "    console.log('   Slug:', res.data.slug);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"NIK-CAM-AZM-M\",\n  \"nombre\": \"Camiseta Polo Nike Azul Marino Talla M\",\n  \"descripcion\": \"Camiseta polo Nike de algodón 100%, perfecta para uso casual y deportivo\",\n  \"categoriaId\": {{categoria_id}},\n  \"colorId\": {{color_id}},\n  \"generoId\": {{genero_id}},\n  \"marcaId\": {{marca_id}},\n  \"materialId\": {{material_id}},\n  \"precioCosto\": 45.00,\n  \"precioVenta\": 89.90,\n  \"stockMinimo\": 5,\n  \"controlaInventario\": true,\n  \"enLiquidacion\": false\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/productos", "host": ["{{base_url}}"], "path": ["api","v1","productos"] }
+          }
+        },
+
+        {
+          "name": "13 - Listar Productos (Verificar catálogo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","productos"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "03 - CLIENTE (Entidad Comercial)",
+      "item": [
+
+        {
+          "name": "14 - Crear Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('cliente_id', res.data.id);",
+                  "    console.log('✅ Cliente ID:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoEntidad\": \"CLIENTE\",\n  \"tipoDocumento\": \"DNI\",\n  \"numeroDocumento\": \"45678901\",\n  \"nombres\": \"Carlos\",\n  \"apellidos\": \"García López\",\n  \"email\": \"carlos.garcia@gmail.com\",\n  \"telefono\": \"987654321\",\n  \"direccion\": \"Jr. Lima 123, Tarapoto\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/entidades", "host": ["{{base_url}}"], "path": ["api","v1","entidades"] }
+          }
+        },
+
+        {
+          "name": "15 - Listar Clientes (Verificar)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/entidades?tipoEntidad=CLIENTE&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","entidades"],
+              "query": [
+                { "key": "tipoEntidad", "value": "CLIENTE" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "04 - CAJA (Abrir Sesión)",
+      "item": [
+
+        {
+          "name": "16 - Abrir Sesión de Caja",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('sesion_id', res.data.id);",
+                  "    console.log('✅ Sesion Caja ID:', res.data.id);",
+                  "    console.log('   Estado:', res.data.estado);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cajaRegistradoraId\": {{caja_id}},\n  \"montoApertura\": 200.00\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/caja/sesiones", "host": ["{{base_url}}"], "path": ["api","v1","caja","sesiones"] }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "05 - FLUJO DE VENTA",
+      "item": [
+
+        {
+          "name": "17 - Crear Venta (PENDIENTE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('venta_id', res.data.id);",
+                  "    console.log('✅ Venta ID:', res.data.id);",
+                  "    console.log('   Total:', res.data.total);",
+                  "    console.log('   IGV:', res.data.igv);",
+                  "    console.log('   Estado:', res.data.estado);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesionCajaId\": {{sesion_id}},\n  \"clienteId\": {{cliente_id}},\n  \"almacenId\": {{almacen_id}},\n  \"tipoComprobante\": \"BOLETA\",\n  \"serie\": \"B001\",\n  \"observaciones\": \"Venta de demostración - Presentación LP3\",\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidad\": 2,\n      \"precioUnitario\": 89.90,\n      \"descuento\": 0\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/ventas", "host": ["{{base_url}}"], "path": ["api","v1","ventas"] }
+          }
+        },
+
+        {
+          "name": "18 - Confirmar Pago (COMPLETADA + descuenta stock)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montoRecibido\": 220.00,\n  \"pagos\": [\n    {\n      \"metodoPagoId\": {{metodo_pago_id}},\n      \"monto\": 212.24,\n      \"referencia\": null\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/ventas/{{venta_id}}/confirmar-pago", "host": ["{{base_url}}"], "path": ["api","v1","ventas","{{venta_id}}","confirmar-pago"] }
+          }
+        },
+
+        {
+          "name": "19 - Detalle de Venta (Verificar estado COMPLETADA)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/ventas/{{venta_id}}", "host": ["{{base_url}}"], "path": ["api","v1","ventas","{{venta_id}}"] }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "06 - INVENTARIO POST-VENTA",
+      "item": [
+
+        {
+          "name": "20 - Verificar Stock (Post Venta)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/inventario/stock?almacenId={{almacen_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","inventario","stock"],
+              "query": [{ "key": "almacenId", "value": "{{almacen_id}}" }]
+            }
+          }
+        },
+
+        {
+          "name": "21 - Consultar Kardex del Producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/inventario/kardex?productoId={{producto_id}}&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","inventario","kardex"],
+              "query": [
+                { "key": "productoId", "value": "{{producto_id}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "07 - REPORTE FINAL",
+      "item": [
+
+        {
+          "name": "22 - Dashboard Ejecutivo (Resumen)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/reportes/resumen", "host": ["{{base_url}}"], "path": ["api","v1","reportes","resumen"] }
+          }
+        },
+
+        {
+          "name": "23 - Reporte de Ventas del Día",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reportes/ventas",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","reportes","ventas"]
+            }
+          }
+        }
+
+      ]
+    }
+
+  ]
+}

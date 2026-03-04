@@ -132,7 +132,7 @@ const EmptyState = styled.div`
 
 const Kardex: React.FC = () => {
   const { movimientos, loading, error, pagination, clearError, debouncedFetchKardex } = useInventarioWithDebounce();
-  const [filters, setFilters] = useState<KardexFilters>({ page: 1, pageSize: 20, sortBy: 'fecha', order: 'desc', warehouseId: 'WH-PRINCIPAL' });
+  const [filters, setFilters] = useState<KardexFilters>({ page: 1, pageSize: 20, sortBy: 'fecha', order: 'desc' });
   const [exportando, setExportando] = useState(false);
 
   // Calcular estadísticas de movimientos
@@ -219,8 +219,7 @@ const Kardex: React.FC = () => {
                   page: 1,
                   pageSize: 20,
                   sortBy: 'fecha',
-                  order: 'desc',
-                  warehouseId: 'WH-PRINCIPAL'
+                  order: 'desc'
                 });
               }}>
                 Limpiar filtros
@@ -265,7 +264,7 @@ const Kardex: React.FC = () => {
         <FiltersKardex 
           onFilterChange={handleFilterChange} 
           loading={loading} 
-          defaultWarehouseId="WH-PRINCIPAL"
+          defaultWarehouseId=""
           onExport={handleExportar}
           exportando={exportando}
         />

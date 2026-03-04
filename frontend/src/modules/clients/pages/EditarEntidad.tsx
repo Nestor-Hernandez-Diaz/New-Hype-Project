@@ -166,9 +166,9 @@ const EditarEntidad: React.FC = () => {
           email: client.email,
           telefono: client.telefono,
           direccion: client.direccion,
-          departamentoId: client.departamentoId || '',
-          provinciaId: client.provinciaId || '',
-          distritoId: client.distritoId || ''
+          departamentoId: client.ubigeo?.departamentoId || '',
+          provinciaId: client.ubigeo?.provinciaId || '',
+          distritoId: client.ubigeo?.distritoId || ''
         });
         setIsLoading(false);
       } else {

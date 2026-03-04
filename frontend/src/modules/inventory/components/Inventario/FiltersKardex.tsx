@@ -165,9 +165,8 @@ const FiltersKardex: React.FC<FiltersKardexProps> = ({ onFilterChange, loading =
 
   // Prefill almacén por defecto si no está seleccionado
   useEffect(() => {
-    if (!filters.warehouseId) {
-      const def = defaultWarehouseId || 'WH-PRINCIPAL';
-      setFilters(prev => ({ ...prev, warehouseId: def }));
+    if (!filters.warehouseId && defaultWarehouseId) {
+      setFilters(prev => ({ ...prev, warehouseId: defaultWarehouseId }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultWarehouseId]);
@@ -176,7 +175,7 @@ const FiltersKardex: React.FC<FiltersKardexProps> = ({ onFilterChange, loading =
   const [productSearch, setProductSearch] = useState('');
   const [productSuggestions, setProductSuggestions] = useState<{ id: string; codigo: string; nombre: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
   // Manejar cambios en los filtros
@@ -268,12 +267,12 @@ const FiltersKardex: React.FC<FiltersKardexProps> = ({ onFilterChange, loading =
     }
 
     // Limpiar valores vacíos
-    const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+    const cleanFilters = Object.entries(filters).reduce<Record<string, unknown>>((acc, [key, value]) => {
       if (value !== '' && value !== undefined && value !== null) {
-        (acc as Partial<KardexFilters>)[key as keyof KardexFilters] = value as any;
+        acc[key] = value;
       }
       return acc;
-    }, {} as Partial<KardexFilters>) as KardexFilters;
+    }, {}) as unknown as KardexFilters;
 
     onFilterChange(cleanFilters);
   };

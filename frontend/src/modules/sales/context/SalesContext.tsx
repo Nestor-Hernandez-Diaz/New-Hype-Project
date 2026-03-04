@@ -23,8 +23,8 @@ import type {
   TipoMovimientoCaja
 } from '@monorepo/shared-types';
 
-// Import Mock API
-import * as ventasApi from '../services/ventasApi';
+// Import Real API (reemplaza mock)
+import * as ventasApi from '../services/ventasRealApi';
 
 // ============================================
 // STATE & ACTIONS

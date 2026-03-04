@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
-import { Button as SharedButton, Input as SharedInput, Select as SharedSelect } from '../../../components/shared';
+// shared components available if needed
+// import { Button as SharedButton, Input as SharedInput, Select as SharedSelect } from '../../../components/shared';
 import Layout from '../../../components/Layout';
 import { useClients } from '../../clients/context/ClientContext';
 import { useNotification } from '../../../context/NotificationContext';
@@ -122,6 +123,70 @@ const PaginationControls = styled.div`
   display: flex;
   gap: ${SPACING.sm};
   align-items: center;
+`;
+
+const SearchInput = styled.input`
+  padding: ${SPACING.sm} ${SPACING.md};
+  border: 1px solid ${COLORS.neutral[300]};
+  border-radius: ${BORDER_RADIUS.sm};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  transition: ${TRANSITIONS.default};
+  min-width: 200px;
+
+  &:focus {
+    outline: none;
+    border-color: ${COLOR_SCALES.primary[500]};
+  }
+`;
+
+const Select = styled.select`
+  padding: ${SPACING.sm} ${SPACING.md};
+  border: 1px solid ${COLORS.neutral[300]};
+  border-radius: ${BORDER_RADIUS.sm};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  transition: ${TRANSITIONS.default};
+  background: ${COLORS.neutral.white};
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: ${COLOR_SCALES.primary[500]};
+  }
+`;
+
+const PrimaryButton = styled.button`
+  padding: ${SPACING.sm} ${SPACING.md};
+  background: ${COLOR_SCALES.primary[500]};
+  color: ${COLORS.neutral.white};
+  border: none;
+  border-radius: ${BORDER_RADIUS.sm};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  cursor: pointer;
+  transition: ${TRANSITIONS.fast};
+
+  &:hover:not(:disabled) {
+    background: ${COLOR_SCALES.primary[600]};
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const FilterButton = styled.button`
+  padding: ${SPACING.sm} ${SPACING.md};
+  background: ${COLORS.neutral[200]};
+  color: ${COLORS.text.primary};
+  border: 1px solid ${COLORS.neutral[300]};
+  border-radius: ${BORDER_RADIUS.sm};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  cursor: pointer;
+  transition: ${TRANSITIONS.fast};
+
+  &:hover {
+    background: ${COLORS.neutral[300]};
+  }
 `;
 
 const PageButton = styled.button`

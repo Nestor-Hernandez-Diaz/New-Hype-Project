@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
-import { useProducts, type Product } from '../../products/context/ProductContext';
-import { useClients, type Client } from '../../clients/context/ClientContext';
+import { useProducts } from '../../products/context/ProductContext';
+import type { Producto } from '@monorepo/shared-types';
+type Product = Producto;
+import { useClients } from '../../clients/context/ClientContext';
+import type { Entidad } from '@monorepo/shared-types';
+type Client = Entidad;
 import { useSales, type CreateSaleInput } from '../context/SalesContext';
 import { useQuotes } from '../context/QuotesContext';
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../auth/context/AuthContext';
-import { tokenUtils } from '../../../utils/api';
+import { tokenUtils, apiService } from '../../../utils/api';
 import { useConfiguracion } from '../../configuration/context/ConfiguracionContext';
 import type { ComprobanteData, MetodoPagoData } from '../../configuration/services/configuracionApi';
 import { PaymentProcessModal, type PaymentConfirmData } from '../components/PaymentProcessModal';
@@ -724,8 +728,28 @@ const RealizarVenta: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>('');
-  const [selectedWarehouse] = useState<string>('WH-PRINCIPAL'); // 🆕 Siempre almacén principal
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string>(''); // Almacén seleccionado
   const [tipoDocumento, setTipoDocumento] = useState<'DNI' | 'RUC' | 'CE' | 'Pasaporte'>('DNI'); // 🆕 Tipo de documento del cliente
+
+  // Cargar primer almacén disponible
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await apiService.getWarehouses();
+        const respData = resp.data as any;
+        let list: any[] = [];
+        if (respData?.data?.rows) list = respData.data.rows;
+        else if (respData?.rows) list = respData.rows;
+        else if (Array.isArray(respData)) list = respData;
+        const active = list.filter((w: any) => w.activo !== false);
+        if (active.length > 0) {
+          setSelectedWarehouse(String(active[0].id));
+        }
+      } catch (e) {
+        console.error('[RealizarVenta] Error loading warehouses:', e);
+      }
+    })();
+  }, []);
   
   // ✅ Estado para rastrear cotización de origen
   const [sourceQuoteId, setSourceQuoteId] = useState<string | null>(null);
@@ -775,12 +799,12 @@ const RealizarVenta: React.FC = () => {
 
   // Filtrar productos
   const filteredProducts = products.filter((product: Product) =>
-    product.isActive &&
-    product.status === 'disponible' &&
-    product.currentStock > 0 &&
+    product.activo &&
+    product.estadoProducto === 'ACTIVO' &&
+    (product.stockActual ?? 0) > 0 &&
     searchTerm.length > 0 &&
-    (product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     product.productCode.toLowerCase().includes(searchTerm.toLowerCase()))
+    (product.nombreProducto.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     product.codigoProducto.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Filtrar clientes - solo mostrar Cliente y Ambos para ventas
@@ -930,14 +954,14 @@ const RealizarVenta: React.FC = () => {
     const itemsToLoad = state.fromQuote ? state.items : state.productosPreseleccionados;
     const itemsCarrito: CartItem[] = itemsToLoad.map((item: any) => {
       // Buscar producto en la lista para obtener el stock actual
-      const producto = products.find((p: Product) => p.id === item.productId);
+      const producto = products.find((p: Product) => String(p.id) === item.productId);
       
       return {
         productId: item.productId,
         nombreProducto: item.nombreProducto,
         cantidad: item.cantidad,
         precioUnitario: item.precioUnitario,
-        stock: producto?.currentStock || 999,
+        stock: producto?.stockActual || 0,
       };
     }).filter((item: CartItem) => item.stock > 0);
     
@@ -1012,31 +1036,31 @@ const RealizarVenta: React.FC = () => {
   // Agregar al carrito
   const addToCart = (product: Product) => {
     // 🐛 Debug: verificar ID del producto
-    console.log('➕ Agregando producto al carrito:', { id: product.id, name: product.productName, code: product.productCode });
+    console.log('➕ Agregando producto al carrito:', { id: product.id, name: product.nombreProducto, code: product.codigoProducto });
     
-    const existingItem = cart.find(item => item.productId === product.id);
-    
+    const existingItem = cart.find(item => item.productId === String(product.id));
+
     if (existingItem) {
-      if (existingItem.cantidad < product.currentStock) {
+      if (existingItem.cantidad < (product.stockActual ?? 0)) {
         setCart(cart.map(item =>
-          item.productId === product.id
+          item.productId === String(product.id)
             ? { ...item, cantidad: item.cantidad + 1 }
             : item
         ));
-        addNotification('success', 'Cantidad Actualizada', `${product.productName} +1`);
+        addNotification('success', 'Cantidad Actualizada', `${product.nombreProducto} +1`);
       } else {
-        addNotification('warning', 'Stock Insuficiente', `Solo hay ${product.currentStock} unidades disponibles`);
+        addNotification('warning', 'Stock Insuficiente', `Solo hay ${product.stockActual ?? 0} unidades disponibles`);
       }
     } else {
       const newItem: CartItem = {
-        productId: product.id,
-        nombreProducto: product.productName,
+        productId: String(product.id),
+        nombreProducto: product.nombreProducto,
         cantidad: 1,
-        precioUnitario: typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0,
-        stock: product.currentStock,
+        precioUnitario: typeof product.precioVenta === 'number' ? product.precioVenta : parseFloat(product.precioVenta) || 0,
+        stock: product.stockActual ?? 0,
       };
       setCart([...cart, newItem]);
-      addNotification('success', 'Producto Agregado', product.productName);
+      addNotification('success', 'Producto Agregado', product.nombreProducto);
     }
     
     setSearchTerm('');
@@ -1094,7 +1118,7 @@ const RealizarVenta: React.FC = () => {
   // Convertir proveedor a "Ambos" para poder realizar venta
   const handleConvertProviderToAmbos = async (client: Client) => {
     try {
-      await updateClient(client.id, { tipoEntidad: 'Ambos' });
+      await updateClient(client.id, { tipoEntidad: 'Ambos' as any });
       addNotification('success', 'Proveedor convertido', `${client.razonSocial || client.nombres} ahora es Cliente/Proveedor`);
       // Recargar clientes para actualizar la lista
       await loadClients();
@@ -1189,9 +1213,9 @@ const RealizarVenta: React.FC = () => {
         cashSessionId: activeCashSession.id,
         clienteId: selectedClient || undefined,
         almacenId: selectedWarehouse,
-        tipoComprobante: normalizarTipoComprobante(tipoComprobante) as 'Boleta' | 'Factura' | 'NotaVenta',
+        tipoComprobante: normalizarTipoComprobante(tipoComprobante) as any,
         incluyeIGV: includeIGV,
-        formaPago: normalizarMetodoPago(mainFormaPago) as 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Yape' | 'Plin',
+        formaPago: normalizarMetodoPago(mainFormaPago) as any,
         items: cart.map(item => ({
           productId: item.productId,
           nombreProducto: item.nombreProducto,
@@ -1202,7 +1226,7 @@ const RealizarVenta: React.FC = () => {
         // 🆕 Incluir payments directamente si existen
         payments: paymentData.payments && paymentData.payments.length > 0
           ? paymentData.payments.map(p => ({
-              metodoPago: normalizarMetodoPago(p.metodoPago) as 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Yape' | 'Plin',
+              metodoPago: normalizarMetodoPago(p.metodoPago) as any,
               monto: p.monto,
               referencia: p.referencia || undefined,
             }))
@@ -1767,9 +1791,9 @@ const RealizarVenta: React.FC = () => {
                       key={product.id}
                       onClick={() => addToCart(product)}
                     >
-                      <strong>{product.productName}</strong>
+                      <strong>{product.nombreProducto}</strong>
                       <span>
-                        Código: {product.productCode} | Precio: S/ {(typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0).toFixed(2)} | Stock: {product.currentStock}
+                        Código: {product.codigoProducto} | Precio: S/ {(typeof product.precioVenta === 'number' ? product.precioVenta : parseFloat(product.precioVenta) || 0).toFixed(2)} | Stock: {product.stockActual ?? 0}
                       </span>
                     </SearchResultItem>
                   ))
@@ -2075,7 +2099,7 @@ const RealizarVenta: React.FC = () => {
           nombres: selectedClientData.nombres,
           apellidos: selectedClientData.apellidos,
           razonSocial: selectedClientData.razonSocial,
-          tipoDocumento: selectedClientData.tipoDocumento,
+          tipoDocumento: selectedClientData.tipoDocumento as any,
           numeroDocumento: selectedClientData.numeroDocumento,
         } : null}
         cart={cart}

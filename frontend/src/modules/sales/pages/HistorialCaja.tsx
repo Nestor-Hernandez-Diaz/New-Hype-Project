@@ -419,7 +419,7 @@ const PageSubtitle = styled.p`
 `;
 
 const FiltersCard = styled.div`
-  background: ${COLORS.surface};
+  background: ${COLORS.white};
   border-radius: ${BORDER_RADIUS.lg};
   box-shadow: ${SHADOWS.sm};
   padding: ${SPACING.xl};
@@ -442,7 +442,7 @@ const FilterGroup = styled.div`
 const FilterLabel = styled.label`
   font-size: ${TYPOGRAPHY.fontSize.sm};
   font-weight: ${TYPOGRAPHY.fontWeight.medium};
-  color: ${COLORS.textSecondary};
+  color: ${COLORS.text.secondary};
 `;
 
 const ButtonGroup = styled.div`
@@ -453,7 +453,7 @@ const ButtonGroup = styled.div`
 `;
 
 const ContentCard = styled.div`
-  background: ${COLORS.surface};
+  background: ${COLORS.white};
   border-radius: ${BORDER_RADIUS.lg};
   box-shadow: ${SHADOWS.sm};
   padding: ${SPACING.xl};
@@ -468,15 +468,15 @@ const CardHeader = styled.div`
 
 const CardTitle = styled.h3`
   margin: 0;
-  color: ${COLORS.text};
+  color: ${COLORS.text.primary};
   font-size: ${TYPOGRAPHY.fontSize.lg};
   font-weight: ${TYPOGRAPHY.fontWeight.semibold};
 `;
 
 const ResultCount = styled.span`
   font-size: ${TYPOGRAPHY.fontSize.sm};
-  color: ${COLORS.textSecondary};
-  background: ${COLORS.backgroundAlt};
+  color: ${COLORS.text.secondary};
+  background: ${COLORS.background};
   padding: ${SPACING.xs} ${SPACING.sm};
   border-radius: ${BORDER_RADIUS.full};
 `;
@@ -498,7 +498,7 @@ const DifferenceAmount = styled.span`
   }
   
   &.zero {
-    color: ${COLORS.textSecondary};
+    color: ${COLORS.text.secondary};
   }
 `;
 
@@ -509,7 +509,7 @@ const LoadingContainer = styled.div`
   justify-content: center;
   padding: ${SPACING['4xl']} ${SPACING.xl};
   gap: ${SPACING.lg};
-  color: ${COLORS.textSecondary};
+  color: ${COLORS.text.secondary};
 `;
 
 const LoadingSpinner = styled.div`

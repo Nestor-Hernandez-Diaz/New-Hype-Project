@@ -27,9 +27,9 @@ const PermissionsGrid = styled.div`
   max-height: 300px;
   overflow-y: auto;
   padding: ${SPACING.md};
-  background: ${COLORS.background.secondary};
+  background: ${COLORS.background};
   border-radius: ${BORDER_RADIUS.md};
-  border: 1px solid ${COLORS.border.light};
+  border: 1px solid ${COLORS.borderLight};
 `;
 
 const ModuleGroup = styled.div`
@@ -51,7 +51,7 @@ const PermissionBadge = styled.span`
   align-items: center;
   padding: ${SPACING.xs} ${SPACING.sm};
   background: white;
-  border: 1px solid ${COLORS.border.medium};
+  border: 1px solid ${COLORS.border};
   border-radius: ${BORDER_RADIUS.sm};
   font-size: ${TYPOGRAPHY.fontSize.small};
   color: ${COLORS.text.secondary};
@@ -78,9 +78,9 @@ const EmptyState = styled.div`
   text-align: center;
   color: ${COLORS.text.muted};
   font-style: italic;
-  background: ${COLORS.background.secondary};
+  background: ${COLORS.background};
   border-radius: ${BORDER_RADIUS.md};
-  border: 1px dashed ${COLORS.border.medium};
+  border: 1px dashed ${COLORS.border};
 `;
 
 const Counter = styled.div`
@@ -96,40 +96,95 @@ const Counter = styled.div`
 
 // Mapeo de permisos a nombres legibles y módulos
 const PERMISSION_NAMES: Record<string, { name: string; module: string }> = {
+  // Dashboard
   'dashboard.read': { name: 'Ver Dashboard', module: 'Dashboard' },
+
+  // Usuarios
   'users.create': { name: 'Crear Usuarios', module: 'Usuarios' },
   'users.read': { name: 'Ver Usuarios', module: 'Usuarios' },
   'users.update': { name: 'Actualizar Usuarios', module: 'Usuarios' },
   'users.delete': { name: 'Eliminar Usuarios', module: 'Usuarios' },
+
+  // Roles
+  'roles.create': { name: 'Crear Roles', module: 'Roles' },
+  'roles.read': { name: 'Ver Roles', module: 'Roles' },
+  'roles.update': { name: 'Actualizar Roles', module: 'Roles' },
+  'roles.delete': { name: 'Eliminar Roles', module: 'Roles' },
+  'roles.manage': { name: 'Gestionar Roles', module: 'Roles' },
+
+  // Entidades Comerciales (ambos formatos de clave)
+  'clients.create': { name: 'Crear Entidades', module: 'Entidades Comerciales' },
+  'clients.read': { name: 'Ver Entidades', module: 'Entidades Comerciales' },
+  'clients.update': { name: 'Actualizar Entidades', module: 'Entidades Comerciales' },
+  'clients.delete': { name: 'Eliminar Entidades', module: 'Entidades Comerciales' },
   'commercial_entities.create': { name: 'Crear Entidades', module: 'Entidades Comerciales' },
   'commercial_entities.read': { name: 'Ver Entidades', module: 'Entidades Comerciales' },
   'commercial_entities.update': { name: 'Actualizar Entidades', module: 'Entidades Comerciales' },
   'commercial_entities.delete': { name: 'Eliminar Entidades', module: 'Entidades Comerciales' },
+
+  // Productos
   'products.create': { name: 'Crear Productos', module: 'Productos' },
   'products.read': { name: 'Ver Productos', module: 'Productos' },
   'products.update': { name: 'Actualizar Productos', module: 'Productos' },
   'products.delete': { name: 'Eliminar Productos', module: 'Productos' },
+
+  // Inventario
   'inventory.read': { name: 'Ver Inventario', module: 'Inventario' },
   'inventory.update': { name: 'Actualizar Inventario', module: 'Inventario' },
   'inventory.adjustment': { name: 'Ajustar Inventario', module: 'Inventario' },
+
+  // Almacenes
+  'warehouses.create': { name: 'Crear Almacenes', module: 'Almacenes' },
+  'warehouses.read': { name: 'Ver Almacenes', module: 'Almacenes' },
+  'warehouses.update': { name: 'Actualizar Almacenes', module: 'Almacenes' },
+  'warehouses.delete': { name: 'Eliminar Almacenes', module: 'Almacenes' },
+
+  // Ventas
   'sales.create': { name: 'Crear Ventas', module: 'Ventas' },
   'sales.read': { name: 'Ver Ventas', module: 'Ventas' },
+  'sales.update': { name: 'Actualizar Ventas', module: 'Ventas' },
+  'sales.delete': { name: 'Eliminar Ventas', module: 'Ventas' },
   'sales.cancel': { name: 'Cancelar Ventas', module: 'Ventas' },
   'sales.credit_note': { name: 'Notas de Crédito', module: 'Ventas' },
+
+  // Compras
   'purchases.create': { name: 'Crear Compras', module: 'Compras' },
   'purchases.read': { name: 'Ver Compras', module: 'Compras' },
   'purchases.update': { name: 'Actualizar Compras', module: 'Compras' },
+  'purchases.delete': { name: 'Eliminar Compras', module: 'Compras' },
+
+  // Cajas Registradoras
+  'cash-registers.create': { name: 'Crear Cajas', module: 'Cajas Registradoras' },
+  'cash-registers.read': { name: 'Ver Cajas', module: 'Cajas Registradoras' },
+  'cash-registers.update': { name: 'Actualizar Cajas', module: 'Cajas Registradoras' },
+  'cash-registers.delete': { name: 'Eliminar Cajas', module: 'Cajas Registradoras' },
+
+  // Sesiones de Caja
+  'cash-sessions.create': { name: 'Abrir Sesión de Caja', module: 'Sesiones de Caja' },
+  'cash-sessions.read': { name: 'Ver Sesiones de Caja', module: 'Sesiones de Caja' },
+  'cash-sessions.update': { name: 'Actualizar Sesiones', module: 'Sesiones de Caja' },
+  'cash-sessions.delete': { name: 'Eliminar Sesiones', module: 'Sesiones de Caja' },
   'cash.open_session': { name: 'Abrir Caja', module: 'Caja' },
   'cash.close_session': { name: 'Cerrar Caja', module: 'Caja' },
   'cash.movements': { name: 'Movimientos de Caja', module: 'Caja' },
+
+  // Configuración
+  'settings.read': { name: 'Ver Configuración', module: 'Configuración' },
+  'settings.update': { name: 'Actualizar Configuración', module: 'Configuración' },
+  'configuration.read': { name: 'Ver Configuración', module: 'Configuración' },
+  'configuration.update': { name: 'Actualizar Configuración', module: 'Configuración' },
+
+  // Auditoría
+  'audit.read': { name: 'Ver Auditoría', module: 'Auditoría' },
+
+  // Reportes
+  'reports.read': { name: 'Ver Reportes', module: 'Reportes' },
   'reports.sales': { name: 'Reportes de Ventas', module: 'Reportes' },
   'reports.inventory': { name: 'Reportes de Inventario', module: 'Reportes' },
   'reports.cash': { name: 'Reportes de Caja', module: 'Reportes' },
   'reports.audit': { name: 'Reportes de Auditoría', module: 'Reportes' },
-  'configuration.read': { name: 'Ver Configuración', module: 'Configuración' },
-  'configuration.update': { name: 'Actualizar Configuración', module: 'Configuración' },
-  'audit.read': { name: 'Ver Auditoría', module: 'Auditoría' },
-  'roles.manage': { name: 'Gestionar Roles', module: 'Roles' },
+
+  // Cotizaciones
   'quotes.create': { name: 'Crear Cotizaciones', module: 'Ventas' },
   'quotes.read': { name: 'Ver Cotizaciones', module: 'Ventas' },
 };

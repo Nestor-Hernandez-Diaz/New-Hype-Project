@@ -5,13 +5,3 @@
 
 export { usePurchaseOrders } from './usePurchaseOrders';
 export { usePurchaseReceipts } from './usePurchaseReceipts';
-
-export type {
-  UsePurchaseOrdersOptions,
-  UsePurchaseOrdersReturn,
-} from './usePurchaseOrders';
-
-export type {
-  UsePurchaseReceiptsOptions,
-  UsePurchaseReceiptsReturn,
-} from './usePurchaseReceipts';

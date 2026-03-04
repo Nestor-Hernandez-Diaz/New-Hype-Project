@@ -153,7 +153,7 @@ const AlertasBadge: React.FC = () => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/inventory/alertas`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/inventario/alertas`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
