@@ -3,10 +3,11 @@ import styled from 'styled-components';
 import configuracionApi from '../services/configuracionApi';
 import type { UnitOfMeasure, UnitInput } from '../types/configuracion';
 import { useNotification } from '../../../context/NotificationContext';
-import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
+import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
 import { Button } from '../../../components/shared/Button';
 import { Input as SharedInput } from '../../../components/shared/Input';
 import { Label as SharedLabel } from '../../../components/shared/Label';
+import { RequiredMark, ValidationMessage } from '../../../components/shared';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -51,17 +52,28 @@ const ModalContent = styled.div`
 
 const FormGroup = styled.div`
   margin-bottom: ${SPACING.xl};
+`;
 
-  .error {
-    color: ${COLOR_SCALES.danger[500]};
-    font-size: ${TYPOGRAPHY.fontSize.xs};
-    margin-top: ${SPACING.sm};
-  }
+const Hint = styled.div`
+  color: ${COLORS.text.secondary};
+  font-size: ${TYPOGRAPHY.fontSize.xs};
+  margin-top: ${SPACING.xs};
+`;
 
-  .hint {
-    color: ${COLORS.text.secondary};
-    font-size: ${TYPOGRAPHY.fontSize.xs};
-    margin-top: ${SPACING.xs};
+const StyledTextarea = styled.textarea`
+  width: 100%;
+  padding: ${SPACING.sm} ${SPACING.md};
+  border: 1px solid ${COLORS.neutral[300]};
+  border-radius: ${BORDER_RADIUS.md};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+
+  &:focus {
+    outline: none;
+    border-color: ${COLOR_SCALES.primary[500]};
+    box-shadow: 0 0 0 3px ${COLOR_SCALES.primary[100]};
   }
 `;
 
@@ -107,7 +119,6 @@ const UnidadModal: React.FC<UnidadModalProps> = ({ unidad, onClose }) => {
       [name]: value,
     }));
 
-    // Limpiar error del campo
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -153,11 +164,9 @@ const UnidadModal: React.FC<UnidadModalProps> = ({ unidad, onClose }) => {
 
     try {
       if (unidad) {
-        // Editar
         await configuracionApi.updateUnit(unidad.id, formData);
         showSuccess('Unidad actualizada correctamente');
       } else {
-        // Crear
         await configuracionApi.createUnit(formData);
         showSuccess('Unidad creada correctamente');
       }
@@ -187,28 +196,30 @@ const UnidadModal: React.FC<UnidadModalProps> = ({ unidad, onClose }) => {
 
           <ModalContent>
             <FormGroup>
-              <label>
-                Código<span className="required">*</span>
-              </label>
-              <input
+              <SharedLabel htmlFor="unit-codigo">
+                Código <RequiredMark />
+              </SharedLabel>
+              <SharedInput
+                id="unit-codigo"
                 type="text"
                 name="codigo"
                 value={formData.codigo}
                 onChange={handleInputChange}
                 placeholder="Ej: UND"
                 maxLength={10}
-                disabled={!!unidad} // No editable si es edición
+                disabled={!!unidad}
               />
-              {errors.codigo && <div className="error">{errors.codigo}</div>}
-              <div className="hint">Máximo 10 caracteres. No editable después de crear.</div>
+              {errors.codigo && <ValidationMessage $type="error">{errors.codigo}</ValidationMessage>}
+              <Hint>Máximo 10 caracteres. No editable después de crear.</Hint>
             </FormGroup>
 
             <FormRow>
               <FormGroup>
-                <label>
-                  Nombre<span className="required">*</span>
-                </label>
-                <input
+                <SharedLabel htmlFor="unit-nombre">
+                  Nombre <RequiredMark />
+                </SharedLabel>
+                <SharedInput
+                  id="unit-nombre"
                   type="text"
                   name="nombre"
                   value={formData.nombre}
@@ -216,15 +227,16 @@ const UnidadModal: React.FC<UnidadModalProps> = ({ unidad, onClose }) => {
                   placeholder="Ej: Unidad"
                   maxLength={50}
                 />
-                {errors.nombre && <div className="error">{errors.nombre}</div>}
-                <div className="hint">Máximo 50 caracteres</div>
+                {errors.nombre && <ValidationMessage $type="error">{errors.nombre}</ValidationMessage>}
+                <Hint>Máximo 50 caracteres</Hint>
               </FormGroup>
 
               <FormGroup>
-                <label>
-                  Símbolo<span className="required">*</span>
-                </label>
-                <input
+                <SharedLabel htmlFor="unit-simbolo">
+                  Símbolo <RequiredMark />
+                </SharedLabel>
+                <SharedInput
+                  id="unit-simbolo"
                   type="text"
                   name="simbolo"
                   value={formData.simbolo}
@@ -232,20 +244,22 @@ const UnidadModal: React.FC<UnidadModalProps> = ({ unidad, onClose }) => {
                   placeholder="Ej: Und"
                   maxLength={10}
                 />
-                {errors.simbolo && <div className="error">{errors.simbolo}</div>}
-                <div className="hint">Máximo 10 caracteres</div>
+                {errors.simbolo && <ValidationMessage $type="error">{errors.simbolo}</ValidationMessage>}
+                <Hint>Máximo 10 caracteres</Hint>
               </FormGroup>
             </FormRow>
 
             <FormGroup>
-              <label>Descripción</label>
-              <textarea
+              <SharedLabel htmlFor="unit-descripcion">Descripción</SharedLabel>
+              <StyledTextarea
+                id="unit-descripcion"
                 name="descripcion"
                 value={formData.descripcion}
                 onChange={handleInputChange}
                 placeholder="Descripción opcional de la unidad de medida"
+                rows={3}
               />
-              <div className="hint">Opcional</div>
+              <Hint>Opcional</Hint>
             </FormGroup>
 
             <Actions>

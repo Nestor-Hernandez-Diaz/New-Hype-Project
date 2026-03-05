@@ -9,7 +9,7 @@ import { Heart, ShoppingBag } from 'lucide-react';
 import type { ProductoStorefront } from '@monorepo/shared-types';
 import { useStorefront } from '../../context/StorefrontContext';
 import { useNavigate } from 'react-router-dom';
-import { calcularPrecioLiquidacion, esProductoNuevo, obtenerColor, obtenerImagenesProducto, obtenerTalla } from '../../services/storefrontApi';
+import { calcularPrecioLiquidacion, esProductoNuevo, obtenerColor, obtenerTalla } from '../../services/storefrontApi';
 import { useState } from 'react';
 
 interface ProductCardProps {
@@ -24,8 +24,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
   const precioFinal = calcularPrecioLiquidacion(producto);
   const descuento = producto.enLiquidacion ? producto.porcentajeLiquidacion : 0;
   const esNuevo = esProductoNuevo(producto);
-  const imagenes = obtenerImagenesProducto(producto.id);
-  const imgHover = imagenes.length > 1 ? imagenes[1].url : null;
+  const imgHover = producto.imagenes && producto.imagenes.length > 1 ? producto.imagenes[1].url : null;
   const isFav = esFavorito(producto.id);
   
   const handleAgregarRapido = (e: React.MouseEvent) => {
@@ -35,14 +34,14 @@ export default function ProductCard({ producto }: ProductCardProps) {
     if (producto.stockTotal === 0) return;
     
     // Agregar al carrito con primera talla y color disponibles
-    const tallaId = producto.tallasDisponibles[0] || null;
-    const colorId = producto.coloresDisponibles[0] || null;
-    
+    const tallaId = producto.tallasDisponibles?.[0] || null;
+    const colorId = producto.coloresDisponibles?.[0] || null;
+
     // Obtener info de talla y color para el carrito
-    const talla = producto.tallasDisponibles[0] 
+    const talla = producto.tallasDisponibles?.[0]
       ? obtenerTalla(producto.tallasDisponibles[0])
       : null;
-    const color = producto.coloresDisponibles[0]
+    const color = producto.coloresDisponibles?.[0]
       ? obtenerColor(producto.coloresDisponibles[0])
       : null;
     
@@ -53,9 +52,9 @@ export default function ProductCard({ producto }: ProductCardProps) {
         sku: producto.sku,
         nombreProducto: producto.nombre,
         slug: producto.slug,
-        marca: producto.marca.nombre,
+        marca: producto.marcaNombre || producto.marca?.nombre || '',
         precioUnitario: precioFinal,
-        imagen: producto.imagenUrl,
+        imagen: producto.imagenUrl || '',
         tallaId: tallaId,
         tallaCodigo: talla?.codigo || '',
         colorId: colorId,
@@ -83,7 +82,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
       <div className="relative aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden mb-3">
         {/* Imagen principal */}
         <img
-          src={imageError ? 'https://via.placeholder.com/600x800?text=NEW+HYPE' : producto.imagenUrl}
+          src={imageError ? 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=600&fit=crop' : producto.imagenUrl}
           alt={producto.nombre}
           onError={() => setImageError(true)}
           className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
@@ -152,7 +151,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
       <div className="space-y-1">
         {/* Marca */}
         <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">
-          {producto.marca.nombre}
+          {producto.marcaNombre || producto.marca?.nombre || ''}
         </div>
         
         {/* Nombre */}
@@ -162,7 +161,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
         
         {/* Colores disponibles */}
         <div className="flex gap-1.5 py-1">
-          {producto.coloresDisponibles.slice(0, 4).map(colorId => {
+          {(producto.coloresDisponibles || []).slice(0, 4).map(colorId => {
             const color = obtenerColor(colorId);
             return color ? (
               <span

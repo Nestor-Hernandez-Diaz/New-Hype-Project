@@ -225,6 +225,17 @@ const CatalogTable: React.FC<CatalogTableProps> = ({ config }) => {
     }
   };
 
+  const handleActivate = async (id: number) => {
+    if (!window.confirm(`¿Está seguro de activar este ${config.label.toLowerCase()}?`)) return;
+    try {
+      await configuracionApi.activateCatalogItem(config.catalogType, id);
+      showSuccess(`${config.label} activado correctamente`);
+      fetchItems();
+    } catch (error: any) {
+      showError(error.message || `Error al activar ${config.label.toLowerCase()}`);
+    }
+  };
+
   const handleModalClose = (saved: boolean) => {
     setIsModalOpen(false);
     setSelectedItem(undefined);
@@ -326,9 +337,13 @@ const CatalogTable: React.FC<CatalogTableProps> = ({ config }) => {
                   <Td>
                     <ActionButtons>
                       <ActionButton onClick={() => handleEdit(item)}>Editar</ActionButton>
-                      {item.estado && (
+                      {item.estado ? (
                         <ActionButton $variant="danger" onClick={() => handleDelete(item.id)}>
                           Desactivar
+                        </ActionButton>
+                      ) : (
+                        <ActionButton onClick={() => handleActivate(item.id)}>
+                          Activar
                         </ActionButton>
                       )}
                     </ActionButtons>

@@ -52,23 +52,12 @@ export default function ProductDetail() {
   const handleAgregarAlCarrito = () => {
     if (!producto) return;
 
-    agregarAlCarrito({
-      productoId: producto.id,
-      sku: producto.sku,
-      nombreProducto: producto.nombre,
-      slug: producto.slug,
-      marca: producto.marcaNombre || 'Marca',
-      precioUnitario: producto.enLiquidacion && producto.precioLiquidacion 
-        ? producto.precioLiquidacion 
-        : producto.precioVenta,
-      imagen: producto.imagenUrl || '',
-      tallaId: tallaSeleccionada,
-      tallaCodigo: 'M', // TODO: Obtener del catálogo
-      colorId: colorSeleccionado,
-      colorNombre: 'Negro',  // TODO: Obtener del catálogo
-      colorHex: '#000000',
-      cantidad
-    });
+    agregarAlCarrito(
+      producto.id,
+      cantidad,
+      tallaSeleccionada,
+      colorSeleccionado
+    );
     
     showToast(`${producto.nombre} agregado al carrito`, 'success');
   };

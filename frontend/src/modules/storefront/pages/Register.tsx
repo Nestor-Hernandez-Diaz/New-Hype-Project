@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import RegisterForm from '../components/auth/RegisterForm';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,15 +25,19 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // TODO: Implementar llamada real al backend POST /storefront/auth/register
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock: Guardar datos del usuario registrado
-      localStorage.setItem('nh_cliente_token', 'mock-jwt-token');
-      localStorage.setItem('nh_cliente_email', formData.email);
-      localStorage.setItem('nh_cliente_nombre', `${formData.nombre} ${formData.apellidos}`);
-      
-      navigate('/storefront/cuenta/perfil');
+      const success = await register({
+        email: formData.email,
+        password: formData.password,
+        nombre: formData.nombre,
+        apellido: formData.apellidos,
+        telefono: formData.telefono,
+      });
+
+      if (success) {
+        navigate('/storefront/cuenta/perfil');
+      } else {
+        setError('Error al crear la cuenta. Por favor intenta de nuevo.');
+      }
     } catch {
       setError('Error al crear la cuenta. Por favor intenta de nuevo.');
     } finally {

@@ -83,6 +83,22 @@ export interface CatalogInput {
   ordenVisualizacion?: number;
 }
 
+// =========== Mappers: backend 'estado' → frontend 'activo' ===========
+
+function mapBackendCategory(raw: any): ProductCategory {
+  return {
+    ...raw,
+    activo: raw.activo ?? raw.estado ?? true,
+  };
+}
+
+function mapBackendUnit(raw: any): UnitOfMeasure {
+  return {
+    ...raw,
+    activo: raw.activo ?? raw.estado ?? true,
+  };
+}
+
 const configuracionApi = {
   // Empresa
   getEmpresa: async (): Promise<EmpresaData> => {
@@ -149,8 +165,9 @@ const configuracionApi = {
     if (filters?.activo !== undefined) params.append('activo', filters.activo.toString());
     if (filters?.q) params.append('q', filters.q);
     const url = `/configuracion/categorias${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiService.get<ProductCategory[]>(url);
-    return Array.isArray(response.data) ? response.data : [];
+    const response = await apiService.get<any[]>(url);
+    const rawList = Array.isArray(response.data) ? response.data : [];
+    return rawList.map(mapBackendCategory);
   },
 
   getActiveCategories: async (): Promise<ProductCategory[]> => {
@@ -186,8 +203,9 @@ const configuracionApi = {
     if (filters?.activo !== undefined) params.append('activo', filters.activo.toString());
     if (filters?.q) params.append('q', filters.q);
     const url = `/configuracion/unidades-medida${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiService.get<UnitOfMeasure[]>(url);
-    return Array.isArray(response.data) ? response.data : [];
+    const response = await apiService.get<any[]>(url);
+    const rawList = Array.isArray(response.data) ? response.data : [];
+    return rawList.map(mapBackendUnit);
   },
 
   getActiveUnits: async (): Promise<UnitOfMeasure[]> => {
@@ -244,6 +262,33 @@ const configuracionApi = {
   getMarcas: async (): Promise<CatalogItem[]> => configuracionApi.getCatalogItems('marcas'),
   getMateriales: async (): Promise<CatalogItem[]> => configuracionApi.getCatalogItems('materiales'),
   getGeneros: async (): Promise<CatalogItem[]> => configuracionApi.getCatalogItems('generos'),
+
+  // ========== Activate/Reactivate methods ==========
+
+  activateCategory: async (id: string): Promise<void> => {
+    // Try PATCH estado first; if backend doesn't support it, use PUT with estado:true
+    try {
+      await apiService.patch(`/configuracion/categorias/${id}/estado`, { estado: true });
+    } catch {
+      await apiService.put(`/configuracion/categorias/${id}`, { estado: true });
+    }
+  },
+
+  activateUnit: async (id: string): Promise<void> => {
+    try {
+      await apiService.patch(`/configuracion/unidades-medida/${id}/estado`, { estado: true });
+    } catch {
+      await apiService.put(`/configuracion/unidades-medida/${id}`, { estado: true });
+    }
+  },
+
+  activateCatalogItem: async (catalogType: string, id: number): Promise<void> => {
+    try {
+      await apiService.patch(`/configuracion/${catalogType}/${id}/estado`, { estado: true });
+    } catch {
+      await apiService.put(`/configuracion/${catalogType}/${id}`, { estado: true });
+    }
+  },
 };
 
 export default configuracionApi;

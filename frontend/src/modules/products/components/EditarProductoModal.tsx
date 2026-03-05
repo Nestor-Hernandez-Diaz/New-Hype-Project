@@ -6,8 +6,9 @@ import { useNotification } from '../../../context/NotificationContext';
 import configuracionApi from '../../configuration/services/configuracionApi';
 import type { ProductCategory, UnitOfMeasure } from '../../configuration/types/configuracion';
 import type { CatalogItem } from '../../configuration/services/configuracionApi';
-import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
+import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
 import { Button, Input, Select, Label, RequiredMark, ValidationMessage, ButtonGroup } from '../../../components/shared';
+import ProductImageManager from './ProductImageManager';
 
 const FormGrid = styled.div`
   display: grid;
@@ -53,6 +54,12 @@ const CharCounter = styled.small`
   font-size: ${TYPOGRAPHY.fontSize.xs};
 `;
 
+const SectionDivider = styled.div`
+  margin: ${SPACING.xl} 0 ${SPACING.lg};
+  padding-top: ${SPACING.lg};
+  border-top: 2px solid ${COLOR_SCALES.primary[100]};
+`;
+
 interface EditProductFormData {
   productCode: string;
   productName: string;
@@ -68,7 +75,6 @@ interface EditProductFormData {
   marca: string;
   material: string;
   genero: string;
-  imagenUrl: string;
 }
 
 // Fallback options used only if API catalog is empty
@@ -119,7 +125,6 @@ const EditarProductoModal: React.FC<EditarProductoModalProps> = ({ product, onCl
     marca: (product as any).marcaId ? String((product as any).marcaId) : (product.marca || ''),
     material: (product as any).materialId ? String((product as any).materialId) : (product.material || ''),
     genero: (product as any).generoId ? String((product as any).generoId) : (product.genero || ''),
-    imagenUrl: (product as any).imagenUrl || ''
   });
 
   // Cargar maestros de configuración
@@ -269,7 +274,6 @@ const EditarProductoModal: React.FC<EditarProductoModalProps> = ({ product, onCl
         material: formData.material && materialesApi.length === 0 ? formData.material.trim() : undefined,
         generoId: formData.genero && generosApi.length > 0 ? Number(formData.genero) : undefined,
         genero: formData.genero && generosApi.length === 0 ? formData.genero : undefined,
-        imagenUrl: formData.imagenUrl.trim() || undefined,
       } as any);
 
       onClose();
@@ -282,6 +286,7 @@ const EditarProductoModal: React.FC<EditarProductoModalProps> = ({ product, onCl
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit}>
       <FormGrid>
         <FormGroup>
@@ -447,10 +452,6 @@ const EditarProductoModal: React.FC<EditarProductoModalProps> = ({ product, onCl
             <Input id="material" name="material" type="text" value={formData.material} onChange={handleInputChange} placeholder="Ej: Algodón 100%" />
           )}
         </FormGroup>
-        <FormGroup>
-          <Label htmlFor="imagenUrl">URL de Imagen</Label>
-          <Input id="imagenUrl" name="imagenUrl" type="url" value={formData.imagenUrl} onChange={handleInputChange} placeholder="https://ejemplo.com/imagen.jpg" />
-        </FormGroup>
       </FormGrid>
       <ButtonGroup style={{ justifyContent: 'flex-end' }}>
         <Button type="button" $variant="secondary" onClick={onClose}>Cancelar</Button>
@@ -459,6 +460,11 @@ const EditarProductoModal: React.FC<EditarProductoModalProps> = ({ product, onCl
         </Button>
       </ButtonGroup>
     </form>
+
+    <SectionDivider>
+      <ProductImageManager productoId={Number(product.id)} />
+    </SectionDivider>
+    </>
   );
 };
 

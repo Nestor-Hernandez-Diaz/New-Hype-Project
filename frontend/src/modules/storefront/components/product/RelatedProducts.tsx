@@ -12,7 +12,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ProductoStorefront } from '@monorepo/shared-types';
 import { apiObtenerProductos } from '../../services/storefrontApi';
-import ProductCard from '../ProductCard';
+import ProductCard from './ProductCard';
 
 interface RelatedProductsProps {
   /**
@@ -47,10 +47,10 @@ export default function RelatedProducts({
     const cargarProductosRelacionados = async () => {
       setLoading(true);
       try {
-        const data = await apiObtenerProductos();
-        
+        const response = await apiObtenerProductos();
+
         // Filtrar productos relacionados
-        let relacionados = data.filter(p => p.id !== productoActualId);
+        let relacionados = response.data.filter(p => p.id !== productoActualId);
         
         // Si hay categoría, priorizar productos de la misma categoría
         if (categoriaId) {

@@ -188,6 +188,8 @@ public class StorefrontService {
                     .filter(s -> s.getProductoId().equals(p.getId()) && s.getCantidad() != null && s.getCantidad() > 0)
                     .collect(Collectors.toList());
 
+            int totalStock = stockList.stream().mapToInt(StockAlmacen::getCantidad).sum();
+
             return ProductoStorefrontResponse.builder()
                     .id(p.getId())
                     .sku(p.getSku())
@@ -202,6 +204,7 @@ public class StorefrontService {
                     .porcentajeLiquidacion(p.getPorcentajeLiquidacion())
                     .precioLiquidacion(precioLiq)
                     .disponible(!stockList.isEmpty())
+                    .stockTotal(totalStock)
                     .build();
         });
     }
@@ -232,6 +235,8 @@ public class StorefrontService {
                 .filter(s -> s.getProductoId().equals(p.getId()) && s.getCantidad() != null && s.getCantidad() > 0)
                 .collect(Collectors.toList());
 
+        int totalStock = stockList.stream().mapToInt(StockAlmacen::getCantidad).sum();
+
         // Get product images
         List<String> imagenes = Collections.emptyList();
         try {
@@ -254,6 +259,7 @@ public class StorefrontService {
                 .porcentajeLiquidacion(p.getPorcentajeLiquidacion())
                 .precioLiquidacion(precioLiq)
                 .disponible(!stockList.isEmpty())
+                .stockTotal(totalStock)
                 .imagenes(imagenes)
                 .build();
     }

@@ -80,6 +80,7 @@ const StorefrontLogin = lazy(() => import('./modules/storefront/pages/Login'));
 const StorefrontRegister = lazy(() => import('./modules/storefront/pages/Register'));
 const StorefrontProfile = lazy(() => import('./modules/storefront/pages/Profile'));
 const StorefrontOrders = lazy(() => import('./modules/storefront/pages/Orders'));
+const StorefrontOrderDetail = lazy(() => import('./modules/storefront/pages/OrderDetail'));
 const StorefrontCheckout = lazy(() => import('./modules/storefront/pages/Checkout'));
 const StorefrontOrderConfirmation = lazy(() => import('./modules/storefront/pages/OrderConfirmation'));
 const StorefrontFavorites = lazy(() => import('./modules/storefront/pages/Favorites'));
@@ -167,6 +168,7 @@ function App() {
                                   <Route path="cuenta/registro" element={<StorefrontRegister />} />
                                   <Route path="cuenta/perfil" element={<StorefrontProfile />} />
                                   <Route path="cuenta/pedidos" element={<StorefrontOrders />} />
+                                  <Route path="cuenta/pedidos/:id" element={<StorefrontOrderDetail />} />
                                 </Route>
 
                                 <Route 

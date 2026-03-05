@@ -1,13 +1,18 @@
 /**
- * 🔐 HOOK: useAuth
- * 
- * Hook customizado para gestionar autenticación del storefront.
- * Usa localStorage para persistir sesión de usuario frontal.
- * 
- * @module useAuth
+ * Hook: useAuth — Real Backend Authentication
+ *
+ * Manages storefront customer authentication via JWT tokens.
+ * Uses the Spring Boot backend at spring.informaticapp.com:5001.
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import {
+  storefrontFetch,
+  getSfToken,
+  setSfToken,
+  clearSfToken,
+  type BackendApiResponse,
+} from '../services/storefrontFetch';
 
 export interface UsuarioStorefront {
   id: number;
@@ -22,20 +27,20 @@ export interface UsuarioStorefront {
 }
 
 export interface UseAuthReturn {
-  // Estado
+  // State
   usuario: UsuarioStorefront | null;
   estaAutenticado: boolean;
   token: string | null;
   cargando: boolean;
-  
-  // Acciones
+
+  // Actions
   login: (email: string, password: string) => Promise<boolean>;
   register: (datos: RegisterData) => Promise<boolean>;
   logout: () => void;
   actualizarPerfil: (datos: Partial<UsuarioStorefront>) => Promise<boolean>;
   cambiarPassword: (passwordActual: string, passwordNueva: string) => Promise<boolean>;
-  
-  // Utilidades
+
+  // Utilities
   obtenerToken: () => string | null;
   obtenerUsuario: () => UsuarioStorefront | null;
   verificarSesion: () => boolean;
@@ -49,248 +54,270 @@ export interface RegisterData {
   telefono?: string;
 }
 
-// Keys de localStorage
+// Auth response from backend
+interface AuthApiResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+  scope: string;
+  user: {
+    id: number;
+    email: string;
+    nombre: string;
+    apellido: string;
+    rol: string;
+    tenantId: number;
+    scope: string;
+  };
+}
+
+// localStorage keys
 const STORAGE_KEYS = {
   TOKEN: 'nh_token_storefront',
-  USUARIO: 'nh_usuario_storefront'
+  USUARIO: 'nh_usuario_storefront',
 } as const;
 
 /**
- * Hook para gestionar autenticación del storefront (cliente)
+ * Hook for storefront (customer) authentication
  */
 export function useAuth(): UseAuthReturn {
   const [usuario, setUsuario] = useState<UsuarioStorefront | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
-  
+
   // ========================================================================
-  // INICIALIZACIÓN
+  // INITIALIZATION
   // ========================================================================
-  
-  /**
-   * Cargar sesión desde localStorage al montar
-   */
+
   useEffect(() => {
     const tokenGuardado = localStorage.getItem(STORAGE_KEYS.TOKEN);
     const usuarioGuardado = localStorage.getItem(STORAGE_KEYS.USUARIO);
-    
+
     if (tokenGuardado && usuarioGuardado) {
       try {
         const usuarioParsed = JSON.parse(usuarioGuardado) as UsuarioStorefront;
         setToken(tokenGuardado);
         setUsuario(usuarioParsed);
+        // Sync with storefrontFetch helper
+        setSfToken(tokenGuardado);
       } catch (error) {
-        console.error('Error al cargar sesión:', error);
-        // Limpiar datos corruptos
+        console.error('[useAuth] Error loading session:', error);
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USUARIO);
+        clearSfToken();
       }
     }
-    
+
     setCargando(false);
   }, []);
-  
+
+  // Helper to persist user session
+  const persistSession = useCallback((accessToken: string, user: UsuarioStorefront) => {
+    localStorage.setItem(STORAGE_KEYS.TOKEN, accessToken);
+    localStorage.setItem(STORAGE_KEYS.USUARIO, JSON.stringify(user));
+    setSfToken(accessToken);
+    setToken(accessToken);
+    setUsuario(user);
+  }, []);
+
   // ========================================================================
-  // ACCIONES
+  // ACTIONS
   // ========================================================================
-  
+
   /**
-   * Iniciar sesión (Mock - reemplazar con API real)
+   * Login via POST /storefront/auth/login
    */
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     setCargando(true);
-    
+
     try {
-      // ⚠️ MOCK - Reemplazar con fetch('/api/v1/storefront/auth/login')
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simular respuesta del backend
-      if (email === 'demo@newhype.com' && password === 'demo123') {
-        const usuarioMock: UsuarioStorefront = {
-          id: 1,
-          email: email,
-          nombre: 'Usuario',
-          apellido: 'Demo',
-          telefono: '987654321',
-          direccion: 'Av. Principal 123',
-          ciudad: 'Lima',
-          codigoPostal: '15001',
-          fechaRegistro: new Date().toISOString()
-        };
-        
-        const tokenMock = 'mock_token_' + Date.now();
-        
-        // Persistir en localStorage
-        localStorage.setItem(STORAGE_KEYS.TOKEN, tokenMock);
-        localStorage.setItem(STORAGE_KEYS.USUARIO, JSON.stringify(usuarioMock));
-        
-        setToken(tokenMock);
-        setUsuario(usuarioMock);
-        setCargando(false);
-        
-        return true;
-      } else {
-        setCargando(false);
-        return false;
-      }
-    } catch (error) {
-      console.error('Error en login:', error);
-      setCargando(false);
+      const res = await storefrontFetch<BackendApiResponse<AuthApiResponse>>(
+        '/storefront/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            tenantId: '1',
+            email,
+            password,
+          }),
+        }
+      );
+
+      const authData = res.data;
+      const user: UsuarioStorefront = {
+        id: authData.user.id,
+        email: authData.user.email,
+        nombre: authData.user.nombre,
+        apellido: authData.user.apellido,
+        fechaRegistro: new Date().toISOString(),
+      };
+
+      persistSession(authData.accessToken, user);
+      console.log('[useAuth] Login successful for:', email);
+      return true;
+    } catch (error: any) {
+      console.error('[useAuth] Login error:', error.message);
       return false;
+    } finally {
+      setCargando(false);
     }
-  }, []);
-  
+  }, [persistSession]);
+
   /**
-   * Registrar nuevo usuario (Mock - reemplazar con API real)
+   * Register via POST /storefront/auth/register
    */
   const register = useCallback(async (datos: RegisterData): Promise<boolean> => {
     setCargando(true);
-    
+
     try {
-      // ⚠️ MOCK - Reemplazar con fetch('/api/v1/storefront/auth/register')
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      
-      // Simular respuesta del backend
-      const nuevoUsuario: UsuarioStorefront = {
-        id: Math.floor(Math.random() * 10000),
-        email: datos.email,
-        nombre: datos.nombre,
-        apellido: datos.apellido,
+      const res = await storefrontFetch<BackendApiResponse<AuthApiResponse>>(
+        '/storefront/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            tenantId: '1',
+            email: datos.email,
+            password: datos.password,
+            nombre: datos.nombre,
+            apellido: datos.apellido,
+            telefono: datos.telefono,
+          }),
+        }
+      );
+
+      const authData = res.data;
+      const user: UsuarioStorefront = {
+        id: authData.user.id,
+        email: authData.user.email,
+        nombre: authData.user.nombre,
+        apellido: authData.user.apellido,
         telefono: datos.telefono,
-        fechaRegistro: new Date().toISOString()
+        fechaRegistro: new Date().toISOString(),
       };
-      
-      const tokenMock = 'mock_token_' + Date.now();
-      
-      // Persistir en localStorage
-      localStorage.setItem(STORAGE_KEYS.TOKEN, tokenMock);
-      localStorage.setItem(STORAGE_KEYS.USUARIO, JSON.stringify(nuevoUsuario));
-      
-      setToken(tokenMock);
-      setUsuario(nuevoUsuario);
-      setCargando(false);
-      
+
+      persistSession(authData.accessToken, user);
+      console.log('[useAuth] Registration successful for:', datos.email);
       return true;
-    } catch (error) {
-      console.error('Error en register:', error);
-      setCargando(false);
+    } catch (error: any) {
+      console.error('[useAuth] Registration error:', error.message);
       return false;
+    } finally {
+      setCargando(false);
     }
-  }, []);
-  
+  }, [persistSession]);
+
   /**
-   * Cerrar sesión
+   * Logout — clear all session data
    */
   const logout = useCallback(() => {
-    // Limpiar localStorage
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USUARIO);
-    
-    // Limpiar estado
+    clearSfToken();
     setToken(null);
     setUsuario(null);
+    console.log('[useAuth] Logged out');
   }, []);
-  
+
   /**
-   * Actualizar perfil de usuario (Mock - reemplazar con API real)
+   * Update profile via PUT /storefront/perfil
    */
   const actualizarPerfil = useCallback(async (datos: Partial<UsuarioStorefront>): Promise<boolean> => {
     if (!usuario) return false;
-    
+
     setCargando(true);
-    
+
     try {
-      // ⚠️ MOCK - Reemplazar con fetch('/api/v1/storefront/perfil', { method: 'PUT' })
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Actualizar usuario localmente
-      const usuarioActualizado = { ...usuario, ...datos };
-      
-      localStorage.setItem(STORAGE_KEYS.USUARIO, JSON.stringify(usuarioActualizado));
-      setUsuario(usuarioActualizado);
-      setCargando(false);
-      
+      const res = await storefrontFetch<BackendApiResponse<any>>(
+        '/storefront/perfil',
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            nombre: datos.nombre ?? usuario.nombre,
+            apellido: datos.apellido ?? usuario.apellido,
+            telefono: datos.telefono ?? usuario.telefono,
+          }),
+        }
+      );
+
+      const updatedUser = {
+        ...usuario,
+        ...datos,
+        ...(res.data || {}),
+      };
+
+      localStorage.setItem(STORAGE_KEYS.USUARIO, JSON.stringify(updatedUser));
+      setUsuario(updatedUser);
       return true;
-    } catch (error) {
-      console.error('Error al actualizar perfil:', error);
-      setCargando(false);
+    } catch (error: any) {
+      console.error('[useAuth] Profile update error:', error.message);
       return false;
+    } finally {
+      setCargando(false);
     }
   }, [usuario]);
-  
+
   /**
-   * Cambiar contraseña (Mock - reemplazar con API real)
+   * Change password
    */
   const cambiarPassword = useCallback(async (passwordActual: string, passwordNueva: string): Promise<boolean> => {
     if (!usuario) return false;
-    
+
     setCargando(true);
-    
+
     try {
-      // ⚠️ MOCK - Reemplazar con fetch('/api/v1/storefront/cambiar-password', { method: 'POST' })
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Simular verificación de password actual (siempre true en mock)
-      if (passwordActual.length < 6 || passwordNueva.length < 6) {
-        setCargando(false);
-        return false;
-      }
-      
-      setCargando(false);
+      await storefrontFetch<BackendApiResponse<any>>(
+        '/storefront/perfil/password',
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            passwordActual,
+            passwordNueva,
+          }),
+        }
+      );
+
       return true;
-    } catch (error) {
-      console.error('Error al cambiar password:', error);
-      setCargando(false);
+    } catch (error: any) {
+      console.error('[useAuth] Password change error:', error.message);
       return false;
+    } finally {
+      setCargando(false);
     }
   }, [usuario]);
-  
+
   // ========================================================================
-  // UTILIDADES
+  // UTILITIES
   // ========================================================================
-  
-  /**
-   * Obtener token de autenticación actual
-   */
+
   const obtenerToken = useCallback((): string | null => {
     return token;
   }, [token]);
-  
-  /**
-   * Obtener usuario actual
-   */
+
   const obtenerUsuario = useCallback((): UsuarioStorefront | null => {
     return usuario;
   }, [usuario]);
-  
-  /**
-   * Verificar si hay sesión activa válida
-   */
+
   const verificarSesion = useCallback((): boolean => {
     return Boolean(token && usuario);
   }, [token, usuario]);
-  
+
   // ========================================================================
   // RETURN
   // ========================================================================
-  
+
   return {
-    // Estado
     usuario,
     estaAutenticado: Boolean(token && usuario),
     token,
     cargando,
-    
-    // Acciones
     login,
     register,
     logout,
     actualizarPerfil,
     cambiarPassword,
-    
-    // Utilidades
     obtenerToken,
     obtenerUsuario,
-    verificarSesion
+    verificarSesion,
   };
 }

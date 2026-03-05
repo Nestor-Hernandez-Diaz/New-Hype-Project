@@ -3,10 +3,11 @@ import styled from 'styled-components';
 import configuracionApi from '../services/configuracionApi';
 import type { ProductCategory, CategoryInput } from '../types/configuracion';
 import { useNotification } from '../../../context/NotificationContext';
-import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
+import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../../styles/theme';
 import { Button } from '../../../components/shared/Button';
 import { Input as SharedInput } from '../../../components/shared/Input';
 import { Label as SharedLabel } from '../../../components/shared/Label';
+import { RequiredMark, ValidationMessage } from '../../../components/shared';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -51,17 +52,28 @@ const ModalContent = styled.div`
 
 const FormGroup = styled.div`
   margin-bottom: ${SPACING.xl};
+`;
 
-  .error {
-    color: ${COLOR_SCALES.danger[500]};
-    font-size: ${TYPOGRAPHY.fontSize.xs};
-    margin-top: ${SPACING.sm};
-  }
+const Hint = styled.div`
+  color: ${COLORS.text.secondary};
+  font-size: ${TYPOGRAPHY.fontSize.xs};
+  margin-top: ${SPACING.xs};
+`;
 
-  .hint {
-    color: ${COLORS.text.secondary};
-    font-size: ${TYPOGRAPHY.fontSize.xs};
-    margin-top: ${SPACING.xs};
+const StyledTextarea = styled.textarea`
+  width: 100%;
+  padding: ${SPACING.sm} ${SPACING.md};
+  border: 1px solid ${COLORS.neutral[300]};
+  border-radius: ${BORDER_RADIUS.md};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+
+  &:focus {
+    outline: none;
+    border-color: ${COLOR_SCALES.primary[500]};
+    box-shadow: 0 0 0 3px ${COLOR_SCALES.primary[100]};
   }
 `;
 
@@ -170,27 +182,29 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({ categoria, onClose }) =
 
           <ModalContent>
             <FormGroup>
-              <label>
-                Código<span className="required">*</span>
-              </label>
-              <input
+              <SharedLabel htmlFor="cat-codigo">
+                Código <RequiredMark />
+              </SharedLabel>
+              <SharedInput
+                id="cat-codigo"
                 type="text"
                 name="codigo"
                 value={formData.codigo}
                 onChange={handleInputChange}
                 placeholder="Ej: ABR"
                 maxLength={10}
-                disabled={!!categoria} // No editable si es edición
+                disabled={!!categoria}
               />
-              {errors.codigo && <div className="error">{errors.codigo}</div>}
-              <div className="hint">Máximo 10 caracteres. No editable después de crear.</div>
+              {errors.codigo && <ValidationMessage $type="error">{errors.codigo}</ValidationMessage>}
+              <Hint>Máximo 10 caracteres. No editable después de crear.</Hint>
             </FormGroup>
 
             <FormGroup>
-              <label>
-                Nombre<span className="required">*</span>
-              </label>
-              <input
+              <SharedLabel htmlFor="cat-nombre">
+                Nombre <RequiredMark />
+              </SharedLabel>
+              <SharedInput
+                id="cat-nombre"
                 type="text"
                 name="nombre"
                 value={formData.nombre}
@@ -198,19 +212,21 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({ categoria, onClose }) =
                 placeholder="Ej: Abarrotes"
                 maxLength={100}
               />
-              {errors.nombre && <div className="error">{errors.nombre}</div>}
-              <div className="hint">Máximo 100 caracteres</div>
+              {errors.nombre && <ValidationMessage $type="error">{errors.nombre}</ValidationMessage>}
+              <Hint>Máximo 100 caracteres</Hint>
             </FormGroup>
 
             <FormGroup>
-              <label>Descripción</label>
-              <textarea
+              <SharedLabel htmlFor="cat-descripcion">Descripción</SharedLabel>
+              <StyledTextarea
+                id="cat-descripcion"
                 name="descripcion"
                 value={formData.descripcion}
                 onChange={handleInputChange}
                 placeholder="Descripción opcional de la categoría"
+                rows={3}
               />
-              <div className="hint">Opcional</div>
+              <Hint>Opcional</Hint>
             </FormGroup>
 
             <Actions>

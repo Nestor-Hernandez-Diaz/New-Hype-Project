@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import EditarPerfilModal from '../components/common/EditarPerfilModal';
 import CambiarPasswordModal from '../components/common/CambiarPasswordModal';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../hooks/useAuth';
 
 interface UsuarioCliente {
   nombre: string;
@@ -17,6 +18,7 @@ interface UsuarioCliente {
 export default function Profile() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { usuario: authUsuario, estaAutenticado, cargando: authCargando, logout: authLogout, actualizarPerfil, cambiarPassword: authCambiarPassword } = useAuth();
   const [usuario, setUsuario] = useState<UsuarioCliente | null>(null);
   const [editing, setEditing] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
@@ -34,40 +36,29 @@ export default function Profile() {
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    // Verificar autenticación
-    const token = localStorage.getItem('nh_cliente_token');
-    if (!token) {
+    // Wait for useAuth to finish loading from localStorage
+    if (authCargando) return;
+
+    if (!estaAutenticado) {
       navigate('/storefront/cuenta/login');
       return;
     }
 
-    // Cargar datos del usuario
-    const cargarPerfil = async () => {
-      try {
-        // TODO: Implementar llamada real al backend GET /storefront/perfil
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const mockUsuario: UsuarioCliente = {
-          nombre: localStorage.getItem('nh_cliente_nombre')?.split(' ')[0] || 'Maria',
-          apellidos: localStorage.getItem('nh_cliente_nombre')?.split(' ').slice(1).join(' ') || 'Garcia',
-          email: localStorage.getItem('nh_cliente_email') || 'maria@email.com',
-          telefono: '999888777',
-          documento: '12345678',
-          tipoDocumento: 'DNI',
-          direccion: 'Av. Principal 123, Lima'
-        };
-
-        setUsuario(mockUsuario);
-        setFormData(mockUsuario);
-      } catch (error) {
-        console.error('Error al cargar perfil:', error);
-      } finally {
-        setLoading(false);
-      }
+    // Build profile from auth data
+    const perfil: UsuarioCliente = {
+      nombre: authUsuario?.nombre || 'Usuario',
+      apellidos: authUsuario?.apellido || '',
+      email: authUsuario?.email || '',
+      telefono: authUsuario?.telefono || '',
+      documento: '',
+      tipoDocumento: 'DNI',
+      direccion: authUsuario?.direccion || '',
     };
 
-    cargarPerfil();
-  }, [navigate]);
+    setUsuario(perfil);
+    setFormData(perfil);
+    setLoading(false);
+  }, [navigate, estaAutenticado, authCargando, authUsuario]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -79,15 +70,18 @@ export default function Profile() {
     setGuardando(true);
 
     try {
-      // TODO: Implementar llamada real al backend PUT /storefront/perfil
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const success = await actualizarPerfil({
+        nombre: formData.nombre,
+        apellido: formData.apellidos,
+        telefono: formData.telefono,
+      });
 
-      setUsuario(formData);
-      setEditing(false);
-      
-      // Actualizar datos en localStorage
-      localStorage.setItem('nh_cliente_nombre', `${formData.nombre} ${formData.apellidos}`);
-      localStorage.setItem('nh_cliente_email', formData.email);
+      if (success) {
+        setUsuario(formData);
+        setEditing(false);
+      } else {
+        showToast('Error al guardar los cambios. Por favor intenta de nuevo.', 'error');
+      }
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
       showToast('Error al guardar los cambios. Por favor intenta de nuevo.', 'error');
@@ -97,43 +91,43 @@ export default function Profile() {
   };
 
   const handleLogout = () => {
+    authLogout();
+    // Also clear legacy tokens
     localStorage.removeItem('nh_cliente_token');
     localStorage.removeItem('nh_cliente_email');
     localStorage.removeItem('nh_cliente_nombre');
     navigate('/storefront');
   };
-  
+
   // Guardar cambios desde modal
   const handleGuardarPerfil = async (datos: Partial<UsuarioCliente>) => {
     try {
-      // TODO: Implementar llamada real al backend PUT /storefront/perfil
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      const success = await actualizarPerfil({
+        nombre: datos.nombre,
+        apellido: datos.apellidos,
+        telefono: datos.telefono,
+      });
+
+      if (!success) throw new Error('Error al guardar los cambios');
+
       const usuarioActualizado = { ...usuario!, ...datos };
       setUsuario(usuarioActualizado);
       setFormData(usuarioActualizado);
-      
-      // Actualizar localStorage
-      localStorage.setItem('nh_cliente_nombre', `${datos.nombre} ${datos.apellidos}`);
-      
+
       showToast('Perfil actualizado correctamente', 'success');
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
       throw new Error('Error al guardar los cambios');
     }
   };
-  
+
   // Cambiar contraseña desde modal
   const handleCambiarPassword = async (passwordActual: string, passwordNueva: string) => {
     try {
-      // TODO: Implementar llamada real al backend POST /storefront/perfil/cambiar-password
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simular validación de contraseña actual (en el backend real verificaría)
-      if (passwordActual !== 'password123') {
-        // En producción esto vendría del backend
-      }
-      
+      const success = await authCambiarPassword(passwordActual, passwordNueva);
+
+      if (!success) throw new Error('Contraseña actual incorrecta');
+
       showToast('Contraseña cambiada correctamente', 'success');
     } catch (error) {
       console.error('Error al cambiar contraseña:', error);

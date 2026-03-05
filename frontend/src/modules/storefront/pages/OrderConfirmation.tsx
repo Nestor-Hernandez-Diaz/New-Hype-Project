@@ -7,9 +7,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Package, Truck, CreditCard, MapPin, Phone, Mail } from 'lucide-react';
+import { apiObtenerPedido, type PedidoApiResponse } from '../services/storefrontApi';
 
 interface PedidoConfirmacion {
-  id: string;
+  id: string | number;
   codigoPedido: string;
   fechaEmision: string;
   tipoEnvio: string;
@@ -40,6 +41,40 @@ interface PedidoConfirmacion {
   };
 }
 
+function mapApiResponseToConfirmacion(data: PedidoApiResponse): PedidoConfirmacion {
+  return {
+    id: data.id,
+    codigoPedido: data.codigo,
+    fechaEmision: data.createdAt,
+    tipoEnvio: data.direccionEnvio?.includes('Retiro en tienda') ? 'tienda' : 'domicilio',
+    direccion: data.direccionEnvio || '',
+    referencia: '',
+    metodoPago: (data.instrucciones?.match(/Pago: (\w+)/)?.[1]) || 'No especificado',
+    subtotal: data.subtotal,
+    envio: 0,
+    igv: data.igv,
+    total: data.total,
+    estado: data.estado,
+    items: (data.detalles || []).map(d => ({
+      productoId: d.productoId,
+      sku: '',
+      nombreProducto: d.nombreProducto,
+      marca: '',
+      precioUnitario: d.precioUnitario,
+      imagen: '',
+      tallaCodigo: '',
+      colorNombre: '',
+      cantidad: d.cantidad,
+    })),
+    datosCliente: {
+      nombre: '',
+      apellido: '',
+      email: '',
+      telefono: '',
+    },
+  };
+}
+
 export default function OrderConfirmation() {
   const { pedidoId } = useParams<{ pedidoId: string }>();
   const navigate = useNavigate();
@@ -49,21 +84,29 @@ export default function OrderConfirmation() {
   useEffect(() => {
     const cargarPedido = async () => {
       try {
-        // Simular carga
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        // Buscar en localStorage
-        const pedidos = JSON.parse(localStorage.getItem('nh_pedidos') || '[]');
-        const pedidoEncontrado = pedidos.find((p: PedidoConfirmacion) => p.id === pedidoId);
-
-        if (!pedidoEncontrado) {
-          navigate('/storefront');
-          return;
+        // 1. Try sessionStorage first (just-completed order — has full UI data)
+        const sessionData = sessionStorage.getItem('nh_pedido_confirmacion');
+        if (sessionData) {
+          const pedidoSession = JSON.parse(sessionData);
+          if (String(pedidoSession.id) === pedidoId) {
+            setPedido(pedidoSession);
+            sessionStorage.removeItem('nh_pedido_confirmacion');
+            setLoading(false);
+            return;
+          }
         }
 
-        setPedido(pedidoEncontrado);
+        // 2. Fall back to backend API
+        const numericId = Number(pedidoId);
+        if (!isNaN(numericId)) {
+          const data = await apiObtenerPedido(numericId);
+          setPedido(mapApiResponseToConfirmacion(data));
+        } else {
+          navigate('/storefront');
+        }
       } catch (error) {
         console.error('Error al cargar pedido:', error);
+        navigate('/storefront');
       } finally {
         setLoading(false);
       }

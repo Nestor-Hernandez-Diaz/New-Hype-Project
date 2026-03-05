@@ -8,7 +8,7 @@
  * @module StorefrontContext
  */
 
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import type { ReactNode, Dispatch } from 'react';
 import type {
   ProductoStorefront,
@@ -222,10 +222,10 @@ export function StorefrontProvider({ children }: StorefrontProviderProps) {
   const [state, dispatch] = useReducer(storefrontReducer, initialState);
   
   // Cargar productos con filtros
-  const cargarProductos = async (filtros: FiltrosProductos = {}) => {
+  const cargarProductos = useCallback(async (filtros: FiltrosProductos = {}) => {
     dispatch({ type: 'SET_PRODUCTOS_LOADING', payload: true });
     dispatch({ type: 'SET_FILTROS', payload: filtros });
-    
+
     try {
       const response = await apiObtenerProductos(filtros);
       dispatch({ type: 'SET_PRODUCTOS', payload: response.data });
@@ -233,13 +233,13 @@ export function StorefrontProvider({ children }: StorefrontProviderProps) {
       dispatch({ type: 'SET_PRODUCTOS_ERROR', payload: 'Error al cargar productos' });
       console.error('Error cargarProductos:', error);
     }
-  };
+  }, [dispatch]);
   
   // Agregar al carrito
   const agregarAlCarrito = (productoId: number, cantidad: number = 1, tallaId: number | null = null, colorId: number | null = null) => {
     // Buscar producto
     const producto = state.productos.find(p => p.id === productoId);
-    if (!producto || !producto.stockTotal || producto.stockTotal === 0) {
+    if (!producto || producto.stockTotal === 0) {
       console.warn('Producto no disponible');
       return;
     }

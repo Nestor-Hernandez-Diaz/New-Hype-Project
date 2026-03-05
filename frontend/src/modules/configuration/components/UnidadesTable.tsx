@@ -152,7 +152,7 @@ const UnidadesTable: React.FC = () => {
       const activo = statusToUse === 'activo' ? true : statusToUse === 'inactivo' ? false : undefined;
       const data = await configuracionApi.getAllUnits({ activo });
       setUnidades(data);
-      applyFilters(data, searchToUse);
+      applyFilters(data, searchToUse, statusToUse);
     } catch (error: any) {
       showError(error.message || 'Error al cargar unidades');
     } finally {
@@ -160,11 +160,20 @@ const UnidadesTable: React.FC = () => {
     }
   };
 
-  const applyFilters = (data: UnitOfMeasure[], search: string) => {
+  const applyFilters = (data: UnitOfMeasure[], search: string, status?: string) => {
     let filtered = data;
+    const statusToUse = status !== undefined ? status : filterStatus;
+
+    // Client-side status filtering (safety net if backend doesn't filter)
+    if (statusToUse === 'activo') {
+      filtered = filtered.filter(unit => unit.activo === true);
+    } else if (statusToUse === 'inactivo') {
+      filtered = filtered.filter(unit => unit.activo === false);
+    }
+
     if (search.trim()) {
       const searchLower = search.toLowerCase();
-      filtered = data.filter(unit =>
+      filtered = filtered.filter(unit =>
         unit.codigo.toLowerCase().includes(searchLower) ||
         unit.nombre.toLowerCase().includes(searchLower) ||
         unit.simbolo.toLowerCase().includes(searchLower) ||
@@ -209,6 +218,20 @@ const UnidadesTable: React.FC = () => {
       fetchUnidades();
     } catch (error: any) {
       showError(error.message || 'Error al desactivar unidad');
+    }
+  };
+
+  const handleActivate = async (id: string) => {
+    if (!window.confirm('¿Está seguro de activar esta unidad de medida?')) {
+      return;
+    }
+
+    try {
+      await configuracionApi.activateUnit(id);
+      showSuccess('Unidad activada correctamente');
+      fetchUnidades();
+    } catch (error: any) {
+      showError(error.message || 'Error al activar unidad');
     }
   };
 
@@ -300,9 +323,13 @@ const UnidadesTable: React.FC = () => {
                       <ActionButton onClick={() => handleEdit(unidad)}>
                         Editar
                       </ActionButton>
-                      {unidad.activo && (
+                      {unidad.activo ? (
                         <ActionButton $variant="danger" onClick={() => handleDelete(unidad.id)}>
                           Desactivar
+                        </ActionButton>
+                      ) : (
+                        <ActionButton onClick={() => handleActivate(unidad.id)}>
+                          Activar
                         </ActionButton>
                       )}
                     </ActionButtons>

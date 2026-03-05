@@ -251,20 +251,13 @@ export async function getProductos(
   params.append('page', String(page));
   params.append('size', String(size));
 
-  // Search text
+  // Search text — backend expects 'nombre' param on GET /productos
   const busqueda = filtros?.busqueda ?? f?.q;
-  if (busqueda) params.append('q', busqueda);
+  if (busqueda) params.append('nombre', busqueda);
 
-  // Category filter
-  const categoriaId = filtros?.categoriaId ?? f?.categoria;
-  if (categoriaId) params.append('categoria', String(categoriaId));
-
-  // Estado filter: map EstadoProducto enum to backend boolean
-  if (filtros?.estadoProducto) {
-    const estadoBool =
-      filtros.estadoProducto === EstadoProducto.ACTIVO ? 'true' : 'false';
-    params.append('estado', estadoBool);
-  }
+  // Category filter — backend expects 'categoriaId' (numeric)
+  const categoriaId = filtros?.categoriaId ?? f?.categoriaId ?? f?.categoria;
+  if (categoriaId) params.append('categoriaId', String(categoriaId));
 
   const endpoint = `/productos?${params.toString()}`;
   const res: ApiResponse<BackendProducto[]> = await apiService.get(endpoint);
@@ -277,13 +270,24 @@ export async function getProductos(
 
   const pag = fromBackendPage(res.pagination);
 
+  let productos = res.data.map(mapBackendProducto);
+
+  // Client-side estado filter (backend GET /productos doesn't support estado param)
+  const estadoFilter = filtros?.estadoProducto ?? f?.estadoProducto;
+  if (estadoFilter) {
+    const wantActive = estadoFilter === EstadoProducto.ACTIVO;
+    productos = productos.filter(p => p.activo === wantActive);
+  }
+
   // Return shape matching ProductosPaginados interface that the reducer expects
   return {
-    productos: res.data.map(mapBackendProducto),
-    total: pag.total,
+    productos,
+    total: estadoFilter ? productos.length : pag.total,
     pagina: pag.page,
     tamañoPagina: pag.limit,
-    totalPaginas: pag.pages,
+    totalPaginas: estadoFilter
+      ? Math.ceil(productos.length / pag.limit) || 1
+      : pag.pages,
   };
 }
 
@@ -434,4 +438,60 @@ export async function getUnidadesMedida(): Promise<UnidadMedida[]> {
     return [];
   }
   return res.data.map(mapBackendUnidadMedida);
+}
+
+// ==========================================
+// Product Image API functions
+// ==========================================
+
+export interface ProductImage {
+  id: number;
+  productoId: number;
+  url: string;
+  altText?: string;
+  orden: number;
+  esPrincipal: boolean;
+  createdAt?: string;
+}
+
+export interface AddImageInput {
+  url: string;
+  altText?: string;
+  orden?: number;
+  esPrincipal?: boolean;
+}
+
+/**
+ * Obtiene las imágenes de un producto.
+ * GET /productos/{id}/imagenes
+ */
+export async function getProductImages(productoId: number): Promise<ProductImage[]> {
+  const res: ApiResponse<ProductImage[]> = await apiService.get(`/productos/${productoId}/imagenes`);
+  if (!res.success || !res.data) {
+    return [];
+  }
+  return res.data;
+}
+
+/**
+ * Agrega una imagen a un producto.
+ * POST /productos/{id}/imagenes
+ */
+export async function addProductImage(productoId: number, input: AddImageInput): Promise<ProductImage> {
+  const res: ApiResponse<ProductImage> = await apiService.post(`/productos/${productoId}/imagenes`, input);
+  if (!res.success || !res.data) {
+    throw new Error(res.message || 'Error al agregar imagen');
+  }
+  return res.data;
+}
+
+/**
+ * Elimina una imagen de un producto.
+ * DELETE /productos/{productoId}/imagenes/{imagenId}
+ */
+export async function deleteProductImage(productoId: number, imagenId: number): Promise<void> {
+  const res: ApiResponse<void> = await apiService.delete(`/productos/${productoId}/imagenes/${imagenId}`);
+  if (!res.success) {
+    throw new Error(res.message || 'Error al eliminar imagen');
+  }
 }

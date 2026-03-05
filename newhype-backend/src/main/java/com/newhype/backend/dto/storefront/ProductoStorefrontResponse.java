@@ -30,5 +30,6 @@ public class ProductoStorefrontResponse {
     private BigDecimal porcentajeLiquidacion;
     private BigDecimal precioLiquidacion;
     private Boolean disponible;
+    private Integer stockTotal;
     private List<String> imagenes;
 }

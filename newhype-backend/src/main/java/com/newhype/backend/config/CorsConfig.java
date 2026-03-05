@@ -55,6 +55,7 @@ public class CorsConfig {
             "Accept",
             "X-Requested-With",
             "X-CSRF-Token",
+            "X-TenantId",
             "Access-Control-Request-Method",
             "Access-Control-Request-Headers"
     };

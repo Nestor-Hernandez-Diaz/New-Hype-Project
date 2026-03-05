@@ -296,7 +296,7 @@ const ListaProductos: React.FC = () => {
       };
 
       if (debouncedSearchTerm) filters.q = debouncedSearchTerm;
-      if (selectedCategory) filters.categoria = selectedCategory;
+      if (selectedCategory) filters.categoriaId = Number(selectedCategory);
       if (selectedStatus) filters.estadoProducto = selectedStatus;
       if (minPrice) filters.minPrecio = parseFloat(minPrice);
       if (maxPrice) filters.maxPrecio = parseFloat(maxPrice);
@@ -316,15 +316,25 @@ const ListaProductos: React.FC = () => {
     openModal(<NuevoProductoModal onClose={closeModal} />, 'Registrar Producto', 'large');
   };
 
-  // Obtener categorías para el filtro desde maestros cargados en contexto
-  const categories = useMemo(() => {
-    // Priorizar categorías de configuración, fallback a las de productos
+  // Obtener categorías para el filtro, con ID para enviar al backend
+  const categoryOptions = useMemo(() => {
     if (categorias.length > 0) {
-      return categorias.map(c => c.nombreCategoria).filter(Boolean).sort();
+      return categorias
+        .filter(c => c.activa)
+        .map(c => ({ id: String(c.id), nombre: c.nombreCategoria }))
+        .filter(c => c.nombre)
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
     }
-    return Array.from(
-      new Set(products.map(p => p.categoria?.nombreCategoria || '').filter(Boolean))
-    ).sort();
+    // Fallback: derive from loaded products
+    const seen = new Map<string, string>();
+    products.forEach(p => {
+      if (p.categoriaId && p.categoria?.nombreCategoria) {
+        seen.set(String(p.categoriaId), p.categoria.nombreCategoria);
+      }
+    });
+    return Array.from(seen.entries())
+      .map(([id, nombre]) => ({ id, nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [categorias, products]);
 
   // Resolver nombre de unidad de medida por ID
@@ -467,8 +477,8 @@ const ListaProductos: React.FC = () => {
                 style={{ width: '180px' }}
               >
                 <option value="">Todas las categorías</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {categoryOptions.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                 ))}
               </Input>
             </FilterGroup>
@@ -529,10 +539,9 @@ const ListaProductos: React.FC = () => {
               <Th>Nombre</Th>
               <Th>Categoría</Th>
               <Th>Precio</Th>
-              <Th>Stock Inicial</Th>
               <Th>Stock Mín.</Th>
-              <Th>Estado</Th>
               <Th>Unidad</Th>
+              <Th>Estado</Th>
               <Th>Acciones</Th>
             </Tr>
           </Thead>
@@ -544,15 +553,12 @@ const ListaProductos: React.FC = () => {
                   <Td>{product.nombreProducto}</Td>
                   <Td>{product.categoria?.nombreCategoria || '-'}</Td>
                   <Td>{formatPrice(product.precioVenta)}</Td>
-                  <Td>{product.stockActual}</Td>
                   <Td>{product.stockMinimo ?? '-'}</Td>
+                  <Td>{getUnitName(product)}</Td>
                   <Td>
                     <StatusBadge variant={product.activo ? 'success' : 'default'}>
                       {product.activo ? 'Activo' : 'Inactivo'}
                     </StatusBadge>
-                  </Td>
-                  <Td>
-                    {getUnitName(product)}
                   </Td>
                   <Td>
                     <ActionButton 
@@ -581,7 +587,7 @@ const ListaProductos: React.FC = () => {
               ))
             ) : (
               <Tr>
-                <Td colSpan={9}>
+                <Td colSpan={8}>
                   <EmptyStateContainer>
                     {searchTerm ? 
                       'No se encontraron productos que coincidan con la búsqueda.' : 
@@ -608,22 +614,22 @@ const ListaProductos: React.FC = () => {
                     <MobileCardLabel>Categoría</MobileCardLabel>
                     <MobileCardValue>{product.categoria?.nombreCategoria || '-'}</MobileCardValue>
                   </MobileCardField>
-                  
+
                   <MobileCardField>
                     <MobileCardLabel>Precio</MobileCardLabel>
                     <MobileCardValue>{formatPrice(product.precioVenta)}</MobileCardValue>
                   </MobileCardField>
-                  
+
                   <MobileCardField>
-                    <MobileCardLabel>Stock</MobileCardLabel>
-                    <MobileCardValue>{product.stockActual}</MobileCardValue>
+                    <MobileCardLabel>Unidad</MobileCardLabel>
+                    <MobileCardValue>{getUnitName(product)}</MobileCardValue>
                   </MobileCardField>
-                  
+
                   <MobileCardField>
                     <MobileCardLabel>Stock Mín.</MobileCardLabel>
                     <MobileCardValue>{product.stockMinimo ?? '-'}</MobileCardValue>
                   </MobileCardField>
-                  
+
                   <MobileCardField>
                     <MobileCardLabel>Estado</MobileCardLabel>
                     <MobileCardValue>
@@ -631,11 +637,6 @@ const ListaProductos: React.FC = () => {
                         {product.activo ? 'Activo' : 'Inactivo'}
                       </StatusBadge>
                     </MobileCardValue>
-                  </MobileCardField>
-                  
-                  <MobileCardField>
-                    <MobileCardLabel>Unidad</MobileCardLabel>
-                    <MobileCardValue>{getUnitName(product)}</MobileCardValue>
                   </MobileCardField>
                 </MobileCardBody>
                 

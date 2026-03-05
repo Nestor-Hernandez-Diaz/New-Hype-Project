@@ -149,10 +149,11 @@ const CategoriasTable: React.FC = () => {
       setLoading(true);
       const statusToUse = status !== undefined ? status : filterStatus;
       const searchToUse = search !== undefined ? search : filterSearch;
+      // Fetch all categories (backend may only return active ones)
       const activo = statusToUse === 'activo' ? true : statusToUse === 'inactivo' ? false : undefined;
       const data = await configuracionApi.getAllCategories({ activo });
       setCategorias(data);
-      applyFilters(data, searchToUse);
+      applyFilters(data, searchToUse, statusToUse);
     } catch (error: any) {
       showError(error.message || 'Error al cargar categorías');
     } finally {
@@ -160,11 +161,20 @@ const CategoriasTable: React.FC = () => {
     }
   };
 
-  const applyFilters = (data: ProductCategory[], search: string) => {
+  const applyFilters = (data: ProductCategory[], search: string, status?: string) => {
     let filtered = data;
+    const statusToUse = status !== undefined ? status : filterStatus;
+
+    // Client-side status filtering (safety net if backend doesn't filter)
+    if (statusToUse === 'activo') {
+      filtered = filtered.filter(cat => cat.activo === true);
+    } else if (statusToUse === 'inactivo') {
+      filtered = filtered.filter(cat => cat.activo === false);
+    }
+
     if (search.trim()) {
       const searchLower = search.toLowerCase();
-      filtered = data.filter(cat =>
+      filtered = filtered.filter(cat =>
         cat.codigo.toLowerCase().includes(searchLower) ||
         cat.nombre.toLowerCase().includes(searchLower) ||
         (cat.descripcion && cat.descripcion.toLowerCase().includes(searchLower))
@@ -208,6 +218,20 @@ const CategoriasTable: React.FC = () => {
       fetchCategorias();
     } catch (error: any) {
       showError(error.message || 'Error al desactivar categoría');
+    }
+  };
+
+  const handleActivate = async (id: string) => {
+    if (!window.confirm('¿Está seguro de activar esta categoría?')) {
+      return;
+    }
+
+    try {
+      await configuracionApi.activateCategory(id);
+      showSuccess('Categoría activada correctamente');
+      fetchCategorias();
+    } catch (error: any) {
+      showError(error.message || 'Error al activar categoría');
     }
   };
 
@@ -297,9 +321,13 @@ const CategoriasTable: React.FC = () => {
                       <ActionButton onClick={() => handleEdit(categoria)}>
                         Editar
                       </ActionButton>
-                      {categoria.activo && (
+                      {categoria.activo ? (
                         <ActionButton $variant="danger" onClick={() => handleDelete(categoria.id)}>
                           Desactivar
+                        </ActionButton>
+                      ) : (
+                        <ActionButton onClick={() => handleActivate(categoria.id)}>
+                          Activar
                         </ActionButton>
                       )}
                     </ActionButtons>

@@ -7,7 +7,6 @@ import configuracionApi from '../../configuration/services/configuracionApi';
 import { verificarCodigoProducto } from '../services/productosRealApi';
 import type { ProductCategory, UnitOfMeasure } from '../../configuration/types/configuracion';
 import type { CatalogItem } from '../../configuration/services/configuracionApi';
-import { WAREHOUSE_OPTIONS as WAREHOUSE_SELECT_OPTIONS } from '../../inventory/constants/warehouses';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS, Z_INDEX, TRANSITIONS } from '../../../styles/theme';
 import { Button, Input, Select, Label, RequiredMark, ValidationMessage, ButtonGroup } from '../../../components/shared';
 
@@ -166,8 +165,6 @@ interface ProductFormData {
   category: string;
   costPrice: string;
   price: string;
-  initialStock: string;
-  warehouseId: string;
   unit: string;
   minStock: string;
   talla: string;
@@ -205,8 +202,6 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
     category: '',
     costPrice: '',
     price: '',
-    initialStock: '',
-    warehouseId: '',
     unit: '',
     minStock: '',
     talla: '',
@@ -216,7 +211,6 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
     genero: '',
     imagenUrl: ''
   });
-  const [warehouseOptions, setWarehouseOptions] = useState<{ id: string; name: string }[]>(WAREHOUSE_SELECT_OPTIONS.map(o => ({ id: o.value, name: o.label })));
   const [categorias, setCategorias] = useState<ProductCategory[]>([]);
   const [unidades, setUnidades] = useState<UnitOfMeasure[]>([]);
   const [tallasApi, setTallasApi] = useState<CatalogItem[]>([]);
@@ -381,13 +375,6 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
       }
     }
 
-    if (name === 'initialStock' && value) {
-      const stock = Number(value);
-      if (isNaN(stock) || stock < 0 || !Number.isInteger(stock)) {
-        setErrors(prev => ({ ...prev, initialStock: 'El stock debe ser entero ≥ 0' }));
-      }
-    }
-
     if (name === 'minStock' && value) {
       const minStock = Number(value);
       if (isNaN(minStock) || minStock < 0 || !Number.isInteger(minStock)) {
@@ -419,17 +406,6 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
       if (isNaN(costPrice) || costPrice < 0) newErrors.costPrice = 'Precio de costo inválido';
     }
 
-    if (!formData.initialStock.trim()) {
-      newErrors.initialStock = 'El stock es requerido';
-    } else {
-      const stock = Number(formData.initialStock);
-      if (isNaN(stock) || stock < 0 || !Number.isInteger(stock)) {
-        newErrors.initialStock = 'Stock inválido';
-      } else if (stock > 0 && !formData.warehouseId) {
-        newErrors.warehouseId = 'Selecciona almacén';
-      }
-    }
-
     if (!formData.unit.trim()) newErrors.unit = 'La unidad es requerida';
 
     if (formData.minStock.trim()) {
@@ -453,7 +429,6 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
     setIsSubmitting(true);
 
     try {
-      const initial = parseInt(formData.initialStock || '0');
       const minStock = formData.minStock.trim() ? parseInt(formData.minStock) : 0;
 
       // Usar addProduct del contexto que llama a productosRealApi.crearProducto()
@@ -466,7 +441,6 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
         unidadMedidaId: Number(formData.unit),
         precioVenta: parseFloat(formData.price),
         precioCosto: parseFloat(formData.costPrice),
-        stockInicial: initial,
         stockMinimo: minStock,
         // Clothing fields: send IDs when from API catalog, strings as fallback
         tallaId: formData.talla && tallasApi.length > 0 ? Number(formData.talla) : undefined,
@@ -579,14 +553,6 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
           {errors.price && <ValidationMessage $type="error">{errors.price}</ValidationMessage>}
         </FormGroup>
         <FormGroup>
-          <Label htmlFor="initialStock">
-            Stock inicial
-            <RequiredMark />
-          </Label>
-          <Input id="initialStock" name="initialStock" type="number" min="0" value={formData.initialStock} onChange={handleInputChange} />
-          {errors.initialStock && <ValidationMessage $type="error">{errors.initialStock}</ValidationMessage>}
-        </FormGroup>
-        <FormGroup>
           <Label htmlFor="unit">
             Unidad
             <RequiredMark />
@@ -598,20 +564,6 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
             ))}
           </Select>
           {errors.unit && <ValidationMessage $type="error">{errors.unit}</ValidationMessage>}
-        </FormGroup>
-        
-        <FormGroup>
-          <Label htmlFor="warehouseId">
-            Almacén para Stock Inicial
-            <RequiredMark />
-          </Label>
-          <Select id="warehouseId" name="warehouseId" value={formData.warehouseId} onChange={handleInputChange}>
-            <option value="">Selecciona un almacén</option>
-            {warehouseOptions.map(opt => (
-              <option key={opt.id} value={opt.id}>{opt.name}</option>
-            ))}
-          </Select>
-          {errors.warehouseId && <ValidationMessage $type="error">{errors.warehouseId}</ValidationMessage>}
         </FormGroup>
 
         <FormGroup>

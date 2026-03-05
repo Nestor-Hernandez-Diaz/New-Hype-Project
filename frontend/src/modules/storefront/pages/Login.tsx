@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import LoginForm from '../components/auth/LoginForm';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -12,14 +14,12 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // TODO: Implementar llamada real al backend /storefront/auth/login
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock: Guardar token en localStorage
-      localStorage.setItem('nh_cliente_token', 'mock-jwt-token');
-      localStorage.setItem('nh_cliente_email', email);
-      
-      navigate('/storefront/cuenta/perfil');
+      const success = await login(email, password);
+      if (success) {
+        navigate('/storefront/cuenta/perfil');
+      } else {
+        setError('Credenciales incorrectas. Por favor intenta de nuevo.');
+      }
     } catch {
       setError('Credenciales incorrectas. Por favor intenta de nuevo.');
     } finally {

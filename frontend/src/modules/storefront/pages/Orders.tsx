@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { EstadoPedido } from '@monorepo/shared-types';
 import { Search, ArrowUpDown } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { apiObtenerMisPedidos, type PedidoApiResponse } from '../services/storefrontApi';
 
 interface Pedido {
-  id: number;
+  id: number | string;
   codigo: string;
   fecha: string;
   estado: EstadoPedido;
@@ -15,6 +17,7 @@ interface Pedido {
 
 export default function Orders() {
   const navigate = useNavigate();
+  const { estaAutenticado, cargando: authCargando, logout: authLogout } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState<EstadoPedido | 'TODOS'>('TODOS');
@@ -22,50 +25,28 @@ export default function Orders() {
   const [orden, setOrden] = useState<'fecha-desc' | 'fecha-asc' | 'monto-desc' | 'monto-asc'>('fecha-desc');
 
   useEffect(() => {
-    // Verificar autenticación
-    const token = localStorage.getItem('nh_cliente_token');
-    if (!token) {
+    if (authCargando) return;
+
+    if (!estaAutenticado) {
       navigate('/storefront/cuenta/login');
       return;
     }
 
     const cargarPedidos = async () => {
       try {
-        // TODO: Implementar llamada real al backend GET /storefront/pedidos
-        await new Promise(resolve => setTimeout(resolve, 1200));
+        const data = await apiObtenerMisPedidos(0, 50);
 
-        // Mock data
-        const mockPedidos: Pedido[] = [
-          {
-            id: 1,
-            codigo: 'PED-2026-00123',
-            fecha: '2026-02-15T10:30:00',
-            estado: EstadoPedido.ENVIADO,
-            total: 239.70,
-            cantidadItems: 3,
-            imagenPrimerProducto: '/images/producto-1.jpg'
-          },
-          {
-            id: 2,
-            codigo: 'PED-2026-00089',
-            fecha: '2026-02-10T14:20:00',
-            estado: EstadoPedido.ENTREGADO,
-            total: 159.80,
-            cantidadItems: 2,
-            imagenPrimerProducto: '/images/producto-2.jpg'
-          },
-          {
-            id: 3,
-            codigo: 'PED-2026-00045',
-            fecha: '2026-01-28T09:15:00',
-            estado: EstadoPedido.CANCELADO,
-            total: 79.90,
-            cantidadItems: 1,
-            imagenPrimerProducto: '/images/producto-3.jpg'
-          }
-        ];
+        const pedidosMapeados: Pedido[] = (data.content || []).map((p: PedidoApiResponse) => ({
+          id: p.id,
+          codigo: p.codigo || 'SIN-CODIGO',
+          fecha: p.createdAt || new Date().toISOString(),
+          estado: (p.estado as EstadoPedido) || EstadoPedido.PENDIENTE,
+          total: p.total || 0,
+          cantidadItems: p.detalles?.length || 0,
+          imagenPrimerProducto: undefined,
+        }));
 
-        setPedidos(mockPedidos);
+        setPedidos(pedidosMapeados);
       } catch (error) {
         console.error('Error al cargar pedidos:', error);
       } finally {
@@ -74,12 +55,10 @@ export default function Orders() {
     };
 
     cargarPedidos();
-  }, [navigate]);
+  }, [navigate, estaAutenticado, authCargando]);
 
   const handleLogout = () => {
-    localStorage.removeItem('nh_cliente_token');
-    localStorage.removeItem('nh_cliente_email');
-    localStorage.removeItem('nh_cliente_nombre');
+    authLogout();
     navigate('/storefront');
   };
 

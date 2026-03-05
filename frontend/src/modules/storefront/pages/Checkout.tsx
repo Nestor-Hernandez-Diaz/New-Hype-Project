@@ -11,6 +11,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
+import { useAuth } from '../hooks/useAuth';
+import { apiCrearPedido } from '../services/storefrontApi';
 import ProcessingOverlay from '../components/common/ProcessingOverlay';
 import StepIndicator from '../components/checkout/StepIndicator';
 import ShippingForm from '../components/checkout/ShippingForm';
@@ -36,6 +38,7 @@ interface FormData {
 export default function Checkout() {
   const navigate = useNavigate();
   const { state, vaciarCarrito } = useStorefront();
+  const { estaAutenticado, cargando: authCargando } = useAuth();
   const { showToast } = useToast();
   const [tipoEnvio, setTipoEnvio] = useState<TipoEnvio>('domicilio');
   const [metodoPago, setMetodoPago] = useState<MetodoPago>('Efectivo');
@@ -43,6 +46,7 @@ export default function Checkout() {
   const [mostrarProcessing, setMostrarProcessing] = useState(false);
   const [paso, setPaso] = useState(0); // 0: Envío, 1: Pago, 2: Confirmación
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [pedidoCompletado, setPedidoCompletado] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     nombre: '',
@@ -68,12 +72,18 @@ export default function Checkout() {
     numeroOperacion: ''
   });
 
-  // Verificar que hay items en el carrito
+  // Verificar autenticación y que hay items en el carrito
   useEffect(() => {
-    if (state.carrito.length === 0) {
+    if (authCargando) return;
+    if (!estaAutenticado) {
+      showToast('Inicia sesión para completar tu compra', 'error');
+      navigate('/storefront/cuenta/login');
+      return;
+    }
+    if (state.carrito.length === 0 && !pedidoCompletado) {
       navigate('/storefront');
     }
-  }, [state.carrito, navigate]);
+  }, [state.carrito, navigate, pedidoCompletado, estaAutenticado, authCargando]);
 
   // Calcular totales
   const subtotal = state.carrito.reduce((sum, item) => sum + item.precioUnitario * item.cantidad, 0);
@@ -163,50 +173,83 @@ export default function Checkout() {
   };
   
   // Completar pedido (llamado por ProcessingOverlay)
-  const completarPedido = () => {
-    // Generar código de pedido
-    const fecha = new Date();
-    const num = (Math.floor(Math.random() * 999) + 1).toString().padStart(3, '0');
-    const codigo = `NH-${fecha.getFullYear()}${(fecha.getMonth() + 1).toString().padStart(2, '0')}${fecha.getDate().toString().padStart(2, '0')}-${num}`;
-
-    // Guardar pedido en localStorage
-    const pedido = {
-      id: 'ped_' + Date.now(),
-      codigoPedido: codigo,
-      fechaEmision: fecha.toISOString(),
-      tipoEnvio,
-      direccion: tipoEnvio === 'domicilio' 
+  const completarPedido = async () => {
+    try {
+      // Build request for backend API
+      const direccionEnvio = tipoEnvio === 'domicilio'
         ? `${formData.direccion}, ${formData.distrito}, ${formData.provincia}, ${formData.departamento}`
-        : 'Retiro en tienda — Jr. Comercio 456, Tarapoto',
-      referencia: formData.referencia || '',
-      metodoPago,
-      subtotal,
-      envio,
-      igv: total * 0.18,
-      total,
-      estado: 'Pendiente',
-      items: state.carrito,
-      datosCliente: {
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        email: formData.email,
-        telefono: formData.telefono
-      }
-    };
+        : 'Retiro en tienda — Jr. Comercio 456, Tarapoto';
 
-    // Guardar en localStorage
-    const pedidos = JSON.parse(localStorage.getItem('nh_pedidos') || '[]');
-    pedidos.push(pedido);
-    localStorage.setItem('nh_pedidos', JSON.stringify(pedidos));
+      const instrucciones = [
+        formData.referencia ? `Ref: ${formData.referencia}` : '',
+        `Pago: ${metodoPago}`,
+        `Envío: ${tipoEnvio}`,
+      ].filter(Boolean).join(' | ');
 
-    // Limpiar carrito
-    vaciarCarrito();
+      const request = {
+        items: state.carrito.map(item => ({
+          productoId: item.productoId,
+          cantidad: item.cantidad,
+        })),
+        direccionEnvio,
+        instrucciones,
+      };
 
-    setProcesando(false);
-    setMostrarProcessing(false);
+      // Call real backend API
+      const pedidoBackend = await apiCrearPedido(request);
 
-    // Redirigir a confirmación
-    navigate(`/storefront/confirmacion/${pedido.id}`);
+      // Store extended data in sessionStorage for confirmation page
+      const pedidoConfirmacion = {
+        id: pedidoBackend.id,
+        codigoPedido: pedidoBackend.codigo,
+        fechaEmision: pedidoBackend.createdAt,
+        tipoEnvio,
+        direccion: direccionEnvio,
+        referencia: formData.referencia || '',
+        metodoPago,
+        subtotal: pedidoBackend.subtotal,
+        envio,
+        igv: pedidoBackend.igv,
+        total: pedidoBackend.total,
+        estado: pedidoBackend.estado,
+        items: pedidoBackend.detalles.map(d => ({
+          productoId: d.productoId,
+          nombreProducto: d.nombreProducto,
+          cantidad: d.cantidad,
+          precioUnitario: d.precioUnitario,
+          subtotal: d.subtotal,
+          imagen: state.carrito.find(c => c.productoId === d.productoId)?.imagen || '',
+          marca: '',
+          tallaCodigo: '',
+          colorNombre: '',
+          sku: '',
+        })),
+        datosCliente: {
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          email: formData.email,
+          telefono: formData.telefono,
+        },
+      };
+      sessionStorage.setItem('nh_pedido_confirmacion', JSON.stringify(pedidoConfirmacion));
+
+      // Marcar como completado antes de vaciar para evitar redirección prematura
+      setPedidoCompletado(true);
+
+      // Limpiar carrito
+      vaciarCarrito();
+
+      setProcesando(false);
+      setMostrarProcessing(false);
+
+      // Redirigir a confirmación con el ID real del backend
+      navigate(`/storefront/confirmacion/${pedidoBackend.id}`);
+    } catch (error: any) {
+      setProcesando(false);
+      setMostrarProcessing(false);
+      showToast(error.message || 'Error al crear el pedido. Inténtalo de nuevo.', 'error');
+      console.error('[Checkout] Error al crear pedido:', error);
+    }
   };
 
   return (
