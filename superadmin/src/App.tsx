@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { AuthProvider, useAuth } from './modules/auth/context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import Login from './modules/auth/pages/Login';
 import Dashboard from './modules/dashboard/pages/Dashboard';
 import GestionTenants from './modules/tenants/pages/GestionTenants';
@@ -109,8 +110,10 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <GlobalStyles />
-      <AppRoutes />
+      <ToastProvider>
+        <GlobalStyles />
+        <AppRoutes />
+      </ToastProvider>
     </AuthProvider>
   );
 }

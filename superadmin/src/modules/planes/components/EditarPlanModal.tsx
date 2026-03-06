@@ -4,6 +4,7 @@ import { actualizarPlan } from '../services/planesApi';
 import { Button } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Plan, PlanUpdatePayload } from '../../../types/api';
+import { useToast } from '../../../context/ToastContext';
 
 // ============================================================================
 // STYLED — reutiliza la misma estética que CrearPlanModal
@@ -138,13 +139,7 @@ const Footer = styled.div`
   flex-shrink: 0;
 `;
 
-const ErrorMsg = styled.div`
-  color: ${COLORS.error};
-  font-size: ${TYPOGRAPHY.fontSize.sm};
-  padding: ${SPACING.sm} ${SPACING.md};
-  background: ${COLORS.errorLight};
-  border-radius: ${RADIUS.sm};
-`;
+
 
 const CheckboxRow = styled.label`
   display: flex;
@@ -193,7 +188,7 @@ const EditarPlanModal: React.FC<Props> = ({ plan, onClose, onUpdated }) => {
     modulos: plan.modulos ?? [],
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+  const toast = useToast();
 
   const set = (field: keyof PlanUpdatePayload, value: string | number | number[]) =>
     setForm(prev => ({ ...prev, [field]: value }));
@@ -218,16 +213,15 @@ const EditarPlanModal: React.FC<Props> = ({ plan, onClose, onUpdated }) => {
 
   const handleSubmit = async () => {
     if (!form.nombre || form.precioMensual <= 0) {
-      setError('El nombre y precio mensual son obligatorios.');
+      toast.warning('El nombre y precio mensual son obligatorios.');
       return;
     }
-    setError('');
     setIsSaving(true);
     try {
       await actualizarPlan(plan.id, form);
       onUpdated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar plan');
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar plan');
     } finally {
       setIsSaving(false);
     }
@@ -242,7 +236,6 @@ const EditarPlanModal: React.FC<Props> = ({ plan, onClose, onUpdated }) => {
         </Header>
 
         <Body>
-          {error && <ErrorMsg>{error}</ErrorMsg>}
 
           <Row>
             <Field>

@@ -4,6 +4,7 @@ import { actualizarTenant } from '../services/tenantsApi';
 import { Button } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Tenant, TenantUpdatePayload } from '../../../types/api';
+import { useToast } from '../../../context/ToastContext';
 
 const Overlay = styled.div`
   position: fixed;
@@ -97,13 +98,7 @@ const Footer = styled.div`
   gap: ${SPACING.md};
 `;
 
-const ErrorMsg = styled.div`
-  padding: ${SPACING.md};
-  background: ${COLORS.errorLight};
-  color: ${COLORS.error};
-  border-radius: ${RADIUS.md};
-  font-size: ${TYPOGRAPHY.fontSize.sm};
-`;
+
 
 interface Props {
   tenant: Tenant;
@@ -119,7 +114,7 @@ const ActualizarTenantModal: React.FC<Props> = ({ tenant, onClose, onUpdated }) 
     direccion: tenant.direccion ?? '',
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
     setForm({
@@ -135,16 +130,15 @@ const ActualizarTenantModal: React.FC<Props> = ({ tenant, onClose, onUpdated }) 
 
   const handleSubmit = async () => {
     if (!form.nombre || !form.email) {
-      setError('El nombre y email son obligatorios.');
+      toast.warning('El nombre y email son obligatorios.');
       return;
     }
-    setError('');
     setIsSaving(true);
     try {
       await actualizarTenant(tenant.id, form);
       onUpdated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar negocio');
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar negocio');
     } finally {
       setIsSaving(false);
     }
@@ -158,7 +152,6 @@ const ActualizarTenantModal: React.FC<Props> = ({ tenant, onClose, onUpdated }) 
           <CloseBtn onClick={onClose}>✕</CloseBtn>
         </Header>
         <Body>
-          {error && <ErrorMsg>{error}</ErrorMsg>}
           <Row>
             <Field>
               <Label>Nombre *</Label>

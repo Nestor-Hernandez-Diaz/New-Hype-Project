@@ -4,6 +4,7 @@ import { crearCupon } from '../services/cuponesApi';
 import { Button } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { CuponCreatePayload } from '../../../types/api';
+import { useToast } from '../../../context/ToastContext';
 
 // ============================================================================
 // STYLED
@@ -115,13 +116,7 @@ const Footer = styled.div`
   gap: ${SPACING.md};
 `;
 
-const ErrorMsg = styled.div`
-  color: ${COLORS.error};
-  font-size: ${TYPOGRAPHY.fontSize.sm};
-  padding: ${SPACING.sm} ${SPACING.md};
-  background: ${COLORS.errorLight};
-  border-radius: ${RADIUS.sm};
-`;
+
 
 const Hint = styled.span`
   font-size: 10px;
@@ -148,27 +143,26 @@ const INITIAL: CuponCreatePayload = {
 const CrearCuponModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const [form, setForm] = useState<CuponCreatePayload>({ ...INITIAL });
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+  const toast = useToast();
 
   const set = (field: keyof CuponCreatePayload, value: string | number) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
     if (!form.codigo || form.valorDescuento <= 0 || !form.fechaExpiracion) {
-      setError('Código, valor y fecha de expiración son obligatorios.');
+      toast.warning('Código, valor y fecha de expiración son obligatorios.');
       return;
     }
     if (form.tipoDescuento === 'PORCENTAJE' && form.valorDescuento > 100) {
-      setError('El porcentaje no puede ser mayor a 100.');
+      toast.warning('El porcentaje no puede ser mayor a 100.');
       return;
     }
-    setError('');
     setIsSaving(true);
     try {
       await crearCupon(form);
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear cupón');
+      toast.error(err instanceof Error ? err.message : 'Error al crear cupón');
     } finally {
       setIsSaving(false);
     }
@@ -190,7 +184,6 @@ const CrearCuponModal: React.FC<Props> = ({ onClose, onCreated }) => {
         </Header>
 
         <Body>
-          {error && <ErrorMsg>{error}</ErrorMsg>}
 
           <Field>
             <Label>Código del cupón *</Label>

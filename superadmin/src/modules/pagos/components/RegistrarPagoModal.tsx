@@ -5,6 +5,7 @@ import { fetchTenants } from '../../tenants/services/tenantsApi';
 import { Button } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { PagoManualPayload, Tenant } from '../../../types/api';
+import { useToast } from '../../../context/ToastContext';
 
 // ============================================================================
 // STYLED
@@ -123,21 +124,7 @@ const Footer = styled.div`
   gap: ${SPACING.md};
 `;
 
-const ErrorMsg = styled.div`
-  padding: ${SPACING.md};
-  background: ${COLORS.errorLight};
-  color: ${COLORS.error};
-  border-radius: ${RADIUS.md};
-  font-size: ${TYPOGRAPHY.fontSize.sm};
-`;
 
-const SuccessMsg = styled.div`
-  padding: ${SPACING.md};
-  background: ${COLORS.successLight};
-  color: ${COLORS.success};
-  border-radius: ${RADIUS.md};
-  font-size: ${TYPOGRAPHY.fontSize.sm};
-`;
 
 // ============================================================================
 // COMPONENT
@@ -166,8 +153,7 @@ const RegistrarPagoModal: React.FC<Props> = ({ onClose, onCreated }) => {
     cuponCodigo: '',
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
     fetchTenants({ size: 200 })
@@ -182,12 +168,9 @@ const RegistrarPagoModal: React.FC<Props> = ({ onClose, onCreated }) => {
     setForm(prev => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
-    setError('');
-    setSuccess('');
-
-    if (!form.tenantId) { setError('Selecciona un negocio'); return; }
-    if (!form.monto || form.monto <= 0) { setError('El monto debe ser mayor a 0'); return; }
-    if (!form.referenciaTransaccion.trim()) { setError('La referencia es obligatoria'); return; }
+    if (!form.tenantId) { toast.warning('Selecciona un negocio'); return; }
+    if (!form.monto || form.monto <= 0) { toast.warning('El monto debe ser mayor a 0'); return; }
+    if (!form.referenciaTransaccion.trim()) { toast.warning('La referencia es obligatoria'); return; }
 
     setIsSaving(true);
     try {
@@ -196,10 +179,10 @@ const RegistrarPagoModal: React.FC<Props> = ({ onClose, onCreated }) => {
         cuponCodigo: form.cuponCodigo?.trim() || undefined,
       };
       await registrarPagoManual(payload);
-      setSuccess('Pago registrado exitosamente');
+      toast.success('Pago registrado exitosamente');
       setTimeout(() => onCreated(), 1200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al registrar pago');
+      toast.error(err instanceof Error ? err.message : 'Error al registrar pago');
     } finally {
       setIsSaving(false);
     }
@@ -214,8 +197,6 @@ const RegistrarPagoModal: React.FC<Props> = ({ onClose, onCreated }) => {
         </Header>
 
         <Body>
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          {success && <SuccessMsg>{success}</SuccessMsg>}
 
           <Field>
             <Label>Negocio *</Label>
@@ -270,7 +251,7 @@ const RegistrarPagoModal: React.FC<Props> = ({ onClose, onCreated }) => {
 
         <Footer>
           <Button $variant="outline" onClick={onClose} disabled={isSaving}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={isSaving || !!success}>
+          <Button onClick={handleSubmit} disabled={isSaving}>
             {isSaving ? 'Registrando...' : 'Registrar Pago'}
           </Button>
         </Footer>

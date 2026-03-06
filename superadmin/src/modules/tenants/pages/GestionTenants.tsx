@@ -9,6 +9,7 @@ import CrearTenantModal from '../components/CrearTenantModal';
 import ActualizarTenantModal from '../components/ActualizarTenantModal';
 import CambiarPlanModal from '../components/CambiarPlanModal';
 import HistorialPagosModal from '../components/HistorialPagosModal';
+import { useToast } from '../../../context/ToastContext';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -233,6 +234,7 @@ const GestionTenants: React.FC = () => {
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [changingPlanTenant, setChangingPlanTenant] = useState<Tenant | null>(null);
   const [historialTenant, setHistorialTenant] = useState<Tenant | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     loadTenants();
@@ -277,7 +279,7 @@ const GestionTenants: React.FC = () => {
   const handleRecordatorio = async (tenant: Tenant) => {
     if (!window.confirm(`¿Enviar recordatorio de pago a ${tenant.nombre}?`)) return;
     await enviarRecordatorioPago(tenant.id);
-    window.alert('Recordatorio enviado');
+    toast.success('Recordatorio de pago enviado exitosamente');
   };
 
   const handleEliminar = async (tenant: Tenant) => {
@@ -287,7 +289,7 @@ const GestionTenants: React.FC = () => {
       await loadTenants();
     } catch (err) {
       console.error('Error eliminando tenant:', err);
-      window.alert('Error al eliminar negocio');
+      toast.error('Error al eliminar negocio');
     }
   };
 

@@ -5,6 +5,7 @@ import { fetchPlanes } from '../../planes/services/planesApi';
 import { Button } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Tenant, Plan, SuscripcionAsignarPayload } from '../../../types/api';
+import { useToast } from '../../../context/ToastContext';
 
 const Overlay = styled.div`
   position: fixed;
@@ -115,13 +116,7 @@ const Footer = styled.div`
   gap: ${SPACING.md};
 `;
 
-const ErrorMsg = styled.div`
-  padding: ${SPACING.md};
-  background: ${COLORS.errorLight};
-  color: ${COLORS.error};
-  border-radius: ${RADIUS.md};
-  font-size: ${TYPOGRAPHY.fontSize.sm};
-`;
+
 
 const CurrentPlanInfo = styled.div`
   padding: ${SPACING.md};
@@ -153,7 +148,7 @@ const CambiarPlanModal: React.FC<Props> = ({ tenant, onClose, onUpdated }) => {
     autoRenovar: true,
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
     fetchPlanes()
@@ -163,16 +158,15 @@ const CambiarPlanModal: React.FC<Props> = ({ tenant, onClose, onUpdated }) => {
 
   const handleSubmit = async () => {
     if (!form.planId) {
-      setError('Selecciona un plan.');
+      toast.warning('Selecciona un plan.');
       return;
     }
-    setError('');
     setIsSaving(true);
     try {
       await asignarSuscripcion(tenant.id, form);
       onUpdated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cambiar plan');
+      toast.error(err instanceof Error ? err.message : 'Error al cambiar plan');
     } finally {
       setIsSaving(false);
     }
@@ -186,7 +180,6 @@ const CambiarPlanModal: React.FC<Props> = ({ tenant, onClose, onUpdated }) => {
           <CloseBtn onClick={onClose}>✕</CloseBtn>
         </Header>
         <Body>
-          {error && <ErrorMsg>{error}</ErrorMsg>}
 
           <CurrentPlanInfo>
             Negocio: <strong>{tenant.nombre}</strong><br />

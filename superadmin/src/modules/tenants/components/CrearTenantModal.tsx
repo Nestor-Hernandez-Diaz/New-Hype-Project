@@ -5,6 +5,7 @@ import { fetchPlanes } from '../../planes/services/planesApi';
 import { Button } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { TenantCreatePayload, Plan } from '../../../types/api';
+import { useToast } from '../../../context/ToastContext';
 
 // ============================================================================
 // SUNAT / RENIEC API — decolecta.com
@@ -246,13 +247,7 @@ const Footer = styled.div`
   flex-shrink: 0;
 `;
 
-const ErrorMsg = styled.div`
-  color: ${COLORS.error};
-  font-size: ${TYPOGRAPHY.fontSize.sm};
-  padding: ${SPACING.sm} ${SPACING.md};
-  background: ${COLORS.errorLight};
-  border-radius: ${RADIUS.sm};
-`;
+
 
 const SuccessHint = styled.div`
   color: ${COLORS.success};
@@ -290,8 +285,8 @@ const CrearTenantModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const [planes, setPlanes] = useState<Plan[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isConsulting, setIsConsulting] = useState(false);
-  const [error, setError] = useState('');
   const [consultSuccess, setConsultSuccess] = useState('');
+  const toast = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
 
@@ -319,26 +314,25 @@ const CrearTenantModal: React.FC<Props> = ({ onClose, onCreated }) => {
     const numero = form.propietarioNumeroDocumento.trim();
 
     if (!numero) {
-      setError('Ingresa un número de documento para consultar.');
+      toast.warning('Ingresa un número de documento para consultar.');
       return;
     }
 
     if (tipo === 'DNI' && numero.length !== 8) {
-      setError('El DNI debe tener 8 dígitos.');
+      toast.warning('El DNI debe tener 8 dígitos.');
       return;
     }
 
     if (tipo === 'RUC' && numero.length !== 11) {
-      setError('El RUC debe tener 11 dígitos.');
+      toast.warning('El RUC debe tener 11 dígitos.');
       return;
     }
 
     if (tipo === 'CE') {
-      setError('El Carné de Extranjería no tiene consulta automática. Ingresa los datos manualmente.');
+      toast.info('El Carné de Extranjería no tiene consulta automática. Ingresa los datos manualmente.');
       return;
     }
 
-    setError('');
     setConsultSuccess('');
     setIsConsulting(true);
 
@@ -377,7 +371,7 @@ const CrearTenantModal: React.FC<Props> = ({ onClose, onCreated }) => {
         setConsultSuccess(`✓ RUC encontrado: ${data.razon_social} (${data.estado} - ${data.condicion})`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al consultar documento');
+      toast.error(err instanceof Error ? err.message : 'Error al consultar documento');
     } finally {
       setIsConsulting(false);
     }
@@ -386,28 +380,27 @@ const CrearTenantModal: React.FC<Props> = ({ onClose, onCreated }) => {
   // ── SUBMIT ───────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!form.nombre || !form.subdominio || !form.email || !form.planId || !form.adminPassword) {
-      setError('Completa todos los campos obligatorios (*).');
+      toast.warning('Completa todos los campos obligatorios (*).');
       return;
     }
     if (!form.propietarioNombre) {
-      setError('El nombre del propietario es obligatorio.');
+      toast.warning('El nombre del propietario es obligatorio.');
       return;
     }
     if (!form.propietarioNumeroDocumento) {
-      setError('El número de documento es obligatorio.');
+      toast.warning('El número de documento es obligatorio.');
       return;
     }
     if (form.adminPassword.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.');
+      toast.warning('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
-    setError('');
     setIsSaving(true);
     try {
       await crearTenant(form);
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear negocio');
+      toast.error(err instanceof Error ? err.message : 'Error al crear negocio');
     } finally {
       setIsSaving(false);
     }
@@ -428,8 +421,6 @@ const CrearTenantModal: React.FC<Props> = ({ onClose, onCreated }) => {
         </Header>
 
         <Body>
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-
           {/* ── FILA 1: Nombre del negocio + Subdominio ──────────────── */}
           <Row>
             <Field>

@@ -4,6 +4,7 @@ import Layout from '../../../components/Layout';
 import { fetchTickets, fetchTicketById, actualizarTicket } from '../services/ticketsApiNew';
 import { COLORS, SHADOWS, SPACING, TYPOGRAPHY, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Ticket, TicketUpdatePayload } from '../../../types/api';
+import { useToast } from '../../../context/ToastContext';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -293,6 +294,7 @@ const GestionTickets: React.FC = () => {
   const [selected, setSelected] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const toast = useToast();
 
   // Form state
   const [nuevoEstado, setNuevoEstado] = useState('');
@@ -337,7 +339,7 @@ const GestionTickets: React.FC = () => {
     if (respuesta.trim()) payload.respuesta = respuesta.trim();
 
     if (!payload.estado && !payload.prioridad && !payload.respuesta) {
-      window.alert('Debe modificar al menos un campo.');
+      toast.warning('Debe modificar al menos un campo.');
       return;
     }
 

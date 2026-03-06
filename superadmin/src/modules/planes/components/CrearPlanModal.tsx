@@ -4,6 +4,7 @@ import { crearPlan } from '../services/planesApi';
 import { Button } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { PlanCreatePayload } from '../../../types/api';
+import { useToast } from '../../../context/ToastContext';
 
 // ============================================================================
 // STYLED
@@ -141,13 +142,7 @@ const Footer = styled.div`
   flex-shrink: 0;
 `;
 
-const ErrorMsg = styled.div`
-  color: ${COLORS.error};
-  font-size: ${TYPOGRAPHY.fontSize.sm};
-  padding: ${SPACING.sm} ${SPACING.md};
-  background: ${COLORS.errorLight};
-  border-radius: ${RADIUS.sm};
-`;
+
 
 const CheckboxRow = styled.label`
   display: flex;
@@ -197,7 +192,7 @@ const INITIAL: PlanCreatePayload = {
 const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const [form, setForm] = useState<PlanCreatePayload>({ ...INITIAL });
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+  const toast = useToast();
 
   const set = (field: keyof PlanCreatePayload, value: string | number | number[]) =>
     setForm(prev => ({ ...prev, [field]: value }));
@@ -222,16 +217,15 @@ const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
 
   const handleSubmit = async () => {
     if (!form.nombre || form.precioMensual <= 0) {
-      setError('El nombre y precio mensual son obligatorios.');
+      toast.warning('El nombre y precio mensual son obligatorios.');
       return;
     }
-    setError('');
     setIsSaving(true);
     try {
       await crearPlan(form);
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear plan');
+      toast.error(err instanceof Error ? err.message : 'Error al crear plan');
     } finally {
       setIsSaving(false);
     }
@@ -246,7 +240,6 @@ const CrearPlanModal: React.FC<Props> = ({ onClose, onCreated }) => {
         </Header>
 
         <Body>
-          {error && <ErrorMsg>{error}</ErrorMsg>}
 
           <Row>
             <Field>
