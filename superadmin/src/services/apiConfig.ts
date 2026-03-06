@@ -1,5 +1,5 @@
 // ============================================================================
-// API CONFIG — Cliente HTTP centralizado para el backend Spring Boot
+// API CONFIG
 // ============================================================================
 
 // CORS habilitado en el backend — conexión directa sin proxy

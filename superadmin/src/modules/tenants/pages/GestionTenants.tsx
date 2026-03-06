@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../../components/Layout';
-import { fetchTenants, cambiarEstadoTenant, enviarRecordatorioPago, eliminarTenant } from '../services/tenantsApi';
+import { fetchTenants, fetchTenantById, cambiarEstadoTenant, enviarRecordatorioPago, eliminarTenant } from '../services/tenantsApi';
 import { Button, ActionButton, StatusBadge } from '../../../components/shared';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Tenant } from '../../../types/api';
@@ -242,7 +242,19 @@ const GestionTenants: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchTenants();
-      setTenants(Array.isArray(res) ? res : []);
+      const list: Tenant[] = Array.isArray(res) ? res : [];
+      // Enrich with plan data from detail endpoint (list doesn't include planActual)
+      const enriched = await Promise.all(
+        list.map(async t => {
+          try {
+            const detail = await fetchTenantById(t.id);
+            return { ...t, planActual: detail.planActual, planId: detail.planId, estadoSuscripcion: detail.estadoSuscripcion };
+          } catch {
+            return t;
+          }
+        })
+      );
+      setTenants(enriched);
     } catch (err) {
       console.error('Error cargando tenants:', err);
       setTenants([]);
@@ -379,7 +391,7 @@ const GestionTenants: React.FC = () => {
                     </TenantInfo>
                   </Td>
                   <Td>{tenant.propietarioNombre}</Td>
-                  <Td><PlanBadge>{tenant.planNombre ?? '—'}</PlanBadge></Td>
+                  <Td><PlanBadge>{tenant.planActual ?? tenant.planNombre ?? '—'}</PlanBadge></Td>
                   <Td><StatusBadge $status={getEstadoForBadge(tenant.estado)}>{tenant.estado}</StatusBadge></Td>
                   <Td>{tenant.fechaVencimiento ?? tenant.createdAt?.split('T')[0] ?? '—'}</Td>
                   <Td>

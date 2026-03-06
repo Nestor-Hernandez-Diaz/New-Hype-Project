@@ -6,15 +6,6 @@
 import { apiFetch, buildQuery } from '../../../services/apiConfig';
 import type { AuditLog, AuditFilters } from '../../../types/api';
 
-// Respuesta paginada del backend
-interface PagedResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
-}
-
 // ── 2.7 LISTAR LOGS DE AUDITORÍA ───────────────────────────────────────────
 export async function fetchAuditLogs(filters?: AuditFilters): Promise<AuditLog[]> {
   const query = buildQuery({

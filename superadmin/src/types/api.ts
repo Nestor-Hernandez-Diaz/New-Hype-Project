@@ -213,7 +213,11 @@ export interface Tenant {
   propietarioNombre: string;
   propietarioTipoDocumento: string;
   propietarioNumeroDocumento: string;
-  planNombre?: string;             // solo en detalle
+  planNombre?: string;             // solo en detalle (legacy)
+  planActual?: string;             // nombre del plan desde detalle 4.2
+  planId?: number;                 // id del plan desde detalle 4.2
+  estadoSuscripcion?: string;      // estado suscripción desde detalle 4.2
+  cantidadUsuarios?: number;       // desde detalle 4.2
   fechaRegistro?: string;          // solo en detalle
   fechaVencimiento?: string;       // solo en detalle
   createdAt: string;

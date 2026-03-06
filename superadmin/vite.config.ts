@@ -6,6 +6,14 @@ export default defineConfig({
   server: {
     port: 5174,
     open: true,
+    proxy: {
+      '/api/decolecta': {
+        target: 'https://api.decolecta.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/decolecta/, ''),
+        secure: true,
+      },
+    },
   },
   resolve: {
     alias: {
