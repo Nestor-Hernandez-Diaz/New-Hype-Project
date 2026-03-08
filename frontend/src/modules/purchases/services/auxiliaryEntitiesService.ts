@@ -1,27 +1,14 @@
 /**
  * SERVICIO: Entidades Comerciales (Proveedores, Productos, Almacenes)
  * Maneja operaciones auxiliares necesarias para el módulo de compras
- * Endpoints varios del sistema
  */
 
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import type { Supplier, Warehouse, Product } from '../types/purchases.types';
 
-// Configuración dinámica de la API
 const getApiBaseUrl = (): string => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-
-  const currentHost = window.location.hostname;
-  const apiPort = 3001;
-
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return `http://localhost:${apiPort}/api`;
-  }
-
-  return `http://${currentHost}:${apiPort}/api`;
+  return import.meta.env.VITE_API_URL || 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();

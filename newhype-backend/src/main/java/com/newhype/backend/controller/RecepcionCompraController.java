@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -70,5 +72,25 @@ public class RecepcionCompraController {
     public ResponseEntity<ApiResponse<RecepcionCompraResponse>> confirmar(@PathVariable Long id) {
         RecepcionCompraResponse response = recepcionCompraService.confirmar(id);
         return ResponseEntity.ok(ApiResponse.ok("Recepción confirmada, stock actualizado", response));
+    }
+
+    @PatchMapping("/{id}/anular")
+    @Operation(summary = "Anular recepción pendiente → revierte cantidades recibidas en OC")
+    public ResponseEntity<ApiResponse<RecepcionCompraResponse>> anular(@PathVariable Long id) {
+        RecepcionCompraResponse response = recepcionCompraService.anular(id);
+        return ResponseEntity.ok(ApiResponse.ok("Recepción anulada", response));
+    }
+
+    @GetMapping("/{id}/pdf")
+    @Operation(summary = "Descargar recepción de compra como HTML/PDF")
+    public ResponseEntity<byte[]> descargarPdf(@PathVariable Long id) {
+        String html = recepcionCompraService.generarHtmlRecepcion(id);
+        byte[] content = html.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=REC_" + id + ".html")
+                .contentType(MediaType.TEXT_HTML)
+                .contentLength(content.length)
+                .body(content);
     }
 }

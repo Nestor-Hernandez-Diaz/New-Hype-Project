@@ -34,6 +34,7 @@ public class ProductoResponse {
     private BigDecimal precioCosto;
     private BigDecimal precioVenta;
     private Integer stockMinimo;
+    private Integer stockActual;
     private Boolean controlaInventario;
     private Boolean enLiquidacion;
     private BigDecimal porcentajeLiquidacion;

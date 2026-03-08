@@ -41,10 +41,11 @@ public class StockController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getKardex(
             @RequestParam Long productoId,
             @RequestParam(required = false) Long almacenId,
+            @RequestParam(required = false) String tipo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        Page<KardexResponse> result = stockService.getKardex(productoId, almacenId, page, size);
+        Page<KardexResponse> result = stockService.getKardex(productoId, almacenId, tipo, page, size);
 
         Map<String, Object> data = Map.of(
                 "movimientos", result.getContent(),

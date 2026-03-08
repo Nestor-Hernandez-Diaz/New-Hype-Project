@@ -1,9 +1,12 @@
 package com.newhype.backend.repository;
 
 import com.newhype.backend.entity.MovimientoInventario;
+import com.newhype.backend.entity.MovimientoInventario.TipoMovimiento;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
 
 public interface MovimientoInventarioRepository extends JpaRepository<MovimientoInventario, Long> {
 
@@ -12,4 +15,12 @@ public interface MovimientoInventarioRepository extends JpaRepository<Movimiento
 
     Page<MovimientoInventario> findByTenantIdAndProductoIdAndAlmacenIdOrderByCreatedAtDesc(
             Long tenantId, Long productoId, Long almacenId, Pageable pageable);
+
+    Page<MovimientoInventario> findByTenantIdAndProductoIdAndTipoInOrderByCreatedAtDesc(
+            Long tenantId, Long productoId, List<TipoMovimiento> tipos, Pageable pageable);
+
+    Page<MovimientoInventario> findByTenantIdAndProductoIdAndAlmacenIdAndTipoInOrderByCreatedAtDesc(
+            Long tenantId, Long productoId, Long almacenId, List<TipoMovimiento> tipos, Pageable pageable);
+
+    long countByTenantIdAndAlmacenId(Long tenantId, Long almacenId);
 }

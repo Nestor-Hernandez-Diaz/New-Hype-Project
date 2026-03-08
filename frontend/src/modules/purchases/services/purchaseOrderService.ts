@@ -1,13 +1,14 @@
 /**
  * SERVICIO: Órdenes de Compra (Purchase Orders)
  * Maneja todas las operaciones CRUD relacionadas con órdenes de compra
- * Endpoints: http://localhost:3001/api/compras/ordenes
+ * Incluye mapeo bidireccional backend ↔ frontend
  */
 
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import type {
   PurchaseOrder,
+  PurchaseOrderItem,
   CreatePurchaseOrderDto,
   UpdatePurchaseOrderDto,
   UpdatePurchaseOrderStatusDto,
@@ -17,23 +18,122 @@ import type {
   PurchaseOrderStatistics,
 } from '../types/purchases.types';
 
-// Configuración dinámica de la API
 const getApiBaseUrl = (): string => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-
-  const currentHost = window.location.hostname;
-  const apiPort = 3001;
-
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return `http://localhost:${apiPort}/api`;
-  }
-
-  return `http://${currentHost}:${apiPort}/api`;
+  return import.meta.env.VITE_API_URL || 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
+
+// ==================== MAPEO BACKEND → FRONTEND ====================
+
+/**
+ * Mapea un detalle de OC del backend al formato del frontend
+ */
+function mapBackendItem(item: any): PurchaseOrderItem {
+  const cantidadOrdenada = item.cantidadOrdenada || 0;
+  const cantidadRecibida = item.cantidadRecibida || 0;
+  return {
+    id: String(item.id),
+    productoId: String(item.productoId),
+    producto: item.productoNombre ? {
+      id: String(item.productoId),
+      codigo: '',
+      nombre: item.productoNombre,
+      unidadMedida: item.unidadMedida,
+    } : undefined,
+    cantidadOrdenada,
+    cantidadRecibida,
+    cantidadAceptada: item.cantidadAceptada || 0,
+    cantidadRechazada: item.cantidadRechazada || 0,
+    cantidadPendiente: Math.max(0, cantidadOrdenada - cantidadRecibida),
+    precioUnitario: Number(item.precioUnitario) || 0,
+    descuento: Number(item.descuento) || 0,
+    subtotal: Number(item.subtotal) || 0,
+    cantidad: cantidadOrdenada,
+    observaciones: item.observaciones,
+  };
+}
+
+/**
+ * Mapea una Orden de Compra del backend al formato del frontend
+ */
+function mapBackendOrder(data: any): PurchaseOrder {
+  return {
+    id: String(data.id),
+    codigo: data.codigo,
+    proveedorId: String(data.proveedorId),
+    proveedor: data.proveedorNombre ? {
+      id: String(data.proveedorId),
+      razonSocial: data.proveedorNombre,
+      numeroDocumento: '',
+      tipoDocumento: '',
+    } : undefined,
+    almacenDestinoId: String(data.almacenDestinoId),
+    almacenDestino: data.almacenDestinoNombre ? {
+      id: String(data.almacenDestinoId),
+      nombre: data.almacenDestinoNombre,
+      codigo: '',
+    } : undefined,
+    solicitadoPorId: String(data.usuarioId || ''),
+    fecha: data.fechaEmision || data.createdAt,
+    fechaEmision: data.fechaEmision,
+    fechaEntregaEsperada: data.fechaEntregaEstimada,
+    estado: data.estado,
+    condicionesPago: data.condicionesPago,
+    formaPago: data.formaPago,
+    moneda: data.moneda,
+    observaciones: data.observaciones,
+    subtotal: Number(data.subtotal) || 0,
+    descuento: Number(data.descuento) || 0,
+    igv: Number(data.igv) || 0,
+    total: Number(data.total) || 0,
+    items: (data.detalles || []).map(mapBackendItem),
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt || data.createdAt,
+  } as PurchaseOrder;
+}
+
+/**
+ * Mapea un request de creación del frontend al formato del backend
+ */
+function mapCreateRequest(data: CreatePurchaseOrderDto): any {
+  return {
+    proveedorId: Number(data.proveedorId),
+    almacenDestinoId: Number(data.almacenDestinoId),
+    fechaEntregaEstimada: data.fechaEntregaEsperada || undefined,
+    condicionesPago: data.condicionesPago,
+    formaPago: data.formaPago,
+    observaciones: data.observaciones,
+    items: (data.items || []).map(item => ({
+      productoId: Number(item.productoId),
+      cantidadOrdenada: item.cantidadOrdenada || item.cantidad || 1,
+      precioUnitario: item.precioUnitario || 0,
+      descuento: item.descuento || 0,
+      observaciones: item.observaciones || item.especificaciones,
+    })),
+  };
+}
+
+/**
+ * Mapea un request de actualización del frontend al formato del backend
+ */
+function mapUpdateRequest(data: UpdatePurchaseOrderDto): any {
+  return {
+    proveedorId: data.proveedorId ? Number(data.proveedorId) : undefined,
+    almacenDestinoId: data.almacenDestinoId ? Number(data.almacenDestinoId) : undefined,
+    fechaEntregaEstimada: data.fechaEntregaEsperada || undefined,
+    condicionesPago: data.condicionesPago,
+    formaPago: data.formaPago,
+    observaciones: data.observaciones,
+    items: data.items ? data.items.map(item => ({
+      productoId: Number(item.productoId),
+      cantidadOrdenada: item.cantidadOrdenada || item.cantidad || 1,
+      precioUnitario: item.precioUnitario || 0,
+      descuento: item.descuento || 0,
+      observaciones: item.observaciones || item.especificaciones,
+    })) : undefined,
+  };
+}
 
 /**
  * Clase de servicio para gestión de órdenes de compra
@@ -48,7 +148,7 @@ class PurchaseOrderService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 30000, // 30 segundos
+      timeout: 30000,
     });
 
     // Interceptor para agregar token de autenticación
@@ -69,7 +169,6 @@ class PurchaseOrderService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        // Si es 401, limpiar token y redirigir al login
         if (error.response?.status === 401) {
           localStorage.removeItem('authToken');
           localStorage.removeItem('alexatech_token');
@@ -82,8 +181,7 @@ class PurchaseOrderService {
   }
 
   /**
-   * 1. Obtener listado de órdenes de compra con filtros y paginación
-   * GET /api/compras/ordenes
+   * Obtener listado de órdenes de compra con filtros y paginación
    */
   async getPurchaseOrders(
     filters?: FilterPurchaseOrderDto
@@ -91,20 +189,30 @@ class PurchaseOrderService {
     try {
       const params = new URLSearchParams();
 
-      if (filters?.page) params.append('page', filters.page.toString());
-      if (filters?.limit) params.append('limit', filters.limit.toString());
+      // Backend uses 0-based pages, frontend 1-based
+      if (filters?.page) params.append('page', String(Math.max(0, filters.page - 1)));
+      if (filters?.limit) params.append('size', filters.limit.toString());
       if (filters?.estado) params.append('estado', filters.estado);
       if (filters?.proveedorId) params.append('proveedorId', filters.proveedorId);
-      if (filters?.almacenDestinoId) params.append('almacenDestinoId', filters.almacenDestinoId);
-      if (filters?.fechaInicio) params.append('fechaInicio', filters.fechaInicio);
-      if (filters?.fechaFin) params.append('fechaFin', filters.fechaFin);
       if (filters?.search) params.append('search', filters.search);
 
-      const response = await this.api.get<PaginatedResponse<PurchaseOrder>>(
-        `${this.baseEndpoint}?${params.toString()}`
-      );
+      const response = await this.api.get(`${this.baseEndpoint}?${params.toString()}`);
+      const raw = response.data;
 
-      return response.data;
+      // Map backend paginated response
+      const data = (raw.data || []).map(mapBackendOrder);
+      const pagination = raw.pagination || {};
+
+      return {
+        success: true,
+        data,
+        pagination: {
+          total: pagination.totalElements || data.length,
+          page: (pagination.page || 0) + 1, // Convert 0-based → 1-based
+          limit: pagination.size || filters?.limit || 20,
+          totalPages: pagination.totalPages || 1,
+        },
+      };
     } catch (error: any) {
       console.error('Error fetching purchase orders:', error);
       throw this.handleError(error);
@@ -112,15 +220,18 @@ class PurchaseOrderService {
   }
 
   /**
-   * 2. Obtener una orden de compra por ID
-   * GET /api/compras/ordenes/:id
+   * Obtener una orden de compra por ID
    */
   async getPurchaseOrderById(id: string): Promise<ApiResponse<PurchaseOrder>> {
     try {
-      const response = await this.api.get<ApiResponse<PurchaseOrder>>(
-        `${this.baseEndpoint}/${id}`
-      );
-      return response.data;
+      const response = await this.api.get(`${this.baseEndpoint}/${id}`);
+      const raw = response.data;
+
+      return {
+        success: true,
+        data: mapBackendOrder(raw.data),
+        message: raw.message,
+      };
     } catch (error: any) {
       console.error(`Error fetching purchase order ${id}:`, error);
       throw this.handleError(error);
@@ -128,18 +239,21 @@ class PurchaseOrderService {
   }
 
   /**
-   * 3. Crear nueva orden de compra
-   * POST /api/compras/ordenes
+   * Crear nueva orden de compra
    */
   async createPurchaseOrder(
     data: CreatePurchaseOrderDto
   ): Promise<ApiResponse<PurchaseOrder>> {
     try {
-      const response = await this.api.post<ApiResponse<PurchaseOrder>>(
-        this.baseEndpoint,
-        data
-      );
-      return response.data;
+      const backendData = mapCreateRequest(data);
+      const response = await this.api.post(this.baseEndpoint, backendData);
+      const raw = response.data;
+
+      return {
+        success: true,
+        data: mapBackendOrder(raw.data),
+        message: raw.message,
+      };
     } catch (error: any) {
       console.error('Error creating purchase order:', error);
       throw this.handleError(error);
@@ -147,19 +261,22 @@ class PurchaseOrderService {
   }
 
   /**
-   * 4. Actualizar orden de compra existente
-   * PUT /api/compras/ordenes/:id
+   * Actualizar orden de compra existente
    */
   async updatePurchaseOrder(
     id: string,
     data: UpdatePurchaseOrderDto
   ): Promise<ApiResponse<PurchaseOrder>> {
     try {
-      const response = await this.api.put<ApiResponse<PurchaseOrder>>(
-        `${this.baseEndpoint}/${id}`,
-        data
-      );
-      return response.data;
+      const backendData = mapUpdateRequest(data);
+      const response = await this.api.put(`${this.baseEndpoint}/${id}`, backendData);
+      const raw = response.data;
+
+      return {
+        success: true,
+        data: mapBackendOrder(raw.data),
+        message: raw.message,
+      };
     } catch (error: any) {
       console.error(`Error updating purchase order ${id}:`, error);
       throw this.handleError(error);
@@ -167,19 +284,24 @@ class PurchaseOrderService {
   }
 
   /**
-   * 5. Actualizar estado de orden de compra
-   * PATCH /api/compras/ordenes/:id/estado
+   * Actualizar estado de orden de compra
    */
   async updatePurchaseOrderStatus(
     id: string,
     data: UpdatePurchaseOrderStatusDto
   ): Promise<ApiResponse<PurchaseOrder>> {
     try {
-      const response = await this.api.patch<ApiResponse<PurchaseOrder>>(
+      const response = await this.api.patch(
         `${this.baseEndpoint}/${id}/estado`,
-        data
+        { estado: data.estado }
       );
-      return response.data;
+      const raw = response.data;
+
+      return {
+        success: true,
+        data: mapBackendOrder(raw.data),
+        message: raw.message,
+      };
     } catch (error: any) {
       console.error(`Error updating purchase order status ${id}:`, error);
       throw this.handleError(error);
@@ -187,14 +309,11 @@ class PurchaseOrderService {
   }
 
   /**
-   * 6. Eliminar orden de compra (soft delete)
-   * DELETE /api/compras/ordenes/:id
+   * Eliminar orden de compra (soft delete → CANCELADA)
    */
   async deletePurchaseOrder(id: string): Promise<ApiResponse<void>> {
     try {
-      const response = await this.api.delete<ApiResponse<void>>(
-        `${this.baseEndpoint}/${id}`
-      );
+      const response = await this.api.delete(`${this.baseEndpoint}/${id}`);
       return response.data;
     } catch (error: any) {
       console.error(`Error deleting purchase order ${id}:`, error);
@@ -203,14 +322,11 @@ class PurchaseOrderService {
   }
 
   /**
-   * 7. Obtener estadísticas de órdenes de compra
-   * GET /api/compras/ordenes/estadisticas/resumen
+   * Obtener estadísticas de órdenes de compra
    */
   async getPurchaseOrderStatistics(): Promise<ApiResponse<PurchaseOrderStatistics>> {
     try {
-      const response = await this.api.get<ApiResponse<PurchaseOrderStatistics>>(
-        `${this.baseEndpoint}/estadisticas/resumen`
-      );
+      const response = await this.api.get(`${this.baseEndpoint}/../estadisticas`);
       return response.data;
     } catch (error: any) {
       console.error('Error fetching purchase order statistics:', error);
@@ -219,8 +335,7 @@ class PurchaseOrderService {
   }
 
   /**
-   * 8. Exportar orden de compra a PDF
-   * GET /api/compras/ordenes/:id/pdf
+   * Exportar orden de compra (HTML)
    */
   async exportToPDF(id: string): Promise<Blob> {
     try {
@@ -228,7 +343,7 @@ class PurchaseOrderService {
         responseType: 'blob',
       });
 
-      return new Blob([response.data], { type: 'application/pdf' });
+      return new Blob([response.data], { type: 'text/html' });
     } catch (error: any) {
       console.error(`Error exporting purchase order ${id} to PDF:`, error);
       throw this.handleError(error);
@@ -236,7 +351,7 @@ class PurchaseOrderService {
   }
 
   /**
-   * Método auxiliar para descargar el PDF generado
+   * Descargar el documento generado
    */
   async downloadPDF(id: string, filename?: string): Promise<void> {
     try {
@@ -244,7 +359,7 @@ class PurchaseOrderService {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = filename || `orden-compra-${id}.pdf`;
+      link.download = filename || `orden-compra-${id}.html`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -260,14 +375,11 @@ class PurchaseOrderService {
    */
   private handleError(error: any): Error {
     if (error.response) {
-      // Error de respuesta del servidor (4xx, 5xx)
       const message = error.response.data?.message || error.response.data?.error || 'Error en la operación';
       return new Error(`${message} (Status: ${error.response.status})`);
     } else if (error.request) {
-      // Error de red (sin respuesta)
       return new Error('No se pudo conectar con el servidor. Verifica tu conexión.');
     } else {
-      // Error en la configuración de la petición
       return new Error(error.message || 'Error desconocido');
     }
   }

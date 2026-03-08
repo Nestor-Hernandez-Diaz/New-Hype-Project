@@ -5,7 +5,7 @@
  * Uses a separate JWT token (nh_sf_token) from the admin panel.
  */
 
-const BASE_URL = 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1';
 const TENANT_ID = '1';
 
 // ---- Token helpers ----

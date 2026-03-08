@@ -1,9 +1,9 @@
 /**
  * 🏢 CLIENTS CONTEXT - GESTIÓN DE ENTIDADES COMERCIALES
- * 
+ *
  * Context refactorizado con useReducer para gestión de clientes y proveedores.
- * Conectado a Mock API local (entidadesMockApi.ts)
- * 
+ * Conectado a API backend via entidadesRealApi.
+ *
  * @packageDocumentation
  */
 
@@ -17,7 +17,7 @@ import type {
   ActualizarEntidadDTO,
   EntidadFiltros
 } from '@monorepo/shared-types';
-import * as entidadesMockApi from '../services/entidadesRealApi';
+import * as entidadesApi from '../services/entidadesRealApi';
 
 // ============= TIPOS DE ESTADO Y ACCIONES =============
 
@@ -137,7 +137,7 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       dispatch({ type: 'FETCH_ENTIDADES_START' });
 
-      const response = await entidadesMockApi.getEntidades(filtros);
+      const response = await entidadesApi.getEntidades(filtros);
       dispatch({ type: 'FETCH_ENTIDADES_SUCCESS', payload: response });
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al cargar entidades';
@@ -149,7 +149,7 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // ========== CREATE ENTIDAD ==========
   const addClient = useCallback(async (data: CrearEntidadDTO) => {
     try {
-      const nuevaEntidad = await entidadesMockApi.crearEntidad(data);
+      const nuevaEntidad = await entidadesApi.crearEntidad(data);
       dispatch({ type: 'CREATE_ENTIDAD_SUCCESS', payload: nuevaEntidad });
       showSuccess('Entidad registrada exitosamente');
     } catch (error) {
@@ -162,7 +162,7 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // ========== UPDATE ENTIDAD ==========
   const updateClient = useCallback(async (id: string, data: ActualizarEntidadDTO) => {
     try {
-      const entidadActualizada = await entidadesMockApi.actualizarEntidad(id, data);
+      const entidadActualizada = await entidadesApi.actualizarEntidad(id, data);
       if (!entidadActualizada) {
         throw new Error('Entidad no encontrada');
       }
@@ -178,7 +178,7 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // ========== DELETE ENTIDAD ==========
   const deleteClient = useCallback(async (id: string) => {
     try {
-      const success = await entidadesMockApi.eliminarEntidad(id);
+      const success = await entidadesApi.eliminarEntidad(id);
       if (!success) {
         throw new Error('No se pudo eliminar la entidad');
       }
@@ -194,7 +194,7 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // ========== REACTIVATE ENTIDAD ==========
   const reactivateClient = useCallback(async (id: string) => {
     try {
-      const entidadActualizada = await entidadesMockApi.cambiarEstadoEntidad(id, true);
+      const entidadActualizada = await entidadesApi.cambiarEstadoEntidad(id, true);
       if (!entidadActualizada) {
         throw new Error('Entidad no encontrada');
       }

@@ -14,11 +14,11 @@ interface QuickClientModalProps {
   onClose: () => void;
   onClientCreated: (clientId: string, clientData: ClientFormData) => void;
   initialSearchTerm?: string;
-  defaultTipoEntidad?: 'Cliente' | 'Proveedor' | 'Ambos';
+  defaultTipoEntidad?: 'CLIENTE' | 'PROVEEDOR' | 'AMBOS';
 }
 
 interface ClientFormData {
-  tipoEntidad: 'Cliente' | 'Proveedor' | 'Ambos';
+  tipoEntidad: 'CLIENTE' | 'PROVEEDOR' | 'AMBOS';
   tipoDocumento: 'DNI' | 'RUC' | 'CE' | 'Pasaporte';
   numeroDocumento: string;
   nombres?: string;
@@ -317,7 +317,7 @@ export const QuickClientModal: React.FC<QuickClientModalProps> = ({
   defaultTipoEntidad,
 }) => {
   // Estados del formulario
-  const [tipoEntidad, setTipoEntidad] = useState<'Cliente' | 'Proveedor' | 'Ambos'>(defaultTipoEntidad || 'Cliente');
+  const [tipoEntidad, setTipoEntidad] = useState<'CLIENTE' | 'PROVEEDOR' | 'AMBOS'>(defaultTipoEntidad || 'CLIENTE');
   const [tipoDocumento, setTipoDocumento] = useState<'DNI' | 'RUC' | 'CE' | 'Pasaporte'>('DNI');
   const [numeroDocumento, setNumeroDocumento] = useState('');
   const [nombres, setNombres] = useState('');
@@ -659,7 +659,7 @@ export const QuickClientModal: React.FC<QuickClientModalProps> = ({
 
     try {
       const clientData = {
-        tipoEntidad: 'Cliente' as const,
+        tipoEntidad: 'CLIENTE' as const,
         tipoDocumento,
         numeroDocumento: numeroDocumento.trim(),
         ...(tipoDocumento === 'RUC' 
@@ -690,7 +690,7 @@ export const QuickClientModal: React.FC<QuickClientModalProps> = ({
         
         // Llamar callback inmediatamente (el padre maneja el cierre del modal)
         onClientCreated(clientId, {
-          tipoEntidad: 'Cliente',
+          tipoEntidad: 'CLIENTE',
           tipoDocumento,
           numeroDocumento: numeroDocumento.trim(),
           nombres: nombres.trim(),
@@ -816,11 +816,11 @@ export const QuickClientModal: React.FC<QuickClientModalProps> = ({
               <SharedSelect
                 id="tipoEntidad"
                 value={tipoEntidad}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTipoEntidad(e.target.value as 'Cliente' | 'Proveedor' | 'Ambos')}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTipoEntidad(e.target.value as 'CLIENTE' | 'PROVEEDOR' | 'AMBOS')}
               >
-                <option value="Cliente">Cliente</option>
-                <option value="Proveedor">Proveedor</option>
-                <option value="Ambos">Ambos (Cliente y Proveedor)</option>
+                <option value="CLIENTE">Cliente</option>
+                <option value="PROVEEDOR">Proveedor</option>
+                <option value="AMBOS">Ambos (Cliente y Proveedor)</option>
               </SharedSelect>
             </FormGroup>
 

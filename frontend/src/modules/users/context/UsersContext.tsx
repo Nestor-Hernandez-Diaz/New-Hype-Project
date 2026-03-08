@@ -2,7 +2,7 @@
  * 👥 USERS CONTEXT - GESTIÓN DE ESTADO DE USUARIOS
  * 
  * Context refactorizado con useReducer para gestión de usuarios.
- * Conectado a Mock API local (usuariosApi.ts)
+ * Conectado a API real (usuariosRealApi.ts)
  * 
  * @packageDocumentation
  */

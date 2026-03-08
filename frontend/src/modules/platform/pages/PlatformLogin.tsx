@@ -22,12 +22,6 @@ export default function PlatformLogin() {
     setLoading(true);
 
     try {
-      // TODO: Implementar llamada real al backend
-      // const response = await fetch('http://localhost:8080/api/v1/platform/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData)
-      // });
 
       // Mock temporal
       await new Promise(resolve => setTimeout(resolve, 800));

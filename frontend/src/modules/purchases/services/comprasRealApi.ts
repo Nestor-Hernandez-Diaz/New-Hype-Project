@@ -1,8 +1,7 @@
 /**
- * REAL API - COMPRAS (Ordenes de Compra + Recepciones)
+ * API - COMPRAS (Ordenes de Compra + Recepciones)
  *
- * Reemplaza los mock APIs (ordenesComprasMockApi y recepcionesMockApi)
- * con llamadas reales al backend via apiService.
+ * Llamadas al backend via apiService.
  *
  * @packageDocumentation
  */

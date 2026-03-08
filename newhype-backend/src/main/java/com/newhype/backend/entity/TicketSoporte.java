@@ -17,7 +17,7 @@ public class TicketSoporte {
     }
 
     public enum EstadoTicket {
-        ABIERTO, EN_PROCESO, CERRADO
+        ABIERTO, EN_PROCESO, RESUELTO, CERRADO
     }
 
     @Id
@@ -26,6 +26,9 @@ public class TicketSoporte {
 
     @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
+
+    @Column(name = "usuario_id")
+    private Long usuarioId;
 
     @Column(name = "usuario_plataforma_id")
     private Long usuarioPlataformaId;

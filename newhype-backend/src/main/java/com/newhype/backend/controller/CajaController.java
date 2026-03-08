@@ -56,4 +56,20 @@ public class CajaController {
         MovimientoCajaResponse response = cajaService.registrarMovimiento(id, request);
         return ResponseEntity.ok(ApiResponse.ok("Movimiento registrado", response));
     }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtener sesión de caja por ID con movimientos")
+    public ResponseEntity<ApiResponse<SesionCajaResponse>> obtenerSesion(
+            @PathVariable Long id) {
+        SesionCajaResponse response = cajaService.obtenerSesion(id);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/{id}/movimientos")
+    @Operation(summary = "Listar movimientos de una sesión de caja")
+    public ResponseEntity<ApiResponse<List<MovimientoCajaResponse>>> listarMovimientos(
+            @PathVariable Long id) {
+        List<MovimientoCajaResponse> response = cajaService.listarMovimientos(id);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
 }

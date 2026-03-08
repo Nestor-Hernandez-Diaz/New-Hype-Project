@@ -595,6 +595,19 @@ const PurchaseReceiptForm: React.FC<PurchaseReceiptFormProps> = ({
             </FormGroup>
           </Row>
 
+          <Row>
+            <FormGroup>
+              <Label>Guía de Remisión</Label>
+              <Input
+                type="text"
+                value={formData.guiaRemision || ''}
+                onChange={(e) => handleInputChange('guiaRemision', e.target.value)}
+                placeholder="Número de guía de remisión (opcional)"
+                disabled={loading}
+              />
+            </FormGroup>
+          </Row>
+
           {/* Info de la orden seleccionada */}
           {selectedOrder && (
             <OrderInfo>

@@ -151,6 +151,9 @@ export interface PurchaseReceipt {
     firstName: string;
     lastName: string;
   };
+  guiaRemision?: string;
+  esRecepcionCompleta?: boolean;
+  cantidadItems?: number;
   items: PurchaseReceiptItem[];
   createdAt: string;
   updatedAt: string;

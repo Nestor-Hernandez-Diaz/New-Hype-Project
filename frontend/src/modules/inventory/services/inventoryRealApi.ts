@@ -1,8 +1,7 @@
 /**
  * ============================================
- * REAL API SERVICE - INVENTARIO
- * Reemplaza inventoryMockApi con llamadas reales
- * al backend via apiService.
+ * API SERVICE - INVENTARIO
+ * Llamadas al backend via apiService.
  * ============================================
  */
 
@@ -172,12 +171,8 @@ function paginateArray<T>(items: T[], page: number = 1, limit: number = 10): { d
 
 /**
  * Real backend API for the Inventory module.
- *
- * Exported as `inventoryMockApi` so the existing InventoryContext import
- * (`import { inventoryMockApi } from '...'`) works without changes beyond
- * swapping the file path.
  */
-export const inventoryMockApi = {
+export const inventoryApi = {
 
   // ----- Stock ------------------------------------------------------------
 
@@ -315,7 +310,7 @@ export const inventoryMockApi = {
       tipo: isIngreso ? 'AJUSTE_INGRESO' : 'AJUSTE_EGRESO',
       cantidad: Math.abs(ajusteData.cantidadAjuste),
       motivo: ajusteData.observaciones || '',
-      documentoReferencia: '',
+      documentoReferencia: ajusteData.observaciones || '',
     };
 
     const res: ApiResponse<unknown> = await apiService.post('/inventario/ajustes', body);

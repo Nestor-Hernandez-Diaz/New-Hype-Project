@@ -44,7 +44,7 @@ public class NotaCredito {
     @Column(name = "numero", nullable = false, length = 8)
     private String numero;
 
-    @Column(name = "motivo_sunat", nullable = false, length = 5)
+    @Column(name = "motivo_sunat", nullable = false, length = 50)
     private String motivoSunat;
 
     @Enumerated(EnumType.STRING)

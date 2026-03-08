@@ -6,6 +6,7 @@ import com.newhype.backend.entity.Producto;
 import com.newhype.backend.exception.ResourceNotFoundException;
 import com.newhype.backend.repository.ImagenProductoRepository;
 import com.newhype.backend.repository.ProductoRepository;
+import com.newhype.backend.repository.StockAlmacenRepository;
 import com.newhype.backend.security.TenantContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,11 +24,14 @@ public class ProductoService {
 
     private final ProductoRepository productoRepository;
     private final ImagenProductoRepository imagenProductoRepository;
+    private final StockAlmacenRepository stockAlmacenRepository;
 
     public ProductoService(ProductoRepository productoRepository,
-                           ImagenProductoRepository imagenProductoRepository) {
+                           ImagenProductoRepository imagenProductoRepository,
+                           StockAlmacenRepository stockAlmacenRepository) {
         this.productoRepository = productoRepository;
         this.imagenProductoRepository = imagenProductoRepository;
+        this.stockAlmacenRepository = stockAlmacenRepository;
     }
 
     @Transactional
@@ -227,6 +231,8 @@ public class ProductoService {
     // ── Mappers ──
 
     private ProductoResponse toResponse(Producto p) {
+        Long tenantId = TenantContext.getCurrentTenantId();
+        Integer stockTotal = stockAlmacenRepository.sumStockByProducto(tenantId, p.getId());
         return ProductoResponse.builder()
                 .id(p.getId())
                 .sku(p.getSku())
@@ -246,6 +252,7 @@ public class ProductoService {
                 .precioCosto(p.getPrecioCosto())
                 .precioVenta(p.getPrecioVenta())
                 .stockMinimo(p.getStockMinimo())
+                .stockActual(stockTotal)
                 .controlaInventario(p.getControlaInventario())
                 .enLiquidacion(p.getEnLiquidacion())
                 .porcentajeLiquidacion(p.getPorcentajeLiquidacion())

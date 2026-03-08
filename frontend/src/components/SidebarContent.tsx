@@ -315,7 +315,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
             </SubMenu>
           </NavItem>
 
-          <NavItem $isActive={isActive('/gestion-caja') || isActive('/historial-caja') || isActive('/ventas/realizar') || isActive('/ventas/lista') || isActive('/ventas/cotizaciones') || isActive('/ventas/asistente-ia')}>
+          <NavItem $isActive={isActive('/gestion-caja') || isActive('/historial-caja') || isActive('/ventas/realizar') || isActive('/ventas/lista') || isActive('/ventas/cotizaciones')}>
             <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('ventas'); }}>
               <i className="fas fa-cash-register"></i>
               <span>Ventas</span>
@@ -344,11 +344,6 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
               <SubMenuItem $isActive={isActive('/ventas/cotizaciones')}>
                 <Link to="/ventas/cotizaciones" onClick={handleItemClick}>
                   <h3>Cotizaciones</h3>
-                </Link>
-              </SubMenuItem>
-              <SubMenuItem $isActive={isActive('/ventas/asistente-ia')}>
-                <Link to="/ventas/asistente-ia" onClick={handleItemClick}>
-                  <h3>Asistente de Ventas IA</h3>
                 </Link>
               </SubMenuItem>
             </SubMenu>

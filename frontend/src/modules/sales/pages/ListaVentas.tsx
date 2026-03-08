@@ -371,7 +371,7 @@ const CloseButton = styled.button`
 
 const ListaVentas: React.FC = () => {
   const navigate = useNavigate();
-  const { sales, cancelSale, confirmPayment, loadSales, createCreditNote, previewInvoice } = useSales();
+  const { sales, cancelSale, confirmPayment, loadSales, createCreditNote, previewInvoice, getSaleById } = useSales();
   const { clients, loadClients } = useClients();
   const { addNotification } = useNotification();
   
@@ -569,9 +569,15 @@ const ListaVentas: React.FC = () => {
   };
 
   // ==================== NOTA DE CRÉDITO ====================
-  const handleOpenCreditNoteModal = (sale: any) => {
-    setSelectedSale(sale);
-    setShowCreditNoteModal(true);
+  const handleOpenCreditNoteModal = async (sale: any) => {
+    try {
+      // Cargar venta completa con items (la lista no incluye detalles)
+      const fullSale = await getSaleById(sale.id);
+      setSelectedSale(fullSale);
+      setShowCreditNoteModal(true);
+    } catch (error: any) {
+      addNotification('error', 'Error', error.message || 'No se pudo cargar los datos de la venta');
+    }
   };
 
   const handleCloseCreditNoteModal = () => {
@@ -581,12 +587,13 @@ const ListaVentas: React.FC = () => {
 
   const handleSubmitCreditNote = async (data: any) => {
     try {
-      await createCreditNote(data);
-      addNotification('success', 'Nota de Crédito Emitida', `Nota de crédito creada exitosamente`);
+      const result = await createCreditNote(data);
+      addNotification('success', 'Nota de Credito Emitida', 'Nota de credito creada exitosamente');
       handleCloseCreditNoteModal();
-      loadSales(); // Recargar ventas
+      loadSales(); // Recargar ventas para ver NC en columna
+      return { creditNote: result }; // Retornar para auto-imprimir desde ModalNotaCredito
     } catch (error: any) {
-      addNotification('error', 'Error al Emitir', error.message || 'No se pudo emitir la nota de crédito');
+      addNotification('error', 'Error al Emitir', error.message || 'No se pudo emitir la nota de credito');
       throw error;
     }
   };

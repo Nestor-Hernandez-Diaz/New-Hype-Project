@@ -8,11 +8,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface NotaCreditoRepository extends JpaRepository<NotaCredito, Long> {
 
     Optional<NotaCredito> findByIdAndTenantId(Long id, Long tenantId);
+
+    List<NotaCredito> findByVentaOrigenIdAndTenantId(Long ventaOrigenId, Long tenantId);
 
     @Query("SELECT nc FROM NotaCredito nc WHERE nc.tenantId = :tenantId " +
            "AND (:ventaOrigenId IS NULL OR nc.ventaOrigenId = :ventaOrigenId) " +

@@ -141,6 +141,32 @@ public class CajaService {
         return toMovimientoResponse(movimiento);
     }
 
+    @Transactional(readOnly = true)
+    public SesionCajaResponse obtenerSesion(Long id) {
+        Long tenantId = TenantContext.getCurrentTenantId();
+        SesionCaja sesion = sesionCajaRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sesión de caja", id));
+
+        List<MovimientoCaja> movimientos = movimientoCajaRepository.findBySesionCajaIdOrderByCreatedAtDesc(id);
+        List<MovimientoCajaResponse> movResp = movimientos.stream()
+                .map(this::toMovimientoResponse)
+                .collect(Collectors.toList());
+
+        return toResponse(sesion, movResp);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MovimientoCajaResponse> listarMovimientos(Long sesionId) {
+        Long tenantId = TenantContext.getCurrentTenantId();
+        sesionCajaRepository.findByIdAndTenantId(sesionId, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sesión de caja", sesionId));
+
+        List<MovimientoCaja> movimientos = movimientoCajaRepository.findBySesionCajaIdOrderByCreatedAtDesc(sesionId);
+        return movimientos.stream()
+                .map(this::toMovimientoResponse)
+                .collect(Collectors.toList());
+    }
+
     private SesionCajaResponse toResponse(SesionCaja s, List<MovimientoCajaResponse> movimientos) {
         return SesionCajaResponse.builder()
                 .id(s.getId())

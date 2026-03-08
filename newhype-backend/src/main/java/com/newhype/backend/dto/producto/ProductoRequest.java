@@ -26,12 +26,25 @@ public class ProductoRequest {
 
     private String descripcion;
 
+    @NotNull(message = "La categoría es obligatoria")
     private Long categoriaId;
+
+    @NotNull(message = "La talla es obligatoria")
     private Long tallaId;
+
+    @NotNull(message = "El color es obligatorio")
     private Long colorId;
+
+    @NotNull(message = "La marca es obligatoria")
     private Long marcaId;
+
+    @NotNull(message = "El material es obligatorio")
     private Long materialId;
+
+    @NotNull(message = "El género es obligatorio")
     private Long generoId;
+
+    @NotNull(message = "La unidad de medida es obligatoria")
     private Long unidadMedidaId;
 
     @Size(max = 20)

@@ -25,6 +25,7 @@ import {
 import Layout from '../../../components/Layout';
 import { useQuotes } from '../context/QuotesContext';
 import type { Quote, QuoteStatus } from '../context/QuotesContext';
+import { useSales } from '../context/SalesContext';
 import { useNotification } from '../../../context/NotificationContext';
 import { useConfiguracion } from '../../configuration/context/ConfiguracionContext';
 
@@ -379,7 +380,8 @@ const ModalFooter = styled.div`
 `;
 
 const Cotizaciones: React.FC = () => {
-  const { quotes, loading, stats, fetchQuotes, deleteQuote, setFilters } = useQuotes();
+  const { quotes, loading, stats, fetchQuotes, deleteQuote, setFilters, getQuoteById } = useQuotes();
+  const { previewQuote } = useSales();
   const { showNotification } = useNotification();
   const navigate = useNavigate();
   const { empresa } = useConfiguracion();
@@ -483,9 +485,12 @@ const Cotizaciones: React.FC = () => {
 
   // Obtener nombre del cliente
   const getClientName = (quote: Quote) => {
-    if (!quote.cliente) return 'Cliente General';
-    if (quote.cliente.razonSocial) return quote.cliente.razonSocial;
-    return `${quote.cliente.nombres} ${quote.cliente.apellidos}`.trim();
+    if (quote.cliente) {
+      if (quote.cliente.razonSocial) return quote.cliente.razonSocial;
+      return `${quote.cliente.nombres || ''} ${quote.cliente.apellidos || ''}`.trim() || 'Cliente General';
+    }
+    if ((quote as any).clienteNombre) return (quote as any).clienteNombre;
+    return 'Cliente General';
   };
 
   return (
@@ -624,48 +629,14 @@ const Cotizaciones: React.FC = () => {
                           Ver
                         </ActionButton>
 
-                        <ActionButton 
+                        <ActionButton
                           color="#16a085"
-                          onClick={async () => {
-                            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-                            const token = localStorage.getItem('authToken') || localStorage.getItem('alexatech_token');
-                            if (!token) {
-                              showNotification('error', 'Error', 'No se encontró el token de autenticación');
-                              return;
-                            }
-                            
+                          onClick={() => {
                             try {
-                              showNotification('info', 'Cargando...', 'Preparando PDF para imprimir');
-                              
-                              // Descargar el PDF como blob
-                              const response = await fetch(`${API_URL}/quotes/${quote.id}/pdf?token=${encodeURIComponent(token)}`);
-                              if (!response.ok) {
-                                throw new Error('Error al obtener el PDF');
-                              }
-                              
-                              const blob = await response.blob();
-                              const blobUrl = window.URL.createObjectURL(blob);
-                              
-                              // Abrir en nueva ventana y auto-imprimir
-                              const printWindow = window.open(blobUrl, '_blank');
-                              
-                              if (printWindow) {
-                                printWindow.onload = function() {
-                                  setTimeout(() => {
-                                    printWindow.print();
-                                    // Limpiar después de un tiempo
-                                    setTimeout(() => {
-                                      window.URL.revokeObjectURL(blobUrl);
-                                    }, 1000);
-                                  }, 250);
-                                };
-                              } else {
-                                showNotification('error', 'Error', 'Por favor permite las ventanas emergentes para imprimir');
-                                window.URL.revokeObjectURL(blobUrl);
-                              }
+                              previewQuote(quote.id);
                             } catch (error) {
                               console.error('Error al imprimir:', error);
-                              showNotification('error', 'Error', 'No se pudo obtener el PDF para imprimir');
+                              showNotification('error', 'Error', 'No se pudo generar el comprobante');
                             }
                           }}
                         >
@@ -673,24 +644,29 @@ const Cotizaciones: React.FC = () => {
                         </ActionButton>
 
                         {quote.estado === 'Pendiente' && (
-                          <ActionButton 
+                          <ActionButton
                             color="#9b59b6"
-                            onClick={() => {
-                              // Redirigir a Realizar Venta con los datos de la cotización
-                              navigate('/ventas/realizar', { 
-                                state: { 
-                                  fromQuote: true,
-                                  quoteId: quote.id,
-                                  quoteCode: quote.codigoCotizacion,
-                                  clienteId: quote.clienteId,
-                                  items: quote.items.map(item => ({
-                                    productId: item.productId,
-                                    nombreProducto: item.nombreProducto,
-                                    cantidad: Number(item.cantidad),
-                                    precioUnitario: Number(item.precioUnitario),
-                                  }))
-                                }
-                              });
+                            onClick={async () => {
+                              try {
+                                // Cargar cotización completa con detalles (la lista no los incluye)
+                                const fullQuote = await getQuoteById(quote.id);
+                                navigate('/ventas/realizar', {
+                                  state: {
+                                    fromQuote: true,
+                                    quoteId: fullQuote.id,
+                                    quoteCode: fullQuote.codigoCotizacion,
+                                    clienteId: fullQuote.clienteId,
+                                    items: fullQuote.items.map((item: any) => ({
+                                      productId: item.productId,
+                                      nombreProducto: item.nombreProducto,
+                                      cantidad: Number(item.cantidad),
+                                      precioUnitario: Number(item.precioUnitario),
+                                    }))
+                                  }
+                                });
+                              } catch (error: any) {
+                                console.error('Error al cargar cotización:', error);
+                              }
                             }}
                           >
                             Convertir a Venta

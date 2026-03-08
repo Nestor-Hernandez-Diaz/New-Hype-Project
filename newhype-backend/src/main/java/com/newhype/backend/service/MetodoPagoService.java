@@ -23,7 +23,7 @@ public class MetodoPagoService {
     @Transactional(readOnly = true)
     public List<MetodoPagoResponse> listar() {
         Long tenantId = TenantContext.getCurrentTenantId();
-        List<MetodoPago> metodos = metodoPagoRepository.findByTenantIdAndEstadoTrue(tenantId);
+        List<MetodoPago> metodos = metodoPagoRepository.findByTenantId(tenantId);
         return metodos.stream().map(this::toResponse).collect(Collectors.toList());
     }
 

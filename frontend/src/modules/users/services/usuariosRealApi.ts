@@ -1,8 +1,7 @@
 /**
- * REAL API - USUARIOS Y ROLES
+ * API - USUARIOS Y ROLES
  *
- * Servicio real que conecta con el backend Spring Boot.
- * Reemplaza usuariosMockApi.ts manteniendo las mismas firmas de funciones.
+ * Servicio que conecta con el backend Spring Boot via apiService.
  *
  * Endpoints backend:
  *   Usuarios: GET/POST /api/v1/usuarios, GET/PUT /api/v1/usuarios/{id},

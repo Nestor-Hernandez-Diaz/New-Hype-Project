@@ -16,6 +16,7 @@ public class DetalleVentaResponse {
     private Long id;
     private Long productoId;
     private String nombreProducto;
+    private String codigoProducto;
     private Integer cantidad;
     private BigDecimal precioUnitario;
     private BigDecimal descuento;

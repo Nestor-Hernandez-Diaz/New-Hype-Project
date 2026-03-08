@@ -7,7 +7,7 @@ export { InventoryProvider, useInventory } from './context/InventoryContext';
 export { useInventario, useInventarioWithDebounce } from './hooks/useInventario';
 
 // Servicios
-export { inventoryMockApi } from './services/inventoryMockApi';
+export { inventoryApi } from './services/inventoryRealApi';
 export * from './services/almacenesApi';
 export * from './services/movementReasonsApi';
 
@@ -25,6 +25,3 @@ export { default as FiltersKardex } from './components/Inventario/FiltersKardex'
 export { default as FiltersStock } from './components/Inventario/FiltersStock';
 export { default as ModalAjuste } from './components/Inventario/ModalAjuste';
 
-// Demo & Testing (opcional, solo para desarrollo)
-export { default as InventoryMockTest } from './demo/InventoryMockTest';
-export { demoInventoryMockApi } from './demo/mockApiDemo';

@@ -89,6 +89,9 @@ public class Venta {
     @Column(name = "fecha_pago")
     private LocalDateTime fechaPago;
 
+    @Column(name = "incluye_igv")
+    private Boolean incluyeIgv;
+
     @Column(name = "observaciones", columnDefinition = "TEXT")
     private String observaciones;
 

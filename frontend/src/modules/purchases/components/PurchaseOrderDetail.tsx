@@ -331,11 +331,6 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
             ✅ Confirmar Orden
           </ActionButton>
         )}
-        {order.estado === 'COMPLETADA' && (
-          <ActionButton $variant="success" onClick={() => handleChangeStatus('CERRADA')}>
-            🔒 Cerrar Orden
-          </ActionButton>
-        )}
         {canChangeStatus && ['PENDIENTE', 'ENVIADA', 'CONFIRMADA'].includes(order.estado) && (
           <ActionButton $variant="danger" onClick={() => handleChangeStatus('CANCELADA')}>
             ❌ Cancelar Orden

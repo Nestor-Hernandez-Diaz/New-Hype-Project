@@ -4,9 +4,9 @@ import styled from 'styled-components';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
 import Layout from '../../../components/Layout';
 import { useSales } from '../context/SalesContext';
+import { useConfiguracion } from '../../configuration/context/ConfiguracionContext';
 import { useNotification } from '../../../context/NotificationContext';
 import { ModalNotaCredito } from '../components/ModalNotaCredito';
-import { tokenUtils } from '../../../utils/api';
 
 // ✅ Helper para obtener el nombre del motivo de NC (simplificado a 2 motivos)
 const getCreditNoteReasonLabel = (reason: string): string => {
@@ -362,7 +362,8 @@ const IconButton = styled.button`
 const DetalleVenta: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getSaleById, previewInvoice, createCreditNote } = useSales(); // ✅ Removido getCreditNotesBySale
+  const { getSaleById, previewInvoice, createCreditNote, previewCreditNote } = useSales();
+  const { empresa } = useConfiguracion();
   const { addNotification } = useNotification();
 
   const [sale, setSale] = useState<any>(null);
@@ -426,64 +427,13 @@ const DetalleVenta: React.FC = () => {
   };
 
   const printCreditNote = async (creditNoteId: string) => {
+    if (!sale) return;
     try {
       setIsProcessing(true);
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-      const token = tokenUtils.getAccessToken();
-
-      const response = await fetch(`${API_URL}/credit-notes/${creditNoteId}/pdf`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        }
-        const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }));
-        throw new Error(errorData.message || 'Error al generar PDF');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      // Abrir en nueva ventana y ejecutar impresión
-      const printWindow = window.open(url, '_blank');
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-          // No cerrar la ventana automáticamente para que el usuario pueda revisar
-        };
-      } else {
-        // Fallback: iframe si el popup está bloqueado
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-        
-        iframe.onload = () => {
-          try {
-            iframe.contentWindow?.print();
-          } catch (e) {
-            console.error('Error al imprimir:', e);
-          }
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-            window.URL.revokeObjectURL(url);
-          }, 1000);
-        };
-      }
-
-      addNotification('success', 'Imprimiendo', 'Ventana de impresión abierta');
+      previewCreditNote(creditNoteId, sale.id);
+      addNotification('success', 'Imprimiendo', 'Ventana de impresion abierta');
     } catch (error: any) {
-      addNotification('error', 'Error al Imprimir', error.message || 'No se pudo imprimir la nota de crédito');
+      addNotification('error', 'Error al Imprimir', error.message || 'No se pudo imprimir la nota de credito');
     } finally {
       setIsProcessing(false);
     }
@@ -706,10 +656,12 @@ const DetalleVenta: React.FC = () => {
               <span>Subtotal:</span>
               <span>{formatCurrency(subtotal)}</span>
             </TotalRow>
-            <TotalRow>
-              <span>IGV (18%):</span>
-              <span>{formatCurrency(igv)}</span>
-            </TotalRow>
+            {igv > 0 && (
+              <TotalRow>
+                <span>IGV ({empresa?.igvPorcentaje || 18}%):</span>
+                <span>{formatCurrency(igv)}</span>
+              </TotalRow>
+            )}
             <TotalRow $isGrandTotal>
               <span>TOTAL:</span>
               <span>{formatCurrency(total)}</span>

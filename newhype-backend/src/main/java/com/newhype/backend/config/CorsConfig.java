@@ -30,11 +30,11 @@ public class CorsConfig {
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5173",
             "http://127.0.0.1:5174",
-            // Producción (reemplaza con tu dominio real)
-            "https://tudominio.com",
-            "https://www.tudominio.com",
-            // Wildcard para desarrollo (descomenta solo en DEV)
-            // "*"
+            // Producción
+            "https://spring.informaticapp.com",
+            "https://ventas.spring.informaticapp.com",
+            "http://spring.informaticapp.com",
+            "http://ventas.spring.informaticapp.com",
     };
 
     // ── Métodos HTTP permitidos ──

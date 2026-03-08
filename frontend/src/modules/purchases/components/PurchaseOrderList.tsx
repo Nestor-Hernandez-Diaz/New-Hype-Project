@@ -177,6 +177,7 @@ const getEstadoVariant = (status: PurchaseOrderStatus): 'success' | 'warning' | 
     PENDIENTE: 'warning',
     ENVIADA: 'info',
     CONFIRMADA: 'info',
+    EN_RECEPCION: 'info',
     PARCIAL: 'warning',
     COMPLETADA: 'success',
     CANCELADA: 'danger'

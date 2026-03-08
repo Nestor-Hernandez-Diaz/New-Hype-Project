@@ -1,14 +1,16 @@
 /**
- * 🧭 BARRA DE NAVEGACIÓN PRINCIPAL
- * 
- * Navbar sticky con logo, menú de categorías, búsqueda, favoritos y carrito.
- * Incluye menú móvil y dropdowns.
+ * BARRA DE NAVEGACION PRINCIPAL
+ *
+ * Navbar sticky con logo, menu de categorias dinamico, busqueda, favoritos y carrito.
+ * Generos y categorias se cargan desde la BD via API.
  */
 
 import { useState, useEffect } from 'react';
 import { Search, Heart, ShoppingBag, User, Menu, ChevronDown } from 'lucide-react';
 import { useStorefront } from '../../context/StorefrontContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { apiObtenerCatalogos, apiObtenerCategorias } from '../../services/storefrontApi';
+import type { Genero, CategoriaStorefront } from '@monorepo/shared-types';
 import MobileMenu from './MobileMenu';
 import SearchBar from './SearchBar';
 
@@ -18,9 +20,28 @@ export default function Navbar() {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [dropdownAbierto, setDropdownAbierto] = useState<string | null>(null);
-  
+  const [generos, setGeneros] = useState<Genero[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaStorefront[]>([]);
+
   const resumenCarrito = obtenerResumenCarrito();
-  
+
+  // Cargar generos y categorias desde la BD
+  useEffect(() => {
+    const cargarNavData = async () => {
+      try {
+        const [catalogos, cats] = await Promise.all([
+          apiObtenerCatalogos(),
+          apiObtenerCategorias()
+        ]);
+        setGeneros(catalogos.generos || []);
+        setCategorias(cats || []);
+      } catch (error) {
+        console.error('[Navbar] Error cargando datos de navegacion:', error);
+      }
+    };
+    cargarNavData();
+  }, []);
+
   // Detectar scroll para aplicar sombra
   useEffect(() => {
     const handleScroll = () => {
@@ -29,7 +50,7 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
+
   // Cerrar dropdown cuando cambia la ruta
   useEffect(() => {
     setDropdownAbierto(null);
@@ -38,21 +59,21 @@ export default function Navbar() {
   // Cerrar dropdown cuando se hace clic fuera
   useEffect(() => {
     if (!dropdownAbierto) return;
-    
+
     const handleClickOutside = () => {
       setDropdownAbierto(null);
     };
-    
+
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [dropdownAbierto]);
-  
+
   return (
     <>
       {/* Backdrop when dropdown is open */}
       {dropdownAbierto && (
-        <div 
-          className="fixed inset-0 z-[850]" 
+        <div
+          className="fixed inset-0 z-[850]"
           onClick={() => setDropdownAbierto(null)}
         />
       )}
@@ -68,132 +89,55 @@ export default function Navbar() {
             <span className="text-black">NEW</span>
             <span className="text-black bg-[#c8ff00] px-2 py-0.5 ml-0.5">HYPE</span>
           </button>
-          
-          {/* Enlaces de Navegación - Desktop */}
+
+          {/* Enlaces de Navegacion - Desktop */}
           <ul className="hidden md:flex items-center gap-1 list-none">
-            <NavLink onClick={() => navigate('/storefront/catalogo?filtro=nuevo')}>New In</NavLink>
-            
-            {/* Mujer con dropdown */}
-            <NavDropdown
-              label="Mujer"
-              navigate={navigate}
-              navigateTo="/storefront/catalogo?genero=1"
-              isOpen={dropdownAbierto === 'mujer'}
-              onToggle={() => setDropdownAbierto(dropdownAbierto === 'mujer' ? null : 'mujer')}
-            >
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?filtro=mujer-ropa'); setDropdownAbierto(null); }}>
-                Toda la ropa
-              </DropdownLink>
-              <DropdownDivider />
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=vestidos'); setDropdownAbierto(null); }}>
-                Vestidos
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=tops-blusas'); setDropdownAbierto(null); }}>
-                Tops & Blusas
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=jeans'); setDropdownAbierto(null); }}>
-                Jeans
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=casacas-blazers'); setDropdownAbierto(null); }}>
-                Casacas & Blazers
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=faldas'); setDropdownAbierto(null); }}>
-                Faldas
-              </DropdownLink>
-            </NavDropdown>
-            
-            {/* Hombre con dropdown */}
-            <NavDropdown
-              label="Hombre"
-              navigate={navigate}
-              navigateTo="/storefront/catalogo?genero=2"
-              isOpen={dropdownAbierto === 'hombre'}
-              onToggle={() => setDropdownAbierto(dropdownAbierto === 'hombre' ? null : 'hombre')}
-            >
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?filtro=hombre-ropa'); setDropdownAbierto(null); }}>
-                Toda la ropa
-              </DropdownLink>
-              <DropdownDivider />
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=hoodies-buzos'); setDropdownAbierto(null); }}>
-                Hoodies & Buzos
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=camisas-polos'); setDropdownAbierto(null); }}>
-                Camisas & Polos
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=jeans'); setDropdownAbierto(null); }}>
-                Jeans
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=joggers-shorts'); setDropdownAbierto(null); }}>
-                Joggers & Shorts
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=casacas-blazers'); setDropdownAbierto(null); }}>
-                Casacas
-              </DropdownLink>
-            </NavDropdown>
-            
-            {/* Accesorios con dropdown */}
-            <NavDropdown
-              label="Accesorios"
-              navigate={navigate}
-              navigateTo="/storefront/catalogo?seccion=accesorios"
-              isOpen={dropdownAbierto === 'accesorios'}
-              onToggle={() => setDropdownAbierto(dropdownAbierto === 'accesorios' ? null : 'accesorios')}
-            >
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?seccion=accesorios'); setDropdownAbierto(null); }}>
-                Todos los accesorios
-              </DropdownLink>
-              <DropdownDivider />
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=lentes-sol'); setDropdownAbierto(null); }}>
-                Lentes de Sol
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=bolsos-carteras'); setDropdownAbierto(null); }}>
-                Bolsos & Carteras
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=gorras-sombreros'); setDropdownAbierto(null); }}>
-                Gorras & Sombreros
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=joyeria'); setDropdownAbierto(null); }}>
-                Joyería
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=relojes'); setDropdownAbierto(null); }}>
-                Relojes
-              </DropdownLink>
-            </NavDropdown>
-            
-            {/* Calzado con dropdown */}
-            <NavDropdown
-              label="Calzado"
-              navigate={navigate}
-              navigateTo="/storefront/catalogo?seccion=calzado"
-              isOpen={dropdownAbierto === 'calzado'}
-              onToggle={() => setDropdownAbierto(dropdownAbierto === 'calzado' ? null : 'calzado')}
-            >
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?seccion=calzado'); setDropdownAbierto(null); }}>
-                Todo el calzado
-              </DropdownLink>
-              <DropdownDivider />
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=zapatillas'); setDropdownAbierto(null); }}>
-                Zapatillas
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=botas'); setDropdownAbierto(null); }}>
-                Botas
-              </DropdownLink>
-              <DropdownLink onClick={() => { navigate('/storefront/catalogo?categoria=sandalias'); setDropdownAbierto(null); }}>
-                Sandalias
-              </DropdownLink>
-            </NavDropdown>
-            
-            <NavLink 
+            <NavLink onClick={() => navigate('/storefront/catalogo')}>Catalogo</NavLink>
+
+            {/* Generos dinamicos desde BD */}
+            {generos.map((genero) => {
+              const generoKey = genero.descripcion.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+              const generoCategorias = categorias;
+
+              return (
+                <NavDropdown
+                  key={genero.id}
+                  label={genero.descripcion}
+                  navigate={navigate}
+                  navigateTo={`/storefront/catalogo?genero=${genero.id}`}
+                  isOpen={dropdownAbierto === generoKey}
+                  onToggle={() => setDropdownAbierto(dropdownAbierto === generoKey ? null : generoKey)}
+                >
+                  <DropdownLink onClick={() => { navigate(`/storefront/catalogo?genero=${genero.id}`); setDropdownAbierto(null); }}>
+                    Toda la ropa
+                  </DropdownLink>
+                  <DropdownDivider />
+                  {generoCategorias.map((cat) => (
+                    <DropdownLink
+                      key={cat.id}
+                      onClick={() => {
+                        navigate(`/storefront/catalogo?genero=${genero.id}&categoria=${cat.slug}`);
+                        setDropdownAbierto(null);
+                      }}
+                    >
+                      {cat.nombre}
+                    </DropdownLink>
+                  ))}
+                </NavDropdown>
+              );
+            })}
+
+            <NavLink
               onClick={() => navigate('/storefront/catalogo?liquidacion=true')}
               className="text-red-600 font-bold"
             >
               Sale
             </NavLink>
           </ul>
-          
+
           {/* Acciones - Desktop */}
           <div className="hidden md:flex items-center gap-3">
-            {/* Búsqueda */}
+            {/* Busqueda */}
             <div className="relative">
               <button
                 onClick={() => dispatch({ type: 'TOGGLE_BUSCADOR' })}
@@ -202,14 +146,14 @@ export default function Navbar() {
               >
                 <Search size={22} strokeWidth={2} />
               </button>
-              
-              {/* Barra de búsqueda expandible */}
+
+              {/* Barra de busqueda expandible */}
               <SearchBar
                 isOpen={state.buscadorAbierto}
                 onClose={() => dispatch({ type: 'TOGGLE_BUSCADOR' })}
               />
             </div>
-            
+
             {/* Usuario */}
             <button
               onClick={() => navigate('/storefront/cuenta/perfil')}
@@ -218,7 +162,7 @@ export default function Navbar() {
             >
               <User size={22} strokeWidth={2} />
             </button>
-            
+
             {/* Favoritos */}
             <button
               onClick={() => navigate('/storefront/favoritos')}
@@ -232,7 +176,7 @@ export default function Navbar() {
                 </span>
               )}
             </button>
-            
+
             {/* Carrito */}
             <button
               onClick={() => dispatch({ type: 'ABRIR_CARRITO' })}
@@ -247,22 +191,23 @@ export default function Navbar() {
               )}
             </button>
           </div>
-          
-          {/* Menú móvil - Botón */}
+
+          {/* Menu movil - Boton */}
           <button
             onClick={() => dispatch({ type: 'TOGGLE_MENU_MOVIL' })}
             className="md:hidden p-2"
-            aria-label="Menú"
+            aria-label="Menu"
           >
             <Menu size={24} />
           </button>
         </div>
       </nav>
-      
-      {/* Menú Móvil Overlay */}
+
+      {/* Menu Movil Overlay */}
       <MobileMenu
         isOpen={state.menuMovilAbierto}
         onClose={() => dispatch({ type: 'TOGGLE_MENU_MOVIL' })}
+        generos={generos}
       />
     </>
   );
@@ -282,30 +227,30 @@ function NavLink({ children, onClick, className = '' }: { children: React.ReactN
   );
 }
 
-function NavDropdown({ 
-  label, 
+function NavDropdown({
+  label,
   navigate,
   navigateTo,
-  isOpen, 
-  onToggle, 
-  children 
-}: { 
+  isOpen,
+  onToggle,
+  children
+}: {
   label: string;
   navigate: (path: string) => void;
   navigateTo: string;
-  isOpen: boolean; 
-  onToggle: () => void; 
+  isOpen: boolean;
+  onToggle: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <li 
-      className="relative" 
+    <li
+      className="relative"
       onMouseEnter={() => !isOpen && onToggle()}
       onMouseLeave={() => isOpen && onToggle()}
     >
       <button
-        onClick={(e) => { 
-          e.stopPropagation(); // Prevenir propagación
+        onClick={(e) => {
+          e.stopPropagation();
           navigate(navigateTo);
         }}
         className="px-4 py-2 text-[15px] font-medium hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1"
@@ -313,11 +258,11 @@ function NavDropdown({
         {label}
         <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-      
+
       {isOpen && (
         <div
           className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl py-2 z-[1000] animate-fade-in"
-          onClick={(e) => e.stopPropagation()} // Prevenir que clicks internos cierren el backdrop
+          onClick={(e) => e.stopPropagation()}
         >
           {children}
         </div>

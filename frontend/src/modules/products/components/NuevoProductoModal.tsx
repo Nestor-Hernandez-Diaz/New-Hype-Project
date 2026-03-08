@@ -7,8 +7,10 @@ import configuracionApi from '../../configuration/services/configuracionApi';
 import { verificarCodigoProducto } from '../services/productosRealApi';
 import type { ProductCategory, UnitOfMeasure } from '../../configuration/types/configuracion';
 import type { CatalogItem } from '../../configuration/services/configuracionApi';
-import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS, Z_INDEX, TRANSITIONS } from '../../../styles/theme';
+import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS, Z_INDEX, TRANSITIONS } from '../../../styles/theme';
+import ProductImageManager from './ProductImageManager';
 import { Button, Input, Select, Label, RequiredMark, ValidationMessage, ButtonGroup } from '../../../components/shared';
+import type { Producto } from '@monorepo/shared-types';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -140,6 +142,25 @@ const CharCounter = styled.small`
   display: block;
 `;
 
+const SectionDivider = styled.div`
+  margin: ${SPACING.xl} 0 ${SPACING.lg};
+  padding-top: ${SPACING.lg};
+  border-top: 2px solid ${COLOR_SCALES.primary[100]};
+`;
+
+const SuccessBanner = styled.div`
+  background: ${COLOR_SCALES.success[50]};
+  border: 2px solid ${COLOR_SCALES.success[200]};
+  border-radius: ${BORDER_RADIUS.md};
+  padding: ${SPACING.lg};
+  margin-bottom: ${SPACING.lg};
+  display: flex;
+  align-items: center;
+  gap: ${SPACING.md};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  color: ${COLOR_SCALES.success[800]};
+`;
+
 const InputWrapper = styled.div`
   position: relative;
   display: flex;
@@ -172,7 +193,6 @@ interface ProductFormData {
   marca: string;
   material: string;
   genero: string;
-  imagenUrl: string;
 }
 
 // Fallback options used only if API catalog is empty
@@ -195,6 +215,8 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [codigoExists, setCodigoExists] = useState(false);
   const [checkingCodigo, setCheckingCodigo] = useState(false);
+  // Two-step flow: after creating product, show image manager
+  const [productoCreado, setProductoCreado] = useState<Producto | null>(null);
   const [formData, setFormData] = useState<ProductFormData>({
     productCode: '',
     productName: '',
@@ -209,7 +231,6 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
     marca: '',
     material: '',
     genero: '',
-    imagenUrl: ''
   });
   const [categorias, setCategorias] = useState<ProductCategory[]>([]);
   const [unidades, setUnidades] = useState<UnitOfMeasure[]>([]);
@@ -218,6 +239,7 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
   const [marcasApi, setMarcasApi] = useState<CatalogItem[]>([]);
   const [materialesApi, setMaterialesApi] = useState<CatalogItem[]>([]);
   const [generosApi, setGenerosApi] = useState<CatalogItem[]>([]);
+  const [warehouseOptions, setWarehouseOptions] = useState<{ id: any; name: string }[]>([]);
 
   // Cargar maestros de configuración
   useEffect(() => {
@@ -407,6 +429,11 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
     }
 
     if (!formData.unit.trim()) newErrors.unit = 'La unidad es requerida';
+    if (!formData.talla.trim()) newErrors.talla = 'La talla es requerida';
+    if (!formData.color.trim()) newErrors.color = 'El color es requerido';
+    if (!formData.marca.trim()) newErrors.marca = 'La marca es requerida';
+    if (!formData.material.trim()) newErrors.material = 'El material es requerido';
+    if (!formData.genero.trim()) newErrors.genero = 'El género es requerido';
 
     if (formData.minStock.trim()) {
       const minStock = Number(formData.minStock);
@@ -433,7 +460,7 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
 
       // Usar addProduct del contexto que llama a productosRealApi.crearProducto()
       // con el mapping correcto (codigoProducto→sku, categoriaId→categoriaId, etc.)
-      await addProduct({
+      const nuevoProducto = await addProduct({
         codigoProducto: formData.productCode,
         nombreProducto: formData.productName,
         descripcion: formData.descripcion.trim() || undefined,
@@ -453,10 +480,14 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
         material: formData.material && materialesApi.length === 0 ? formData.material.trim() : undefined,
         generoId: formData.genero && generosApi.length > 0 ? Number(formData.genero) : undefined,
         genero: formData.genero && generosApi.length === 0 ? formData.genero : undefined,
-        imagenUrl: formData.imagenUrl.trim() || undefined,
       } as any);
 
-      onClose();
+      // Transition to step 2: image management
+      if (nuevoProducto && nuevoProducto.id) {
+        setProductoCreado(nuevoProducto);
+      } else {
+        onClose();
+      }
     } catch (err) {
       // El contexto ya muestra la notificación de error
       console.error('Error creando producto:', err);
@@ -470,11 +501,29 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
       <ModalWrapper>
         <ModalContent>
           <ModalHeader>
-            <h2>Crear Nuevo Producto</h2>
+            <h2>{productoCreado ? `Imágenes: ${productoCreado.nombreProducto}` : 'Crear Nuevo Producto'}</h2>
             <CloseButton onClick={onClose} type="button">
               ×
             </CloseButton>
           </ModalHeader>
+
+          {productoCreado ? (
+            /* ═══ STEP 2: Image Management (after product creation) ═══ */
+            <>
+              <SuccessBanner>
+                &#10003; Producto creado exitosamente. Ahora puedes agregar imágenes.
+              </SuccessBanner>
+              <SectionDivider style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+                <ProductImageManager productoId={Number(productoCreado.id)} />
+              </SectionDivider>
+              <ButtonGroup style={{ justifyContent: 'flex-end', marginTop: SPACING.xl, paddingTop: SPACING.lg, borderTop: `1px solid ${COLORS.border}` }}>
+                <Button type="button" $variant="primary" onClick={onClose}>
+                  Finalizar
+                </Button>
+              </ButtonGroup>
+            </>
+          ) : (
+            /* ═══ STEP 1: Product Form ═══ */
           <form onSubmit={handleSubmit}>
             <FormGrid>
         <FormGroup>
@@ -483,20 +532,20 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
             <RequiredMark />
           </Label>
           <InputWrapper>
-            <Input 
-              id="productCode" 
-              name="productCode" 
-              type="text" 
-              value={formData.productCode} 
+            <Input
+              id="productCode"
+              name="productCode"
+              type="text"
+              value={formData.productCode}
               onChange={handleInputChange}
               style={{
                 borderColor: codigoExists ? COLORS.danger : (formData.productCode && !checkingCodigo && !codigoExists) ? COLORS.success : undefined,
                 paddingRight: '30px'
               }}
             />
-            {checkingCodigo && <StatusIcon $type="loading">⏳</StatusIcon>}
-            {!checkingCodigo && formData.productCode && codigoExists && <StatusIcon $type="error">✗</StatusIcon>}
-            {!checkingCodigo && formData.productCode && !codigoExists && <StatusIcon $type="success">✓</StatusIcon>}
+            {checkingCodigo && <StatusIcon $type="loading">&#9203;</StatusIcon>}
+            {!checkingCodigo && formData.productCode && codigoExists && <StatusIcon $type="error">&#10007;</StatusIcon>}
+            {!checkingCodigo && formData.productCode && !codigoExists && <StatusIcon $type="success">&#10003;</StatusIcon>}
           </InputWrapper>
           {errors.productCode && <ValidationMessage $type="error">{errors.productCode}</ValidationMessage>}
         </FormGroup>
@@ -510,11 +559,11 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
         </FormGroup>
         <FullWidthGroup>
           <Label htmlFor="descripcion">Descripción</Label>
-          <Textarea 
-            id="descripcion" 
-            name="descripcion" 
+          <Textarea
+            id="descripcion"
+            name="descripcion"
             maxLength={500}
-            value={formData.descripcion} 
+            value={formData.descripcion}
             onChange={handleInputChange}
             placeholder="Descripción detallada del producto (opcional, máx 500 caracteres)"
           />
@@ -568,12 +617,12 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
 
         <FormGroup>
           <Label htmlFor="minStock">Stock Mínimo</Label>
-          <Input 
-            id="minStock" 
-            name="minStock" 
-            type="number" 
-            min="0" 
-            value={formData.minStock} 
+          <Input
+            id="minStock"
+            name="minStock"
+            type="number"
+            min="0"
+            value={formData.minStock}
             onChange={handleInputChange}
             placeholder="Opcional: alertas de stock bajo"
           />
@@ -654,22 +703,19 @@ const NuevoProductoModal: React.FC<NuevoProductoModalProps> = ({ onClose }) => {
             <Input id="material" name="material" type="text" value={formData.material} onChange={handleInputChange} placeholder="Ej: Algodón 100%" />
           )}
         </FormGroup>
-        <FormGroup>
-          <Label htmlFor="imagenUrl">URL de Imagen</Label>
-          <Input id="imagenUrl" name="imagenUrl" type="url" value={formData.imagenUrl} onChange={handleInputChange} placeholder="https://ejemplo.com/imagen.jpg" />
-        </FormGroup>
       </FormGrid>
       <ButtonGroup style={{ justifyContent: 'flex-end', marginTop: SPACING.xl, paddingTop: SPACING.lg, borderTop: `1px solid ${COLORS.border}` }}>
         <Button type="button" $variant="secondary" onClick={onClose}>Cancelar</Button>
-        <Button 
-          type="submit" 
-          $variant="primary" 
+        <Button
+          type="submit"
+          $variant="primary"
           disabled={isSubmitting || checkingCodigo || codigoExists}
         >
-          {isSubmitting ? 'Guardando...' : checkingCodigo ? 'Verificando...' : 'Registrar'}
+          {isSubmitting ? 'Guardando...' : checkingCodigo ? 'Verificando...' : 'Registrar y Agregar Imágenes'}
         </Button>
       </ButtonGroup>
     </form>
+          )}
         </ModalContent>
       </ModalWrapper>
     </ModalOverlay>

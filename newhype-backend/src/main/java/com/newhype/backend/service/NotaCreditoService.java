@@ -9,6 +9,7 @@ import com.newhype.backend.entity.NotaCredito.TipoNotaCredito;
 import com.newhype.backend.entity.Venta.EstadoVenta;
 import com.newhype.backend.exception.ResourceNotFoundException;
 import com.newhype.backend.repository.*;
+import com.newhype.backend.entity.ConfiguracionEmpresa;
 import com.newhype.backend.security.TenantContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,19 +31,25 @@ public class NotaCreditoService {
     private final DetalleVentaRepository detalleVentaRepository;
     private final StockAlmacenRepository stockAlmacenRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
+    private final ConfiguracionEmpresaRepository configuracionEmpresaRepository;
+    private final ProductoRepository productoRepository;
 
     public NotaCreditoService(NotaCreditoRepository notaCreditoRepository,
                               DetalleNotaCreditoRepository detalleNotaCreditoRepository,
                               VentaRepository ventaRepository,
                               DetalleVentaRepository detalleVentaRepository,
                               StockAlmacenRepository stockAlmacenRepository,
-                              MovimientoInventarioRepository movimientoInventarioRepository) {
+                              MovimientoInventarioRepository movimientoInventarioRepository,
+                              ConfiguracionEmpresaRepository configuracionEmpresaRepository,
+                              ProductoRepository productoRepository) {
         this.notaCreditoRepository = notaCreditoRepository;
         this.detalleNotaCreditoRepository = detalleNotaCreditoRepository;
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.stockAlmacenRepository = stockAlmacenRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
+        this.configuracionEmpresaRepository = configuracionEmpresaRepository;
+        this.productoRepository = productoRepository;
     }
 
     @Transactional
@@ -152,8 +159,17 @@ public class NotaCreditoService {
             movimientoInventarioRepository.save(mov);
         }
 
-        // Calcular totales
-        BigDecimal igv = subtotalTotal.multiply(new BigDecimal("0.18")).setScale(2, RoundingMode.HALF_UP);
+        // Calcular totales - respetar IGV de la venta original
+        BigDecimal igv = BigDecimal.ZERO;
+        boolean ventaTeniaIgv = venta.getIgv() != null && venta.getIgv().compareTo(BigDecimal.ZERO) > 0;
+        if (ventaTeniaIgv) {
+            ConfiguracionEmpresa configEmpresa = configuracionEmpresaRepository.findByTenantId(tenantId).orElse(null);
+            BigDecimal porcentaje = new BigDecimal("18");
+            if (configEmpresa != null && configEmpresa.getIgvPorcentaje() != null) {
+                porcentaje = configEmpresa.getIgvPorcentaje();
+            }
+            igv = subtotalTotal.multiply(porcentaje).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        }
         nc.setSubtotal(subtotalTotal);
         nc.setIgv(igv);
         nc.setTotal(subtotalTotal.add(igv));
@@ -214,10 +230,13 @@ public class NotaCreditoService {
     }
 
     private DetalleNotaCreditoResponse toDetalleResponse(DetalleNotaCredito d) {
+        String nombreProd = productoRepository.findById(d.getProductoId())
+                .map(Producto::getNombre).orElse("Producto #" + d.getProductoId());
         return DetalleNotaCreditoResponse.builder()
                 .id(d.getId())
                 .productoId(d.getProductoId())
                 .detalleVentaId(d.getDetalleVentaId())
+                .nombreProducto(nombreProd)
                 .cantidad(d.getCantidad())
                 .precioUnitario(d.getPrecioUnitario())
                 .subtotal(d.getSubtotal())

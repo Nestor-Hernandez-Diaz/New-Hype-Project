@@ -1,8 +1,7 @@
 /**
- * REAL API - ENTIDADES COMERCIALES (Clientes / Proveedores)
+ * API - ENTIDADES COMERCIALES (Clientes / Proveedores)
  *
- * Reemplaza entidadesMockApi.ts con llamadas reales al backend via apiService.
- * Exporta exactamente las mismas funciones y firmas que el mock.
+ * Llamadas al backend via apiService.
  *
  * @packageDocumentation
  */

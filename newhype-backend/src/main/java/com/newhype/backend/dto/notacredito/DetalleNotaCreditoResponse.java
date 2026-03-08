@@ -16,6 +16,7 @@ public class DetalleNotaCreditoResponse {
     private Long id;
     private Long productoId;
     private Long detalleVentaId;
+    private String nombreProducto;
     private Integer cantidad;
     private BigDecimal precioUnitario;
     private BigDecimal subtotal;

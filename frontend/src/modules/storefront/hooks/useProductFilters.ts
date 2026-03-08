@@ -63,7 +63,7 @@ export function useProductFilters(): UseProductFiltersReturn {
     }
     
     // Filtrar por liquidación
-    if (state.filtrosActivos.enLiquidacion) {
+    if (state.filtrosActivos.soloLiquidacion) {
       resultado = resultado.filter(p => p.enLiquidacion);
     }
     

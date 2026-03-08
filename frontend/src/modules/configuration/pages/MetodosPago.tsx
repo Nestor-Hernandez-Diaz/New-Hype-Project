@@ -234,10 +234,10 @@ const MetodosPago: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // ✅ Cambiar a toggle activar/desactivar en lugar de eliminar
+  // ✅ Cambiar a toggle activar/desactivar usando PATCH /estado
   const handleToggleActivo = async (metodo: MetodoPagoData) => {
     const nuevoEstado = !metodo.activo;
-    
+
     // ✅ Validar que no sea el último activo
     if (!nuevoEstado) {
       const metodosActivos = metodosPago.filter((m: MetodoPagoData) => m.activo && m.id !== metodo.id);
@@ -246,20 +246,16 @@ const MetodosPago: React.FC = () => {
         return;
       }
     }
-    
-    const confirmMessage = nuevoEstado 
+
+    const confirmMessage = nuevoEstado
       ? `¿Activar el método de pago "${metodo.nombre}"?`
       : `¿Desactivar el método de pago "${metodo.nombre}"? No estará disponible en nuevas ventas.`;
-    
+
     if (window.confirm(confirmMessage)) {
       setLoading(true);
       try {
-        await configuracionApi.updateMetodoPago(metodo.id!, { 
-          activo: nuevoEstado,
-          // Si se desactiva y era predeterminado, quitar predeterminado
-          predeterminado: nuevoEstado ? metodo.predeterminado : false
-        });
-        await reloadMetodosPago(); // ✅ Recargar para sincronizar con otros componentes
+        await configuracionApi.toggleMetodoPagoEstado(metodo.id!);
+        await reloadMetodosPago();
         showSuccess(`Método de pago ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`);
       } catch (error: any) {
         showError(error.message || 'Error al actualizar método de pago');

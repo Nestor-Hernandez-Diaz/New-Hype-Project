@@ -1,7 +1,7 @@
 /**
- * REAL API - PRODUCTOS
+ * API - PRODUCTOS
  *
- * Reemplaza productosMockApi con llamadas reales al backend via apiService.
+ * Llamadas al backend via apiService.
  *
  * Backend endpoints:
  * - GET    /productos             -> getProductos()
@@ -59,6 +59,7 @@ interface BackendProducto {
   precioCosto?: number;
   precioVenta: number;
   stockMinimo?: number;
+  stockActual?: number;
   controlaInventario?: boolean;
   enLiquidacion?: boolean;
   porcentajeLiquidacion?: number;
@@ -124,7 +125,7 @@ function mapBackendProducto(b: BackendProducto): Producto {
     // Stock: backend does not return stockActual/stockInicial in the producto response;
     // those are managed via inventory (kardex). Set sensible defaults.
     stockInicial: 0,
-    stockActual: 0,
+    stockActual: b.stockActual ?? 0,
     stockMinimo: b.stockMinimo ?? 0,
 
     // Clothing-specific fields: prefer string fields if present,

@@ -27,6 +27,12 @@ export interface EmpresaData {
   sunatUsuario?: string;
   sunatClave?: string;
   sunatServidor: 'produccion' | 'homologacion';
+  // Return policy fields
+  diasDevolucionBoleta?: number;
+  diasDevolucionFactura?: number;
+  diasVigenciaVale?: number;
+  requiereEtiquetasOriginales?: boolean;
+  requiereProductoSinUso?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -99,6 +105,50 @@ function mapBackendUnit(raw: any): UnitOfMeasure {
   };
 }
 
+function mapBackendComprobante(raw: any): ComprobanteData {
+  return {
+    id: String(raw.id),
+    codigo: raw.codigo || raw.serie || '',
+    nombre: raw.nombre || `${raw.tipoComprobante || ''} ${raw.serie || ''}`.trim(),
+    descripcion: raw.descripcion || '',
+    tipo: mapTipoComprobante(raw.tipoComprobante),
+    serie: raw.serie || '',
+    numeroActual: raw.numeroActual ?? 0,
+    numeroInicio: raw.numeroInicio ?? 1,
+    numeroFin: raw.numeroFin ?? 99999999,
+    activo: raw.activo ?? raw.estado ?? true,
+    predeterminado: raw.predeterminado ?? false,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
+function mapTipoComprobante(tipo: string): ComprobanteData['tipo'] {
+  const map: Record<string, ComprobanteData['tipo']> = {
+    'BOLETA': 'boleta',
+    'FACTURA': 'factura',
+    'NOTA_CREDITO': 'nota-credito',
+    'NOTA_DEBITO': 'nota-debito',
+    'GUIA_REMISION': 'orden-compra',
+  };
+  return map[tipo] || (tipo?.toLowerCase().replace(/_/g, '-') as ComprobanteData['tipo']) || 'boleta';
+}
+
+function mapBackendMetodoPago(raw: any): MetodoPagoData {
+  return {
+    id: String(raw.id),
+    codigo: raw.codigo || '',
+    nombre: raw.nombre || '',
+    descripcion: raw.descripcion || '',
+    tipo: raw.tipo?.toLowerCase() as MetodoPagoData['tipo'] || 'otro',
+    activo: raw.activo ?? raw.estado ?? true,
+    predeterminado: raw.predeterminado ?? false,
+    requiereReferencia: raw.requiereReferencia ?? false,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
 const configuracionApi = {
   // Empresa
   getEmpresa: async (): Promise<EmpresaData> => {
@@ -113,8 +163,9 @@ const configuracionApi = {
 
   // Series de Comprobantes (SUNAT)
   getComprobantes: async (): Promise<ComprobanteData[]> => {
-    const response = await apiService.get<ComprobanteData[]>('/configuracion/series-comprobantes');
-    return Array.isArray(response.data) ? response.data : [];
+    const response = await apiService.get<any[]>('/configuracion/series-comprobantes');
+    const rawList = Array.isArray(response.data) ? response.data : [];
+    return rawList.map(mapBackendComprobante);
   },
 
   createComprobante: async (data: ComprobanteData): Promise<ComprobanteData> => {
@@ -137,8 +188,9 @@ const configuracionApi = {
 
   // Métodos de Pago
   getMetodosPago: async (): Promise<MetodoPagoData[]> => {
-    const response = await apiService.get<MetodoPagoData[]>('/configuracion/metodos-pago');
-    return Array.isArray(response.data) ? response.data : [];
+    const response = await apiService.get<any[]>('/configuracion/metodos-pago');
+    const rawList = Array.isArray(response.data) ? response.data : [];
+    return rawList.map(mapBackendMetodoPago);
   },
 
   createMetodoPago: async (data: MetodoPagoData): Promise<MetodoPagoData> => {

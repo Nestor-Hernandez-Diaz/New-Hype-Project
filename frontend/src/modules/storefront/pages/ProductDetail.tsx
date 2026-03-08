@@ -1,22 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import { useToast } from '../context/ToastContext';
-import type { ProductoStorefront } from '@monorepo/shared-types';
-import { apiObtenerProductoPorSlug } from '../services/storefrontApi';
+import type { ProductoStorefront, ItemCarrito } from '@monorepo/shared-types';
+import { apiObtenerProductoPorSlug, obtenerTalla, obtenerColor } from '../services/storefrontApi';
 import ProductGallery from '../components/product/ProductGallery';
 import ProductVariants from '../components/product/ProductVariants';
 import RelatedProducts from '../components/product/RelatedProducts';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/common/EmptyState';
-import { Heart, Check } from 'lucide-react';
+import { Heart, Check, AlertTriangle } from 'lucide-react';
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { agregarAlCarrito, toggleFavorito, esFavorito } = useStorefront();
+  const { dispatch, toggleFavorito, esFavorito } = useStorefront();
   const { showToast } = useToast();
-  
+
   const [producto, setProducto] = useState<ProductoStorefront | null>(null);
   const [loading, setLoading] = useState(true);
   const [tallaSeleccionada, setTallaSeleccionada] = useState<number | null>(null);
@@ -26,12 +26,12 @@ export default function ProductDetail() {
   useEffect(() => {
     const cargarProducto = async () => {
       if (!slug) return;
-      
+
       setLoading(true);
       try {
         const data = await apiObtenerProductoPorSlug(slug);
         setProducto(data);
-        
+
         // Auto-seleccionar primera talla y color
         if (data.tallasDisponibles && data.tallasDisponibles.length > 0) {
           setTallaSeleccionada(data.tallasDisponibles[0]);
@@ -49,26 +49,71 @@ export default function ProductDetail() {
     cargarProducto();
   }, [slug]);
 
-  const handleAgregarAlCarrito = () => {
-    if (!producto) return;
+  // Derivar la variante activa según talla + color seleccionados
+  const varianteActiva = useMemo(() => {
+    if (!producto?.variantes || !tallaSeleccionada || !colorSeleccionado) return null;
+    return producto.variantes.find(
+      v => v.tallaId === tallaSeleccionada && v.colorId === colorSeleccionado
+    ) || null;
+  }, [producto, tallaSeleccionada, colorSeleccionado]);
 
-    agregarAlCarrito(
-      producto.id,
-      cantidad,
-      tallaSeleccionada,
-      colorSeleccionado
-    );
-    
+  // Valores dinámicos según la variante seleccionada
+  const displaySku = varianteActiva?.sku ?? producto?.sku ?? '';
+  const displayStock = varianteActiva?.stock ?? producto?.stockTotal ?? 0;
+  const displayTallaNombre = varianteActiva?.tallaNombre
+    ?? obtenerTalla(tallaSeleccionada ?? 0)?.codigo
+    ?? producto?.tallaNombre;
+  const displayColorNombre = varianteActiva?.colorNombre
+    ?? obtenerColor(colorSeleccionado ?? 0)?.nombre
+    ?? producto?.colorNombre;
+  const varianteId = varianteActiva?.id ?? producto?.id ?? 0;
+
+  // Combinación talla+color existe en variantes?
+  const tieneVariantes = !!(producto?.variantes && producto.variantes.length > 0);
+  const combinacionNoDisponible = tieneVariantes
+    && tallaSeleccionada !== null
+    && colorSeleccionado !== null
+    && varianteActiva === null;
+
+  // Reset cantidad cuando cambia la variante
+  useEffect(() => {
+    setCantidad(1);
+  }, [tallaSeleccionada, colorSeleccionado]);
+
+  const handleAgregarAlCarrito = () => {
+    if (!producto || combinacionNoDisponible) return;
+
+    const precioUnitario = producto.enLiquidacion && producto.precioLiquidacion
+      ? producto.precioLiquidacion
+      : varianteActiva?.precioVenta ?? producto.precioVenta;
+
+    const item: ItemCarrito = {
+      productoId: varianteId,
+      sku: displaySku,
+      nombreProducto: producto.nombre,
+      slug: producto.slug,
+      marca: producto.marcaNombre || '',
+      precioUnitario,
+      imagen: producto.imagenUrl || '',
+      tallaId: tallaSeleccionada,
+      tallaCodigo: displayTallaNombre || '',
+      colorId: colorSeleccionado,
+      colorNombre: displayColorNombre || '',
+      colorHex: varianteActiva?.colorHex || obtenerColor(colorSeleccionado ?? 0)?.codigoHex || '',
+      cantidad
+    };
+
+    dispatch({ type: 'AGREGAR_AL_CARRITO', payload: item });
     showToast(`${producto.nombre} agregado al carrito`, 'success');
   };
-  
+
   const handleToggleFavorito = () => {
     if (!producto) return;
     toggleFavorito(producto.id);
     if (esFavorito(producto.id)) {
       showToast('Eliminado de favoritos', 'info');
     } else {
-      showToast('Agregado a favoritos ❤️', 'success');
+      showToast('Agregado a favoritos', 'success');
     }
   };
 
@@ -101,10 +146,12 @@ export default function ProductDetail() {
     : producto.precioVenta;
 
   const imagenes = producto.imagenes && producto.imagenes.length > 0
-    ? producto.imagenes.map(img => img.url)
+    ? producto.imagenes.map(img => typeof img === 'string' ? img : img.url)
     : producto.imagenUrl
     ? [producto.imagenUrl]
     : ['/placeholder.jpg'];
+
+  const botonDeshabilitado = displayStock === 0 || combinacionNoDisponible;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -145,11 +192,11 @@ export default function ProductDetail() {
 
           {/* Título */}
           <h1 className="font-bebas text-4xl mb-2">{producto.nombre}</h1>
-          
-          {/* Marca y SKU */}
+
+          {/* Marca y SKU (dinámico) */}
           <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
             {producto.marcaNombre && <span>Marca: {producto.marcaNombre}</span>}
-            <span>SKU: {producto.sku}</span>
+            <span>SKU: {displaySku}</span>
           </div>
 
           {/* Precio */}
@@ -166,54 +213,93 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* Descripción */}
-          <p className="text-gray-700 mb-6 leading-relaxed">{producto.descripcion}</p>
-
-          {/* Detalles del Producto */}
-          <div className="border-t border-b border-gray-200 py-4 mb-6 space-y-2 text-sm">
-            {producto.materialNombre && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Material:</span>
-                <span className="font-medium">{producto.materialNombre}</span>
-              </div>
-            )}
-            {producto.generoNombre && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Género:</span>
-                <span className="font-medium">{producto.generoNombre}</span>
-              </div>
-            )}
-            {producto.categoriaNombre && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Categoría:</span>
-                <span className="font-medium">{producto.categoriaNombre}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Stock Status */}
-          {producto.stockTotal !== undefined && (
-            <div className="mb-6 flex items-center gap-2">
-              {producto.stockTotal === 0 ? (
-                <>
-                  <span className="w-2 h-2 bg-red-600 rounded-full" />
-                  <span className="text-red-600 font-medium">Agotado</span>
-                </>
-              ) : producto.stockTotal <= 3 ? (
-                <>
-                  <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-                  <span className="text-orange-600 font-medium">¡Últimas {producto.stockTotal} unidades!</span>
-                </>
-              ) : (
-                <>
-                  <span className="w-2 h-2 bg-green-600 rounded-full" />
-                  <span className="text-green-600 font-medium">Disponible</span>
-                </>
-              )}
+          {/* Descripcion */}
+          {producto.descripcion && (
+            <div className="mb-6">
+              <p className="text-gray-700 leading-relaxed">{producto.descripcion}</p>
             </div>
           )}
 
-          {/* Selector de Variantes */}
+          {/* Detalles del Producto (dinámico por variante) */}
+          <details className="border border-gray-200 rounded-lg mb-6 group" open>
+            <summary className="flex items-center justify-between px-5 py-4 cursor-pointer font-semibold text-sm select-none">
+              Detalles del producto
+              <span className="transition-transform group-open:rotate-180 text-gray-500">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+              </span>
+            </summary>
+            <div className="px-5 pb-4 space-y-3 text-sm border-t border-gray-100 pt-4">
+              {producto.categoriaNombre && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Categoria</span>
+                  <span className="font-medium">{producto.categoriaNombre}</span>
+                </div>
+              )}
+              {producto.marcaNombre && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Marca</span>
+                  <span className="font-medium">{producto.marcaNombre}</span>
+                </div>
+              )}
+              {producto.materialNombre && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Material</span>
+                  <span className="font-medium">{producto.materialNombre}</span>
+                </div>
+              )}
+              {producto.generoNombre && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Genero</span>
+                  <span className="font-medium">{producto.generoNombre}</span>
+                </div>
+              )}
+              {displayTallaNombre && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Talla</span>
+                  <span className="font-medium">{displayTallaNombre}</span>
+                </div>
+              )}
+              {displayColorNombre && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Color</span>
+                  <span className="font-medium">{displayColorNombre}</span>
+                </div>
+              )}
+              {displaySku && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">SKU</span>
+                  <span className="font-medium font-mono text-xs">{displaySku}</span>
+                </div>
+              )}
+            </div>
+          </details>
+
+          {/* Stock Status (dinámico por variante) */}
+          <div className="mb-6 flex items-center gap-2">
+            {combinacionNoDisponible ? (
+              <>
+                <AlertTriangle size={16} className="text-amber-500" />
+                <span className="text-amber-600 font-medium text-sm">Esta combinacion no esta disponible</span>
+              </>
+            ) : displayStock === 0 ? (
+              <>
+                <span className="w-2 h-2 bg-red-600 rounded-full" />
+                <span className="text-red-600 font-medium">Agotado</span>
+              </>
+            ) : displayStock <= 3 ? (
+              <>
+                <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                <span className="text-orange-600 font-medium">{'\u00A1'}Ultimas {displayStock} unidades!</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 bg-green-600 rounded-full" />
+                <span className="text-green-600 font-medium">Disponible</span>
+              </>
+            )}
+          </div>
+
+          {/* Selector de Variantes (stock dinámico) */}
           <ProductVariants
             tallas={producto.tallasDisponibles}
             colores={producto.coloresDisponibles}
@@ -223,14 +309,14 @@ export default function ProductDetail() {
             onTallaChange={setTallaSeleccionada}
             onColorChange={setColorSeleccionado}
             onCantidadChange={setCantidad}
-            stockMax={producto.stockTotal || 10}
+            stockMax={combinacionNoDisponible ? 0 : displayStock}
           />
 
           {/* Botones de Acción */}
           <div className="flex gap-3 mb-8">
             <button
               onClick={handleAgregarAlCarrito}
-              disabled={producto.stockTotal === 0}
+              disabled={botonDeshabilitado}
               className="
                 flex-1 bg-black text-white px-6 py-4 rounded-lg
                 font-semibold text-lg hover:bg-gray-800 transition-all
@@ -238,8 +324,8 @@ export default function ProductDetail() {
                 flex items-center justify-center gap-2
               "
             >
-              {producto.stockTotal === 0 ? (
-                'AGOTADO'
+              {botonDeshabilitado ? (
+                combinacionNoDisponible ? 'NO DISPONIBLE' : 'AGOTADO'
               ) : (
                 <>
                   <Check size={20} />
@@ -252,15 +338,15 @@ export default function ProductDetail() {
               className={`
                 w-14 h-14 rounded-lg border-2 transition-all
                 ${
-                  esFavorito(producto.id) 
-                    ? 'bg-red-50 border-red-500 text-red-500' 
+                  esFavorito(producto.id)
+                    ? 'bg-red-50 border-red-500 text-red-500'
                     : 'border-gray-300 hover:border-gray-500'
                 }
               `}
               aria-label="Agregar a favoritos"
             >
-              <Heart 
-                size={24} 
+              <Heart
+                size={24}
                 className={`mx-auto ${esFavorito(producto.id) ? 'fill-current' : ''}`}
               />
             </button>
@@ -270,11 +356,11 @@ export default function ProductDetail() {
           <div className="bg-gray-50 rounded-xl p-6 space-y-3 text-sm text-gray-700">
             <div className="flex items-center gap-3">
               <Check size={18} className="text-green-600 flex-shrink-0" />
-              <span>Envío gratis en compras mayores a S/ 150</span>
+              <span>Envio gratis en compras mayores a S/ 150</span>
             </div>
             <div className="flex items-center gap-3">
               <Check size={18} className="text-green-600 flex-shrink-0" />
-              <span>Devolución fácil dentro de 30 días</span>
+              <span>Devolucion facil dentro de 30 dias</span>
             </div>
             <div className="flex items-center gap-3">
               <Check size={18} className="text-green-600 flex-shrink-0" />
@@ -283,11 +369,11 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
-      
+
       {/* Productos Relacionados */}
       <div className="mt-16">
-        <RelatedProducts 
-          productoActualId={producto.id} 
+        <RelatedProducts
+          productoActualId={producto.id}
           categoriaId={producto.categoriaId}
         />
       </div>

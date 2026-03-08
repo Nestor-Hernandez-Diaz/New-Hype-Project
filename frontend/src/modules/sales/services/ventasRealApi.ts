@@ -9,6 +9,10 @@
 import { apiService } from '../../../utils/api';
 import type { ApiResponse } from '../../../utils/api';
 
+import {
+  EstadoCaja,
+  EstadoVenta,
+} from '@monorepo/shared-types';
 import type {
   Venta,
   CrearVentaRequest,
@@ -22,8 +26,6 @@ import type {
   VentasFilters,
   SesionesCajaFilters,
   TipoMovimientoCaja,
-  EstadoVenta,
-  EstadoCaja,
   ItemVenta,
   PagoVenta,
 } from '@monorepo/shared-types';
@@ -73,6 +75,7 @@ interface BackendDetalleVenta {
   id: number;
   productoId: number;
   nombreProducto: string;
+  codigoProducto?: string;
   cantidad: number;
   precioUnitario: number;
   descuento?: number;
@@ -82,6 +85,7 @@ interface BackendDetalleVenta {
 interface BackendPagoVenta {
   id: number;
   metodoPagoId?: number;
+  metodoPagoNombre?: string;
   monto: number;
   referencia?: string;
   observaciones?: string;
@@ -95,6 +99,9 @@ interface BackendVenta {
   sesionCajaId?: number;
   clienteId?: number;
   clienteNombre?: string;
+  clienteTipoDocumento?: string;
+  clienteNumeroDocumento?: string;
+  clienteDireccion?: string;
   almacenId: number;
   almacenNombre?: string;
   usuarioId: number;
@@ -114,6 +121,10 @@ interface BackendVenta {
   detalles?: BackendDetalleVenta[];
   pagos?: BackendPagoVenta[];
   createdAt: string;
+  // Campos de Notas de Crédito (agregados por backend)
+  tieneNotaCredito?: boolean;
+  montoNotaCredito?: number;
+  notasCredito?: BackendNotaCredito[];
 }
 
 interface BackendNotaCredito {
@@ -140,6 +151,7 @@ interface BackendDetalleNotaCredito {
   id: number;
   productoId: number;
   detalleVentaId?: number;
+  nombreProducto?: string;
   cantidad: number;
   precioUnitario: number;
   subtotal: number;
@@ -169,6 +181,7 @@ interface BackendCotizacion {
 function mapBackendCaja(b: BackendCajaRegistradora): CajaRegistradora {
   return {
     id: String(b.id),
+    codigo: b.codigo,
     nombre: b.nombre,
     ubicacion: b.ubicacion,
     activo: b.estado,
@@ -188,7 +201,7 @@ function mapBackendSesion(b: BackendSesionCaja): SesionCaja {
     montoCierre: b.montoCierre != null ? Number(b.montoCierre) : undefined,
     totalVentas: Number(b.totalVentas) || 0,
     diferencia: b.diferencia != null ? Number(b.diferencia) : undefined,
-    estado: b.estado as EstadoCaja,
+    estado: b.estado?.toUpperCase() === 'ABIERTA' ? EstadoCaja.ABIERTA : EstadoCaja.CERRADA,
     observaciones: b.observaciones,
     createdAt: b.createdAt,
     updatedAt: b.createdAt,
@@ -214,29 +227,56 @@ function mapBackendDetalle(b: BackendDetalleVenta): ItemVenta {
     id: String(b.id),
     productId: String(b.productoId),
     nombreProducto: b.nombreProducto || '',
+    codigoProducto: b.codigoProducto || '',
     cantidad: b.cantidad,
     precioUnitario: Number(b.precioUnitario) || 0,
+    descuento: Number(b.descuento) || 0,
     subtotal: Number(b.subtotal) || 0,
   };
 }
 
 function mapBackendPago(b: BackendPagoVenta): PagoVenta {
+  // Resolve payment method name from backend or known IDs
+  const METODO_PAGO_NAMES: Record<number, string> = {
+    1: 'Efectivo',
+    2: 'Yape',
+    3: 'Plin',
+    4: 'Transferencia',
+    5: 'Tarjeta',
+  };
+  const metodoPagoName = b.metodoPagoNombre
+    || (b.metodoPagoId ? METODO_PAGO_NAMES[b.metodoPagoId] : undefined)
+    || 'Efectivo';
+
   return {
     id: String(b.id),
-    metodoPago: '' as any, // Backend returns metodoPagoId, not the name
+    metodoPago: metodoPagoName as any,
+    metodoPagoId: b.metodoPagoId ? String(b.metodoPagoId) : undefined,
     monto: Number(b.monto) || 0,
     referencia: b.referencia,
     observaciones: b.observaciones,
     orden: b.orden ?? 0,
-  };
+  } as PagoVenta;
 }
 
 function mapBackendVenta(b: BackendVenta): Venta {
+  // Mapear notas de crédito si existen (vienen del backend en getById)
+  const creditNotes = (b.notasCredito || []).map(nc => mapBackendNotaCredito(nc));
+
   return {
     id: String(b.id),
     codigoVenta: b.codigoVenta,
     cashSessionId: b.sesionCajaId != null ? String(b.sesionCajaId) : undefined,
     clienteId: b.clienteId != null ? String(b.clienteId) : undefined,
+    cliente: b.clienteNombre ? {
+      id: b.clienteId != null ? String(b.clienteId) : '',
+      nombres: b.clienteNombre,
+      apellidos: '',
+      tipoDocumento: (b.clienteTipoDocumento || '') as any,
+      numeroDocumento: b.clienteNumeroDocumento || '',
+      razonSocial: b.clienteNombre,
+      direccion: b.clienteDireccion || '',
+    } : undefined,
     almacenId: String(b.almacenId),
     usuarioId: String(b.usuarioId),
     fechaEmision: b.fechaEmision,
@@ -245,19 +285,42 @@ function mapBackendVenta(b: BackendVenta): Venta {
     subtotal: Number(b.subtotal) || 0,
     igv: Number(b.igv) || 0,
     total: Number(b.total) || 0,
-    estado: b.estado as EstadoVenta,
+    estado: (() => {
+      const e = b.estado?.toUpperCase();
+      if (e === 'COMPLETADA') return EstadoVenta.COMPLETADA;
+      if (e === 'CANCELADA') return EstadoVenta.CANCELADA;
+      return EstadoVenta.PENDIENTE;
+    })(),
     observaciones: b.observaciones,
     montoRecibido: b.montoRecibido != null ? Number(b.montoRecibido) : undefined,
     montoCambio: b.montoCambio != null ? Number(b.montoCambio) : undefined,
     fechaPago: b.fechaPago,
     items: (b.detalles || []).map(mapBackendDetalle),
     payments: (b.pagos || []).map(mapBackendPago),
+    // Campos de Notas de Crédito
+    tieneNotaCredito: b.tieneNotaCredito || creditNotes.length > 0,
+    montoNotaCredito: b.montoNotaCredito != null ? Number(b.montoNotaCredito) :
+      (creditNotes.length > 0 ? creditNotes.reduce((sum, nc) => sum + nc.total, 0) : undefined),
+    creditNotes: creditNotes.length > 0 ? creditNotes : undefined,
     createdAt: b.createdAt,
     updatedAt: b.createdAt,
   };
 }
 
 function mapBackendNotaCredito(b: BackendNotaCredito, ventaOriginal?: BackendVenta): NotaCredito {
+  // Mapear metodoDevolucion backend a frontend
+  const metodoMap: Record<string, string> = {
+    'EFECTIVO': 'Efectivo',
+    'TRANSFERENCIA': 'Transferencia',
+    'VALE': 'Vale',
+  };
+  // Mapear estado backend a frontend
+  const estadoMap: Record<string, string> = {
+    'PENDIENTE': 'Pendiente',
+    'APLICADA': 'Aplicada',
+    'CANCELADA': 'Cancelada',
+  };
+
   return {
     id: String(b.id),
     codigoVenta: b.codigo,
@@ -265,13 +328,15 @@ function mapBackendNotaCredito(b: BackendNotaCredito, ventaOriginal?: BackendVen
     fechaEmision: b.createdAt,
     creditNoteReason: b.motivoSunat || b.tipo || '',
     creditNoteDescription: b.descripcion,
+    creditNoteStatus: b.estado ? (estadoMap[b.estado] || b.estado) : undefined,
+    creditNotePaymentMethod: b.metodoDevolucion ? (metodoMap[b.metodoDevolucion] || b.metodoDevolucion) : undefined,
     total: Number(b.total) || 0,
     subtotal: Number(b.subtotal) || 0,
     igv: Number(b.igv) || 0,
     items: (b.detalles || []).map(d => ({
       id: String(d.id),
       productId: String(d.productoId),
-      nombreProducto: '',
+      nombreProducto: d.nombreProducto || '',
       cantidad: d.cantidad,
       precioUnitario: Number(d.precioUnitario) || 0,
       subtotal: Number(d.subtotal) || 0,
@@ -335,13 +400,65 @@ export const getCajasRegistradoras = async (): Promise<CajaRegistradora[]> => {
   return extractArray<BackendCajaRegistradora>(res).map(mapBackendCaja);
 };
 
+export const crearCajaRegistradora = async (data: {
+  codigo: string;
+  nombre: string;
+  ubicacion?: string;
+}): Promise<CajaRegistradora> => {
+  const res: ApiResponse<BackendCajaRegistradora> = await apiService.post(
+    '/configuracion/cajas-registradoras',
+    data
+  );
+
+  if (!res.success || !res.data) {
+    throw new Error(res.message || res.error || 'Error al crear caja registradora');
+  }
+
+  return mapBackendCaja(res.data);
+};
+
+export const actualizarCajaRegistradora = async (
+  id: string,
+  data: { codigo: string; nombre: string; ubicacion?: string }
+): Promise<CajaRegistradora> => {
+  const res: ApiResponse<BackendCajaRegistradora> = await apiService.put(
+    `/configuracion/cajas-registradoras/${id}`,
+    data
+  );
+
+  if (!res.success || !res.data) {
+    throw new Error(res.message || res.error || 'Error al actualizar caja registradora');
+  }
+
+  return mapBackendCaja(res.data);
+};
+
+export const cambiarEstadoCajaRegistradora = async (
+  id: string
+): Promise<CajaRegistradora> => {
+  const res: ApiResponse<BackendCajaRegistradora> = await apiService.patch(
+    `/configuracion/cajas-registradoras/${id}/estado`,
+    {}
+  );
+
+  if (!res.success || !res.data) {
+    throw new Error(res.message || res.error || 'Error al cambiar estado de caja registradora');
+  }
+
+  return mapBackendCaja(res.data);
+};
+
 // ============= API SESIONES DE CAJA =============
 
 export const getSesionesCaja = async (
   filters?: SesionesCajaFilters
 ): Promise<SesionCaja[]> => {
   const params = new URLSearchParams();
-  if (filters?.estado) params.append('estado', filters.estado);
+  if (filters?.estado) {
+    // Backend expects uppercase enum values (ABIERTA, CERRADA)
+    const estadoUpper = filters.estado.toUpperCase();
+    params.append('estado', estadoUpper);
+  }
   if (filters?.fechaInicio) params.append('fechaInicio', filters.fechaInicio);
   if (filters?.fechaFin) params.append('fechaFin', filters.fechaFin);
   if (filters?.userId) params.append('usuarioId', filters.userId);
@@ -417,28 +534,39 @@ export const getMovimientosCaja = async (
     throw new Error(res.message || res.error || 'Error al cargar movimientos de caja');
   }
 
-  return extractArray<BackendMovimientoCaja>(res).map(mapBackendMovimiento);
+  const movimientos = Array.isArray(res.data) ? res.data : [];
+  return movimientos.map(mapBackendMovimiento);
 };
 
 export const getResumenCaja = async (sessionId: string): Promise<ResumenCaja> => {
-  const res: ApiResponse<any> = await apiService.get(
-    `/caja/sesiones/${sessionId}/resumen`
+  // Use the dedicated endpoint that returns session with embedded movimientos
+  const res: ApiResponse<BackendSesionCaja> = await apiService.get(
+    `/caja/sesiones/${sessionId}`
   );
 
   if (!res.success || !res.data) {
     throw new Error(res.message || res.error || 'Error al cargar resumen de caja');
   }
 
-  const d = res.data;
+  const sesion = res.data;
+  const movimientos = sesion.movimientos || [];
+
+  const montoApertura = Number(sesion.montoApertura) || 0;
+  const totalVentas = Number(sesion.totalVentas) || 0;
+  const totalIngresos = movimientos
+    .filter(m => m.tipo === 'INGRESO')
+    .reduce((sum, m) => sum + (Number(m.monto) || 0), 0);
+  const totalEgresos = movimientos
+    .filter(m => m.tipo === 'EGRESO')
+    .reduce((sum, m) => sum + (Number(m.monto) || 0), 0);
+
   return {
-    montoApertura: Number(d.montoApertura) || 0,
-    totalVentas: Number(d.totalVentas) || 0,
-    totalIngresos: Number(d.totalIngresos) || 0,
-    totalEgresos: Number(d.totalEgresos) || 0,
-    totalEsperado: Number(d.totalEsperado) || 0,
-    movements: Array.isArray(d.movimientos)
-      ? d.movimientos.map(mapBackendMovimiento)
-      : undefined,
+    montoApertura,
+    totalVentas,
+    totalIngresos,
+    totalEgresos,
+    totalEsperado: montoApertura + totalVentas + totalIngresos - totalEgresos,
+    movements: movimientos.map(mapBackendMovimiento),
   };
 };
 
@@ -452,9 +580,8 @@ export const crearMovimientoCaja = async (
   }
 ): Promise<MovimientoCaja> => {
   const res: ApiResponse<BackendMovimientoCaja> = await apiService.post(
-    '/caja/movimientos',
+    `/caja/sesiones/${data.cashSessionId}/movimientos`,
     {
-      sesionCajaId: Number(data.cashSessionId),
       tipo,
       monto: data.monto,
       motivo: data.motivo,
@@ -516,7 +643,7 @@ export const crearVenta = async (ventaData: CrearVentaRequest): Promise<Venta> =
   // Build backend request body
   const body: Record<string, unknown> = {
     almacenId: Number(ventaData.almacenId),
-    tipoComprobante: ventaData.tipoComprobante,
+    tipoComprobante: ventaData.tipoComprobante?.toUpperCase().replace(/\s+/g, '_') || 'BOLETA',
     observaciones: ventaData.observaciones,
     items: ventaData.items.map(item => ({
       productoId: Number(item.productId),
@@ -558,11 +685,28 @@ export const confirmarPagoVenta = async (
     montoRecibido: number;
     montoCambio?: number;
     referenciaPago?: string;
+    pagos?: Array<{
+      metodoPagoId: string | number;
+      monto: number;
+      referencia?: string;
+    }>;
   }
 ): Promise<Venta> => {
+  const body: Record<string, unknown> = {
+    montoRecibido: paymentData.montoRecibido,
+  };
+
+  if (paymentData.pagos && paymentData.pagos.length > 0) {
+    body.pagos = paymentData.pagos.map(p => ({
+      metodoPagoId: Number(p.metodoPagoId),
+      monto: p.monto,
+      referencia: p.referencia || undefined,
+    }));
+  }
+
   const res: ApiResponse<BackendVenta> = await apiService.post(
     `/ventas/${saleId}/confirmar-pago`,
-    paymentData
+    body
   );
 
   if (!res.success || !res.data) {
@@ -606,14 +750,28 @@ export const cancelarVenta = async (
 export const crearNotaCredito = async (
   data: CrearNotaCreditoRequest
 ): Promise<NotaCredito> => {
+  // Map frontend reason to backend tipo
+  const tipo = data.creditNoteReason === 'DevolucionTotal' || data.creditNoteReason === 'DevolucionParcial'
+    ? 'DEVOLUCION'
+    : 'ANULACION';
+
+  // Auto-generate serie/numero for credit notes
+  const serie = 'NC01';
+  const numero = String(Date.now()).slice(-8);
+
   const body = {
-    ventaId: Number(data.saleId),
+    ventaOrigenId: Number(data.saleId),
+    serie,
+    numero,
     motivoSunat: data.creditNoteReason,
+    tipo,
     descripcion: data.descripcion,
-    metodoDevolucion: data.paymentMethod,
+    metodoDevolucion: data.paymentMethod === 'Efectivo' ? 'EFECTIVO'
+      : data.paymentMethod === 'Transferencia' ? 'TRANSFERENCIA' : 'VALE',
     sesionCajaId: data.cashSessionId ? Number(data.cashSessionId) : undefined,
     items: data.items.map(item => ({
       detalleVentaId: Number(item.saleItemId),
+      productoId: Number(item.productoId),
       cantidad: item.cantidad,
     })),
   };
@@ -633,8 +791,9 @@ export const crearNotaCredito = async (
 export const getNotasCreditoBySale = async (
   saleId: string
 ): Promise<NotaCredito[]> => {
+  // Usar el endpoint correcto del NotaCreditoController con filtro ventaOrigenId
   const res: ApiResponse<BackendNotaCredito[]> = await apiService.get(
-    `/ventas/${saleId}/notas-credito`
+    `/notas-credito?ventaOrigenId=${saleId}`
   );
 
   if (!res.success) {

@@ -187,7 +187,7 @@ export function useCart(): UseCartReturn {
    * Calcular costo de envío según subtotal
    */
   const calcularEnvio = useCallback((subtotal: number): number => {
-    return subtotal >= 150 ? 0 : 15;
+    return subtotal >= 150 ? 0 : 9.90;
   }, []);
   
   /**

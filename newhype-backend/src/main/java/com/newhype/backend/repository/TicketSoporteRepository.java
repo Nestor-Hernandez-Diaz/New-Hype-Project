@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface TicketSoporteRepository extends JpaRepository<TicketSoporte, Long> {
 
     @Query("SELECT t FROM TicketSoporte t WHERE " +
@@ -18,4 +20,8 @@ public interface TicketSoporteRepository extends JpaRepository<TicketSoporte, Lo
                                 @Param("prioridad") TicketSoporte.Prioridad prioridad,
                                 @Param("tenantId") Long tenantId,
                                 Pageable pageable);
+
+    Page<TicketSoporte> findByTenantIdOrderByCreatedAtDesc(Long tenantId, Pageable pageable);
+
+    Optional<TicketSoporte> findByIdAndTenantId(Long id, Long tenantId);
 }

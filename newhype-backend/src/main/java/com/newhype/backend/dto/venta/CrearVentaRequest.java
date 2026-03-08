@@ -27,6 +27,7 @@ public class CrearVentaRequest {
     private String serie;
     private String numero;
     private String observaciones;
+    private Boolean incluyeIGV;
 
     @NotEmpty(message = "Debe incluir al menos un producto")
     @Valid

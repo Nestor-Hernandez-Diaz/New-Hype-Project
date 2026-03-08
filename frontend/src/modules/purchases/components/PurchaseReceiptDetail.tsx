@@ -417,7 +417,7 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
   };
 
   const canConfirm = receipt && receipt.estado === 'PENDIENTE';
-  const canCancelReceipt = receipt && receipt.estado !== 'CANCELADA';
+  const canCancelReceipt = receipt && receipt.estado === 'PENDIENTE';
 
   // ==================== RENDER ====================
 
@@ -550,7 +550,7 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
         <InfoGrid>
           <InfoItem>
             <InfoLabel>Productos en Orden</InfoLabel>
-            <InfoValue>{receipt.ordenCompra?.items.length || 0} items</InfoValue>
+            <InfoValue>{receipt.ordenCompra?.items?.length || receipt.items?.length || 0} items</InfoValue>
           </InfoItem>
           <InfoItem>
             <InfoLabel>Estado de Orden</InfoLabel>
@@ -561,7 +561,7 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
 
       {/* Productos Recibidos */}
       <Section>
-        <SectionTitle>Productos Recibidos ({receipt.items.length})</SectionTitle>
+        <SectionTitle>Productos Recibidos ({receipt.items?.length || 0})</SectionTitle>
         <Table>
           <Thead>
             <tr>
@@ -575,7 +575,7 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
             </tr>
           </Thead>
           <Tbody>
-            {receipt.items.map((item, index) => {
+            {(receipt.items || []).map((item, index) => {
               const ordenada = item.ordenCompraItem?.cantidadOrdenada || 0;
               const enEstaRecepcion = item.cantidadRecibida || 0;
               const totalRecibidaEnOC = item.ordenCompraItem?.cantidadRecibida || 0;
@@ -616,17 +616,17 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
           </Tbody>
         </Table>
 
-        {receipt.items.some(item => {
+        {(receipt.items || []).some(item => {
           const pendiente = item.ordenCompraItem?.cantidadPendiente || 0;
           return pendiente > 0;
         }) && (
           <AlertBox $type="info">
             ℹ️ Esta es una recepción parcial. Quedan {
-              receipt.items.reduce((sum, item) => sum + (item.ordenCompraItem?.cantidadPendiente || 0), 0)
+              (receipt.items || []).reduce((sum, item) => sum + (item.ordenCompraItem?.cantidadPendiente || 0), 0)
             } unidades pendientes por recepcionar.
           </AlertBox>
         )}
-        {receipt.estado === 'CONFIRMADA' && receipt.items.every(item => (item.ordenCompraItem?.cantidadPendiente || 0) === 0) && (
+        {receipt.estado === 'CONFIRMADA' && (receipt.items || []).every(item => (item.ordenCompraItem?.cantidadPendiente || 0) === 0) && (
           <AlertBox $type="success">
             ✅ Recepción completada. Todos los productos de la orden fueron recibidos.
           </AlertBox>

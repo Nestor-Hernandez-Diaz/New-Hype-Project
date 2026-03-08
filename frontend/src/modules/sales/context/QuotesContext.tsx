@@ -1,12 +1,28 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { tokenUtils } from '../../../utils/api';
+import { apiService } from '../../../utils/api';
 import { useNotification } from '../../../context/NotificationContext';
-
-const API_URL = 'http://localhost:3001/api';
 
 // Tipos
 export type QuoteStatus = 'Pendiente' | 'Aceptada' | 'Convertida' | 'Rechazada' | 'Vencida' | 'Cancelada';
+
+// Map backend uppercase status to frontend PascalCase
+const statusFromBackend: Record<string, QuoteStatus> = {
+  PENDIENTE: 'Pendiente',
+  ACEPTADA: 'Aceptada',
+  CONVERTIDA: 'Convertida',
+  RECHAZADA: 'Rechazada',
+  VENCIDA: 'Vencida',
+  CANCELADA: 'Cancelada',
+};
+const statusToBackend: Record<QuoteStatus, string> = {
+  Pendiente: 'PENDIENTE',
+  Aceptada: 'ACEPTADA',
+  Convertida: 'CONVERTIDA',
+  Rechazada: 'RECHAZADA',
+  Vencida: 'VENCIDA',
+  Cancelada: 'CANCELADA',
+};
 
 export interface QuoteItem {
   id: string;
@@ -106,7 +122,7 @@ interface QuotesContextType {
   createQuote: (data: CreateQuoteInput) => Promise<Quote>;
   getQuoteById: (id: string) => Promise<Quote>;
   updateQuote: (id: string, data: Partial<Quote>) => Promise<Quote>;
-  updateQuoteStatus: (id: string, estado: QuoteStatus, motivoRechazo?: string) => Promise<Quote>; // ✅ Nuevo
+  updateQuoteStatus: (id: string, estado: QuoteStatus, motivoRechazo?: string) => Promise<Quote>;
   deleteQuote: (id: string) => Promise<void>;
   approveQuote: (id: string) => Promise<Quote>;
   rejectQuote: (id: string, motivoRechazo?: string) => Promise<Quote>;
@@ -117,360 +133,264 @@ interface QuotesContextType {
 
 const QuotesContext = createContext<QuotesContextType | undefined>(undefined);
 
+const emptyStats = {
+  totalQuotes: 0,
+  pendientes: 0,
+  aceptadas: 0,
+  convertidas: 0,
+  rechazadas: 0,
+  vencidas: 0,
+  canceladas: 0,
+};
+
+function computeStats(data: Quote[]) {
+  return {
+    totalQuotes: data.length,
+    pendientes: data.filter(q => q.estado === 'Pendiente').length,
+    aceptadas: data.filter(q => q.estado === 'Aceptada').length,
+    convertidas: data.filter(q => q.estado === 'Convertida').length,
+    rechazadas: data.filter(q => q.estado === 'Rechazada').length,
+    vencidas: data.filter(q => q.estado === 'Vencida').length,
+    canceladas: data.filter(q => q.estado === 'Cancelada').length,
+  };
+}
+
+function mapBackendQuote(raw: any): Quote {
+  return {
+    ...raw,
+    id: String(raw.id),
+    clienteId: raw.clienteId ? String(raw.clienteId) : null,
+    clienteNombre: raw.clienteNombre || null,
+    cliente: raw.clienteNombre ? {
+      id: raw.clienteId ? String(raw.clienteId) : '',
+      nombres: raw.clienteNombre,
+      apellidos: '',
+      razonSocial: raw.clienteNombre,
+      numeroDocumento: '',
+    } : null,
+    almacenId: String(raw.almacenId),
+    usuarioId: String(raw.usuarioId),
+    estado: statusFromBackend[raw.estado] || raw.estado,
+    items: (raw.detalles || raw.items || []).map((d: any) => ({
+      id: String(d.id),
+      productId: String(d.productoId),
+      nombreProducto: d.nombreProducto,
+      cantidad: d.cantidad,
+      precioUnitario: d.precioUnitario,
+      subtotal: d.subtotal,
+    })),
+  };
+}
+
 export const QuotesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFiltersState] = useState<QuoteFilters>({});
-  const [stats, setStats] = useState({
-    totalQuotes: 0,
-    pendientes: 0,
-    aceptadas: 0,
-    convertidas: 0,
-    rechazadas: 0,
-    vencidas: 0,
-    canceladas: 0
-  });
+  const [stats, setStats] = useState(emptyStats);
 
   const { showNotification } = useNotification();
 
-  // Helper function para hacer fetch con autenticación
-  const fetchAPI = async (endpoint: string, options?: RequestInit) => {
-    const token = tokenUtils.getAccessToken();
-    
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        ...options?.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }));
-      throw new Error(errorData.message || `Error ${response.status}`);
-    }
-
-    return response.json();
-  };
-
-  /**
-   * Obtener todas las cotizaciones con filtros
-   */
   const fetchQuotes = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Construir query params
+
       const params = new URLSearchParams();
+      params.append('size', '100');
       if (filters.estado && filters.estado !== 'Todas') {
-        params.append('estado', filters.estado);
+        params.append('estado', statusToBackend[filters.estado] || filters.estado);
       }
-      if (filters.clienteId) {
-        params.append('clienteId', filters.clienteId);
-      }
-      if (filters.usuarioId) {
-        params.append('usuarioId', filters.usuarioId);
-      }
-      if (filters.fechaDesde) {
-        params.append('fechaDesde', filters.fechaDesde);
-      }
-      if (filters.fechaHasta) {
-        params.append('fechaHasta', filters.fechaHasta);
-      }
-      if (filters.search) {
-        params.append('search', filters.search);
-      }
+      if (filters.clienteId) params.append('clienteId', filters.clienteId);
+      if (filters.fechaDesde) params.append('fechaDesde', filters.fechaDesde);
 
-      const response = await fetchAPI(`/quotes?${params.toString()}`, {
-        method: 'GET'
-      });
+      const endpoint = `/cotizaciones?${params.toString()}`;
+      const res = await apiService.get(endpoint);
 
-      // Backend devuelve: { success: true, data: [...] }
-      if (response.success) {
-        setQuotes(response.data || []);
-        
-        // Calcular estadísticas
-        const data = response.data || [];
-        setStats({
-          totalQuotes: data.length,
-          pendientes: data.filter((q: Quote) => q.estado === 'Pendiente').length,
-          aceptadas: data.filter((q: Quote) => q.estado === 'Aceptada').length,
-          convertidas: data.filter((q: Quote) => q.estado === 'Convertida').length,
-          rechazadas: data.filter((q: Quote) => q.estado === 'Rechazada').length,
-          vencidas: data.filter((q: Quote) => q.estado === 'Vencida').length,
-          canceladas: data.filter((q: Quote) => q.estado === 'Cancelada').length
-        });
+      if (res.success) {
+        const rawData: any[] = Array.isArray(res.data) ? res.data : (res.data as any)?.content || [];
+        const data: Quote[] = rawData.map(mapBackendQuote);
+        setQuotes(data);
+        setStats(computeStats(data));
+      } else {
+        setQuotes([]);
+        setStats(emptyStats);
       }
     } catch (error: any) {
       console.error('Error al obtener cotizaciones:', error);
-      showNotification('error', 'Error', 'No se pudieron cargar las cotizaciones');
-      // Establecer arrays vacíos en caso de error para evitar bucles
       setQuotes([]);
-      setStats({
-        totalQuotes: 0,
-        pendientes: 0,
-        aceptadas: 0,
-        convertidas: 0,
-        rechazadas: 0,
-        vencidas: 0,
-        canceladas: 0
-      });
+      setStats(emptyStats);
     } finally {
       setLoading(false);
     }
-  }, [showNotification]); // ❗ SOLO showNotification como dependencia
+  }, [filters]);
 
-  /**
-   * Crear una nueva cotización
-   */
+  // Initial load
+  useEffect(() => {
+    fetchQuotes();
+  }, [fetchQuotes]);
+
   const createQuote = useCallback(async (data: CreateQuoteInput): Promise<Quote> => {
     try {
       setLoading(true);
+      const body: Record<string, unknown> = {
+        almacenId: Number(data.almacenId),
+        observaciones: data.observaciones,
+        diasValidez: data.diasValidez,
+        items: data.items.map(item => ({
+          productoId: Number(item.productId),
+          nombreProducto: item.nombreProducto,
+          cantidad: item.cantidad,
+          precioUnitario: item.precioUnitario,
+        })),
+      };
+      if (data.clienteId) body.clienteId = Number(data.clienteId);
 
-      const response = await fetchAPI('/quotes', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
+      const res = await apiService.post('/cotizaciones', body);
 
-      // Si llegamos aquí, la respuesta fue exitosa (status 200-299)
-      showNotification('success', 'Éxito', 'Cotización creada exitosamente');
-      return response.data;
+      if (!res.success || !res.data) {
+        throw new Error(res.message || 'Error al crear cotizacion');
+      }
+
+      showNotification('success', 'Exito', 'Cotizacion creada exitosamente');
+      await fetchQuotes();
+      return res.data as Quote;
     } catch (error: any) {
-      console.error('Error al crear cotización:', error);
-      const errorMessage = error.message || 'Error al crear cotización';
-      showNotification('error', 'Error', errorMessage);
+      showNotification('error', 'Error', error.message || 'Error al crear cotizacion');
       throw error;
     } finally {
       setLoading(false);
     }
   }, [fetchQuotes, showNotification]);
 
-  /**
-   * Obtener una cotización por ID
-   */
   const getQuoteById = useCallback(async (id: string): Promise<Quote> => {
     try {
-      const response = await fetchAPI(`/quotes/${id}`, {
-        method: 'GET'
-      });
-
-      if (response.success) {
-        return response.data;
-      }
-
-      throw new Error(response.data.message || 'Error al obtener cotización');
+      const res = await apiService.get(`/cotizaciones/${id}`);
+      if (res.success && res.data) return mapBackendQuote(res.data);
+      throw new Error(res.message || 'Error al obtener cotizacion');
     } catch (error: any) {
-      console.error('Error al obtener cotización:', error);
-      const errorMessage = error.response?.data?.message || 'Error al obtener cotización';
-      showNotification('error', 'Error', errorMessage);
+      showNotification('error', 'Error', error.message || 'Error al obtener cotizacion');
       throw error;
     }
   }, [showNotification]);
 
-  /**
-   * Actualizar una cotización
-   */
   const updateQuote = useCallback(async (id: string, data: Partial<Quote>): Promise<Quote> => {
     try {
       setLoading(true);
-
-      const response = await fetchAPI(`/quotes/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-      });
-
-      if (response.success) {
-        showNotification('success', 'Éxito', 'Cotización actualizada exitosamente');
-        // ✅ Actualizar el estado local en lugar de recargar
-        setQuotes(quotes.map(q => q.id === id ? { ...q, ...data } : q));
-        return response.data;
+      const res = await apiService.put(`/cotizaciones/${id}`, data);
+      if (res.success && res.data) {
+        showNotification('success', 'Exito', 'Cotizacion actualizada');
+        setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
+        return res.data as Quote;
       }
-
-      throw new Error(response.data.message || 'Error al actualizar cotización');
+      throw new Error(res.message || 'Error al actualizar cotizacion');
     } catch (error: any) {
-      console.error('Error al actualizar cotización:', error);
-      const errorMessage = error.response?.data?.message || 'Error al actualizar cotización';
-      showNotification('error', 'Error', errorMessage);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchQuotes, showNotification]);
-
-  /**
-   * ✅ Actualizar estado de una cotización (Convertida, Aceptada, etc.)
-   */
-  const updateQuoteStatus = useCallback(async (id: string, estado: QuoteStatus, motivoRechazo?: string): Promise<Quote> => {
-    try {
-      setLoading(true);
-
-      const response = await fetchAPI(`/quotes/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ estado, motivoRechazo })
-      });
-
-      if (response.success || response.quote) {
-        const updatedQuote = response.quote || response.data;
-        
-        // No mostrar notificación si se llama desde conversión automática
-        if (estado !== 'Convertida') {
-          showNotification('success', 'Éxito', `Cotización ${estado.toLowerCase()} exitosamente`);
-        }
-        
-        // ✅ Actualizar el estado local
-        setQuotes(prevQuotes => prevQuotes.map(q => q.id === id ? { ...q, estado } : q));
-        
-        return updatedQuote;
-      }
-
-      throw new Error(response.message || 'Error al actualizar estado');
-    } catch (error: any) {
-      console.error('Error al actualizar estado de cotización:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Error al actualizar estado';
-      
-      // Solo mostrar error si no es conversión automática
-      if (estado !== 'Convertida') {
-        showNotification('error', 'Error', errorMessage);
-      }
-      
+      showNotification('error', 'Error', error.message || 'Error al actualizar cotizacion');
       throw error;
     } finally {
       setLoading(false);
     }
   }, [showNotification]);
 
-  /**
-   * Eliminar una cotización
-   */
+  const updateQuoteStatus = useCallback(async (id: string, estado: QuoteStatus, motivoRechazo?: string): Promise<Quote> => {
+    try {
+      setLoading(true);
+      const backendEstado = statusToBackend[estado] || estado;
+      const res = await apiService.patch(`/cotizaciones/${id}/status`, { estado: backendEstado, motivoRechazo });
+      const updatedQuote = (res as any).quote || res.data;
+      if (estado !== 'Convertida') {
+        showNotification('success', 'Exito', `Cotizacion ${estado.toLowerCase()} exitosamente`);
+      }
+      setQuotes(prev => prev.map(q => q.id === id ? { ...q, estado } : q));
+      return updatedQuote as Quote;
+    } catch (error: any) {
+      if (estado !== 'Convertida') {
+        showNotification('error', 'Error', error.message || 'Error al actualizar estado');
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification]);
+
   const deleteQuote = useCallback(async (id: string): Promise<void> => {
     try {
       setLoading(true);
-
-      const response = await fetchAPI(`/quotes/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (response.success) {
-        showNotification('success', 'Éxito', 'Cotización eliminada exitosamente');
-        // ✅ Eliminar del estado local
-        setQuotes(quotes.filter(q => q.id !== id));
+      const res = await apiService.delete(`/cotizaciones/${id}`);
+      if (res.success) {
+        showNotification('success', 'Exito', 'Cotizacion eliminada');
+        setQuotes(prev => prev.filter(q => q.id !== id));
       } else {
-        throw new Error(response.data.message || 'Error al eliminar cotización');
+        throw new Error(res.message || 'Error al eliminar cotizacion');
       }
     } catch (error: any) {
-      console.error('Error al eliminar cotización:', error);
-      const errorMessage = error.response?.data?.message || 'No se puede eliminar una cotización convertida a venta';
-      showNotification('error', 'Error', errorMessage);
+      showNotification('error', 'Error', error.message || 'No se puede eliminar la cotizacion');
       throw error;
     } finally {
       setLoading(false);
     }
-  }, [fetchQuotes, showNotification]);
+  }, [showNotification]);
 
-  /**
-   * Aprobar una cotización
-   */
   const approveQuote = useCallback(async (id: string): Promise<Quote> => {
     try {
       setLoading(true);
-
-      const response = await fetchAPI(`/quotes/${id}/approve`, {
-        method: 'POST',
-        body: JSON.stringify({})
-      });
-
-      if (response.success) {
-        showNotification('success', 'Éxito', 'Cotización aprobada exitosamente');
-        // ✅ Actualizar el estado local
-        setQuotes(quotes.map(q => q.id === id ? { ...q, estado: 'Aceptada' as QuoteStatus } : q));
-        return response.data;
+      const res = await apiService.patch(`/cotizaciones/${id}/status`, { estado: 'ACEPTADA' });
+      if (res.success) {
+        showNotification('success', 'Exito', 'Cotizacion aprobada');
+        setQuotes(prev => prev.map(q => q.id === id ? { ...q, estado: 'Aceptada' as QuoteStatus } : q));
+        return mapBackendQuote(res.data);
       }
-
-      throw new Error(response.data.message || 'Error al aprobar cotización');
+      throw new Error(res.message || 'Error al aprobar cotizacion');
     } catch (error: any) {
-      console.error('Error al aprobar cotización:', error);
-      const errorMessage = error.response?.data?.message || 'Error al aprobar cotización';
-      showNotification('error', 'Error', errorMessage);
+      showNotification('error', 'Error', error.message || 'Error al aprobar cotizacion');
       throw error;
     } finally {
       setLoading(false);
     }
-  }, [fetchQuotes, showNotification]);
+  }, [showNotification]);
 
-  /**
-   * Rechazar una cotización
-   */
   const rejectQuote = useCallback(async (id: string, motivoRechazo?: string): Promise<Quote> => {
     try {
       setLoading(true);
-
-      const response = await fetchAPI(`/quotes/${id}/reject`, {
-        method: 'POST',
-        body: JSON.stringify({ motivoRechazo })
-      });
-
-      if (response.success) {
-        showNotification('info', 'Información', 'Cotización rechazada');
-        // ✅ Actualizar el estado local
-        setQuotes(quotes.map(q => q.id === id ? { ...q, estado: 'Rechazada' as QuoteStatus, motivoRechazo: motivoRechazo || null } : q));
-        return response.data;
+      const res = await apiService.patch(`/cotizaciones/${id}/status`, { estado: 'RECHAZADA', motivoRechazo });
+      if (res.success) {
+        showNotification('info', 'Info', 'Cotizacion rechazada');
+        setQuotes(prev => prev.map(q => q.id === id ? { ...q, estado: 'Rechazada' as QuoteStatus, motivoRechazo: motivoRechazo || null } : q));
+        return mapBackendQuote(res.data);
       }
-
-      throw new Error(response.data.message || 'Error al rechazar cotización');
+      throw new Error(res.message || 'Error al rechazar cotizacion');
     } catch (error: any) {
-      console.error('Error al rechazar cotización:', error);
-      const errorMessage = error.response?.data?.message || 'Error al rechazar cotización';
-      showNotification('error', 'Error', errorMessage);
+      showNotification('error', 'Error', error.message || 'Error al rechazar cotizacion');
       throw error;
     } finally {
       setLoading(false);
     }
-  }, [fetchQuotes, showNotification]);
+  }, [showNotification]);
 
-  /**
-   * Convertir cotización a venta
-   */
   const convertToSale = useCallback(async (data: ConvertToSaleInput): Promise<any> => {
     try {
       setLoading(true);
-
-      const response = await fetchAPI(`/quotes/${data.quoteId}/convert`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-
-      // ✅ Actualizar el estado local
+      const body = {
+        sesionCajaId: data.cashSessionId ? Number(data.cashSessionId) : undefined,
+        tipoComprobante: data.tipoComprobante,
+      };
+      const res = await apiService.post(`/cotizaciones/${data.quoteId}/convert`, body);
       await fetchQuotes();
-      showNotification('success', 'Éxito', 'Cotización convertida a venta exitosamente');
-      return response;
+      showNotification('success', 'Exito', 'Cotizacion convertida a venta');
+      return res;
     } catch (error: any) {
-      console.error('Error al convertir cotización:', error);
-      const errorMessage = error?.message || 'Error al convertir cotización a venta';
-      showNotification('error', 'Error', errorMessage);
+      showNotification('error', 'Error', error.message || 'Error al convertir cotizacion');
       throw error;
     } finally {
       setLoading(false);
     }
   }, [fetchQuotes, showNotification]);
 
-  /**
-   * Establecer filtros sin aplicar
-   */
   const setFilters = useCallback((newFilters: QuoteFilters) => {
     setFiltersState(newFilters);
   }, []);
 
-  /**
-   * Aplicar filtros y recargar
-   */
   const applyFilters = useCallback((newFilters: QuoteFilters) => {
     setFiltersState(newFilters);
-    // ✅ Llamar directamente a fetchQuotes sin dependencias
-    setTimeout(() => {
-      fetchQuotes();
-    }, 0);
-  }, []); // ⚠️ Sin dependencias - fetchQuotes es estable
+  }, []);
 
   const value: QuotesContextType = {
     quotes,
@@ -481,13 +401,13 @@ export const QuotesProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     createQuote,
     getQuoteById,
     updateQuote,
-    updateQuoteStatus, // ✅ Agregar nueva función
+    updateQuoteStatus,
     deleteQuote,
     approveQuote,
     rejectQuote,
     convertToSale,
     setFilters,
-    applyFilters
+    applyFilters,
   };
 
   return <QuotesContext.Provider value={value}>{children}</QuotesContext.Provider>;

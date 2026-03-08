@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useSales } from '../context/SalesContext';
+import { useConfiguracion } from '../../configuration/context/ConfiguracionContext';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, Z_INDEX, TRANSITIONS } from '../../../styles/theme';
 import { Button as SharedButton } from '../../../components/shared/Button';
 import { Input as SharedInput } from '../../../components/shared/Input';
@@ -28,6 +29,7 @@ interface Sale {
 
 interface CreditNoteItem {
   saleItemId: string;
+  productoId: string;
   cantidad: number;
 }
 
@@ -70,7 +72,8 @@ const CREDIT_NOTE_REASONS = {
 
 // ==================== COMPONENTE ====================
 export const ModalNotaCredito: React.FC<ModalNotaCreditoProps> = ({ sale, onClose, onSubmit }) => {
-  const { activeCashSession } = useSales();
+  const { activeCashSession, previewCreditNote } = useSales();
+  const { empresa } = useConfiguracion();
   
   const [selectedReason, setSelectedReason] = useState<string>('DevolucionTotal');
   const [descripcion, setDescripcion] = useState('');
@@ -116,7 +119,7 @@ export const ModalNotaCredito: React.FC<ModalNotaCreditoProps> = ({ sale, onClos
     const igvOriginal = Number(sale.igv);
     const tieneIGV = igvOriginal > 0;
     
-    const igv = tieneIGV ? subtotal * 0.18 : 0;
+    const igv = tieneIGV ? subtotal * ((empresa?.igvPorcentaje || 18) / 100) : 0;
     const total = subtotal + igv;
     
     return { subtotal, igv, total };
@@ -173,10 +176,14 @@ export const ModalNotaCredito: React.FC<ModalNotaCreditoProps> = ({ sale, onClos
       setErrorMessage('');
 
       // Preparar items para NC
-      const itemsArray = Array.from(itemsToReturn.entries()).map(([saleItemId, cantidad]) => ({
-        saleItemId,
-        cantidad,
-      }));
+      const itemsArray = Array.from(itemsToReturn.entries()).map(([saleItemId, cantidad]) => {
+        const saleItem = sale.items.find(i => i.id === saleItemId);
+        return {
+          saleItemId,
+          productoId: saleItem?.productId || '',
+          cantidad,
+        };
+      });
 
       // ✅ Obtener cashSessionId del contexto
       const cashSessionId = activeCashSession?.id;
@@ -200,9 +207,9 @@ export const ModalNotaCredito: React.FC<ModalNotaCreditoProps> = ({ sale, onClos
 
       const result = await onSubmit(payload);
 
-      // ✅ Descargar PDF automáticamente después de emitir NC
+      // Abrir comprobante de NC automáticamente después de emitir
       if (result && result.creditNote && result.creditNote.id) {
-        await downloadCreditNotePDF(result.creditNote.id);
+        previewCreditNote(result.creditNote.id, sale.id);
       }
 
       setShowPaymentModal(false);
@@ -212,40 +219,6 @@ export const ModalNotaCredito: React.FC<ModalNotaCreditoProps> = ({ sale, onClos
       setShowPaymentModal(false);
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  // ✅ NUEVO: Descargar PDF de Nota de Crédito
-  const downloadCreditNotePDF = async (creditNoteId: string) => {
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`${API_URL}/api/credit-notes/${creditNoteId}/pdf`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al generar PDF');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `nota-credito-${creditNoteId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error: any) {
-      console.error('Error descargando PDF:', error);
-      // No lanzar error aquí para no interrumpir el flujo principal
     }
   };
 

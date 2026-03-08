@@ -83,6 +83,18 @@ public class MotivoMovimientoService {
         return toResponse(motivo);
     }
 
+    @Transactional
+    public MotivoMovimientoResponse cambiarEstado(Long id) {
+        Long tenantId = TenantContext.getCurrentTenantId();
+
+        MotivoMovimiento motivo = motivoMovimientoRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Motivo de movimiento", id));
+
+        motivo.setEstado(!motivo.getEstado());
+        motivo = motivoMovimientoRepository.save(motivo);
+        return toResponse(motivo);
+    }
+
     private MotivoMovimientoResponse toResponse(MotivoMovimiento m) {
         return MotivoMovimientoResponse.builder()
                 .id(m.getId())

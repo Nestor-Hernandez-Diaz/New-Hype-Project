@@ -4,8 +4,7 @@ const getApiBaseUrl = (): string => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // Default para desarrollo local con Spring Boot
-  return 'http://localhost:8080/api/v1';
+  return 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -296,7 +295,7 @@ class ApiService {
       'Content-Type': 'application/json',
     };
 
-    // Agregar token de autorización si existe (soporta 'authToken' y clave legacy)
+    // Agregar token de autorización si existe
     const token = localStorage.getItem('authToken') || localStorage.getItem('alexatech_token');
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
@@ -345,8 +344,8 @@ class ApiService {
           localStorage.removeItem('alexatech_refresh_token');
         } catch (_err) { console.log('Error limpiando tokens'); }
         console.log(`${response.status} ${response.status === 401 ? 'Unauthorized' : 'Forbidden'}: limpiando tokens`);
-        // Evitar bucles de redirección: no redirigir si ya estamos en /login
-        if (!window.location.pathname.includes('/login')) {
+        // Evitar bucles de redirección: no redirigir si ya estamos en /login o en storefront
+        if (!window.location.pathname.includes('/login') && !window.location.pathname.startsWith('/storefront')) {
           (window as any).showToast?.('Sesión expirada. Inicia sesión nuevamente.');
           window.location.href = '/login';
         }
@@ -606,7 +605,7 @@ class ApiService {
   }
 
   async createClient(clientData: {
-    tipoEntidad: 'Cliente' | 'Proveedor' | 'Ambos';
+    tipoEntidad: 'Cliente' | 'Proveedor' | 'Ambos' | 'CLIENTE' | 'PROVEEDOR' | 'AMBOS';
     tipoDocumento: 'DNI' | 'CE' | 'RUC' | 'Pasaporte';
     numeroDocumento: string;
     nombres?: string;
@@ -785,7 +784,7 @@ export const apiService = new ApiService();
 // Funciones de utilidad para el manejo de tokens
 export const tokenUtils = {
   setTokens: (accessToken: string, refreshToken: string) => {
-    // Almacenar bajo nueva clave y legacy para compatibilidad
+    // Almacenar tokens de autenticación
     localStorage.setItem('authToken', accessToken);
     localStorage.setItem('alexatech_token', accessToken);
     localStorage.setItem('alexatech_refresh_token', refreshToken);

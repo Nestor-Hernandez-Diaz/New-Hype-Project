@@ -1,8 +1,10 @@
 package com.newhype.backend.dto.platform;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.newhype.backend.dto.soporte.RespuestaTicketResponse;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -14,6 +16,8 @@ public class TicketResponse {
     private Long id;
     private Long tenantId;
     private String tenantNombre;
+    private Long usuarioId;
+    private String usuarioNombre;
     private Long usuarioPlataformaId;
     private String atendidoPor;
     private String asunto;
@@ -24,4 +28,5 @@ public class TicketResponse {
     private LocalDateTime fechaRespuesta;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<RespuestaTicketResponse> respuestas;
 }

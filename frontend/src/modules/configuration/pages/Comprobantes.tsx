@@ -301,35 +301,31 @@ const Comprobantes: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // ✅ Cambiar a toggle activar/desactivar en lugar de eliminar
+  // ✅ Cambiar a toggle activar/desactivar usando PATCH /estado
   const handleToggleActivo = async (comprobante: ComprobanteData) => {
     const nuevoEstado = !comprobante.activo;
-    
+
     // ✅ Validar que no sea el último activo del mismo tipo
     if (!nuevoEstado) {
-      const comprobantesActivosMismoTipo = comprobantes.filter((c: ComprobanteData) => 
+      const comprobantesActivosMismoTipo = comprobantes.filter((c: ComprobanteData) =>
         c.activo && c.tipo === comprobante.tipo && c.id !== comprobante.id
       );
-      
+
       if (comprobantesActivosMismoTipo.length === 0) {
         showError(`No se puede desactivar el único comprobante de tipo ${comprobante.tipo} activo`);
         return;
       }
     }
-    
-    const confirmMessage = nuevoEstado 
+
+    const confirmMessage = nuevoEstado
       ? `¿Activar el comprobante "${comprobante.nombre}"?`
       : `¿Desactivar el comprobante "${comprobante.nombre}"? No estará disponible en nuevas ventas.`;
-    
+
     if (window.confirm(confirmMessage)) {
       setLoading(true);
       try {
-        await configuracionApi.updateComprobante(comprobante.id!, { 
-          activo: nuevoEstado,
-          // Si se desactiva y era predeterminado, quitar predeterminado
-          predeterminado: nuevoEstado ? comprobante.predeterminado : false
-        });
-        await reloadComprobantes(); // ✅ Recargar para sincronizar con otros componentes
+        await configuracionApi.toggleComprobanteEstado(comprobante.id!);
+        await reloadComprobantes();
         showSuccess(`Comprobante ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`);
       } catch (error: any) {
         showError(error.message || 'Error al actualizar comprobante');

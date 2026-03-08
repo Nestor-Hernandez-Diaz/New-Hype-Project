@@ -123,6 +123,16 @@ public class PlatformOperacionesController {
         return ResponseEntity.ok(ApiResponse.ok("Ticket actualizado", response));
     }
 
+    @PostMapping("/tickets/{id}/respuestas")
+    @Operation(summary = "Agregar respuesta del superadmin al ticket")
+    public ResponseEntity<ApiResponse<TicketResponse>> responderTicket(
+            @PathVariable Long id,
+            @Valid @RequestBody com.newhype.backend.dto.soporte.CrearRespuestaTicketRequest request) {
+        requirePlatformScope();
+        TicketResponse response = ticketService.agregarRespuesta(id, request);
+        return ResponseEntity.ok(ApiResponse.ok("Respuesta agregada", response));
+    }
+
     // ── Auditoría ──
     @GetMapping("/auditoria")
     @Operation(summary = "Logs de auditoría global")

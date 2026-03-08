@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import RegisterForm from '../components/auth/RegisterForm';
+import type { RegisterData } from '../components/auth/RegisterForm';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Register() {
@@ -9,18 +10,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (formData: {
-    nombre: string;
-    apellidos: string;
-    email: string;
-    telefono: string;
-    documento: string;
-    tipoDocumento: 'DNI' | 'RUC' | 'CE';
-    password: string;
-    confirmarPassword: string;
-    aceptaTerminos: boolean;
-    aceptaNewsletter: boolean;
-  }) => {
+  const handleSubmit = async (formData: RegisterData) => {
     setError('');
     setLoading(true);
 
@@ -29,7 +19,7 @@ export default function Register() {
         email: formData.email,
         password: formData.password,
         nombre: formData.nombre,
-        apellido: formData.apellidos,
+        apellido: formData.apellido,
         telefono: formData.telefono,
       });
 

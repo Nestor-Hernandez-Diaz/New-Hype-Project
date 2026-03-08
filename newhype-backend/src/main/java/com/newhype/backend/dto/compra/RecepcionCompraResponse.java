@@ -28,6 +28,9 @@ public class RecepcionCompraResponse {
     private Boolean esRecepcionCompleta;
     private String estado;
     private String observaciones;
+    private Integer cantidadItems;
+    private String proveedorNombre;
+    private String ordenCompraEstado;
     private List<DetalleRecepcionResponse> detalles;
     private LocalDateTime createdAt;
 }

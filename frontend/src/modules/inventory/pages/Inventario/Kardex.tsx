@@ -132,14 +132,14 @@ const EmptyState = styled.div`
 
 const Kardex: React.FC = () => {
   const { movimientos, loading, error, pagination, clearError, debouncedFetchKardex } = useInventarioWithDebounce();
-  const [filters, setFilters] = useState<KardexFilters>({ page: 1, pageSize: 20, sortBy: 'fecha', order: 'desc' });
+  const [filters, setFilters] = useState<KardexFilters>({ warehouseId: '', page: 1, pageSize: 20, sortBy: 'fecha', order: 'desc' });
   const [exportando, setExportando] = useState(false);
 
   // Calcular estadísticas de movimientos
   const stats = useMemo(() => {
     const entradas = movimientos.filter(m => m.tipo === 'ENTRADA');
     const salidas = movimientos.filter(m => m.tipo === 'SALIDA');
-    const ajustes = movimientos.filter(m => m.tipo === 'AJUSTE');
+    const ajustes = movimientos.filter(m => m.tipo === 'AJUSTE' || m.tipo === 'AJUSTE_INGRESO' || m.tipo === 'AJUSTE_EGRESO');
     
     return {
       totalMovimientos: pagination.kardex?.total || movimientos.length,
@@ -216,6 +216,7 @@ const Kardex: React.FC = () => {
               <SecondaryButton onClick={() => {
                 clearError();
                 setFilters({
+                  warehouseId: '',
                   page: 1,
                   pageSize: 20,
                   sortBy: 'fecha',

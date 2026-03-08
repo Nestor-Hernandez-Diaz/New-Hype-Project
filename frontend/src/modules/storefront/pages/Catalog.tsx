@@ -1,7 +1,7 @@
 /**
- * 📦 PÁGINA DE CATÁLOGO
- * 
- * Muestra productos con filtros dinámicos, chips y ordenamiento.
+ * PAGINA DE CATALOGO
+ *
+ * Muestra productos con filtros dinamicos desde BD, chips y ordenamiento.
  */
 
 import { useEffect, useState } from 'react';
@@ -10,7 +10,8 @@ import { useStorefront } from '../context/StorefrontContext';
 import ProductGrid from '../components/product/ProductGrid';
 import FilterChip from '../components/filters/FilterChip';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
-import type { FiltrosProductos } from '@monorepo/shared-types';
+import { apiObtenerCategorias, apiObtenerCatalogos } from '../services/storefrontApi';
+import type { FiltrosProductos, CategoriaStorefront, Genero } from '@monorepo/shared-types';
 import { SlidersHorizontal } from 'lucide-react';
 
 export default function Catalog() {
@@ -20,156 +21,128 @@ export default function Catalog() {
   const [titulo, setTitulo] = useState('TODOS LOS PRODUCTOS');
   const [filtroActivo, setFiltroActivo] = useState<string>('todos');
   const [ordenActivo, setOrdenActivo] = useState<string>('');
-  
-  // Ref para animación de scroll
+  const [categorias, setCategorias] = useState<CategoriaStorefront[]>([]);
+  const [generos, setGeneros] = useState<Genero[]>([]);
+
+  // Ref para animacion de scroll
   const gridRef = useScrollAnimation<HTMLDivElement>();
-  
+
+  // Cargar categorias y generos desde BD
+  useEffect(() => {
+    const cargarCatalogos = async () => {
+      try {
+        const [cats, catalogos] = await Promise.all([
+          apiObtenerCategorias(),
+          apiObtenerCatalogos()
+        ]);
+        setCategorias(cats || []);
+        setGeneros(catalogos.generos || []);
+      } catch (error) {
+        console.error('[Catalog] Error cargando catalogos:', error);
+      }
+    };
+    cargarCatalogos();
+  }, []);
+
   useEffect(() => {
     const filtros: FiltrosProductos = {};
-    
-    // Leer parámetros de URL
+
+    // Leer parametros de URL
     const genero = searchParams.get('genero');
-    const filtro = searchParams.get('filtro');
-    const seccion = searchParams.get('seccion');
     const liquidacion = searchParams.get('liquidacion');
     const busqueda = searchParams.get('busqueda');
     const categoria = searchParams.get('categoria');
     const orden = searchParams.get('orden');
-    
+
     // Aplicar filtros
     if (genero) {
       filtros.generoId = parseInt(genero);
-      setTitulo(genero === '1' ? 'MUJER' : 'HOMBRE');
+      // Buscar nombre del genero en la lista cargada
+      const generoObj = generos.find(g => g.id === parseInt(genero));
+      setTitulo(generoObj ? generoObj.descripcion.toUpperCase() : `GENERO ${genero}`);
     }
-    
-    if (filtro === 'nuevo') {
-      filtros.soloNuevos = true;
-      setTitulo('NEW IN ⚡');
-      setFiltroActivo('nuevo');
-    } else if (filtro === 'mujer-ropa') {
-      filtros.generoId = 1;
-      filtros.tipoSeccion = 'ropa';
-      setTitulo('MUJER — ROPA');
-      setFiltroActivo('mujer-ropa');
-    } else if (filtro === 'hombre-ropa') {
-      filtros.generoId = 2;
-      filtros.tipoSeccion = 'ropa';
-      setTitulo('HOMBRE — ROPA');
-      setFiltroActivo('hombre-ropa');
-    }
-    
-    if (seccion === 'accesorios') {
-      filtros.tipoSeccion = 'accesorios';
-      setTitulo('ACCESORIOS');
-      setFiltroActivo('accesorios');
-    } else if (seccion === 'calzado') {
-      filtros.tipoSeccion = 'calzado';
-      setTitulo('CALZADO');
-      setFiltroActivo('calzado');
-    }
-    
+
     if (liquidacion === 'true') {
       filtros.soloLiquidacion = true;
-      setTitulo('LIQUIDACIÓN 🔥');
+      setTitulo('LIQUIDACION');
       setFiltroActivo('liquidacion');
     }
-    
+
     if (busqueda) {
       filtros.busqueda = busqueda;
       setTitulo(`RESULTADOS: "${busqueda.toUpperCase()}"`);
     }
-    
+
     if (categoria) {
-      // TODO: Convertir slug a categoriaId usando CATALOGOS_CATEGORIAS
-      // filtros.categoriaId = ...
+      // Buscar categoriaId real usando las categorias cargadas desde BD
+      const catObj = categorias.find(c => c.slug === categoria);
+      if (catObj) {
+        filtros.categoriaId = catObj.id;
+      }
       setTitulo(categoria.toUpperCase().replace(/-/g, ' '));
       setFiltroActivo(`cat:${categoria}`);
     }
-    
+
     if (orden) {
       filtros.ordenarPor = orden as any;
       setOrdenActivo(orden);
     }
-    
+
+    if (!genero && !liquidacion && !busqueda && !categoria) {
+      setTitulo('TODOS LOS PRODUCTOS');
+      setFiltroActivo('todos');
+    }
+
     cargarProductos(filtros);
-  }, [searchParams, cargarProductos]);
-  
-  // Generar filtros contextuales basados en la página actual
+  }, [searchParams, cargarProductos, categorias, generos]);
+
+  // Generar filtros contextuales basados en la pagina actual y datos reales de BD
   const generarFiltrosContextuales = () => {
     const genero = searchParams.get('genero');
-    const seccion = searchParams.get('seccion');
-    const filtro = searchParams.get('filtro');
     const liquidacion = searchParams.get('liquidacion');
-    
-    // Filtros para MUJER
-    if (genero === '1') {
+
+    // Si estamos filtrando por un genero, mostrar categorias como chips
+    if (genero) {
+      const generoId = parseInt(genero);
       return [
-        { label: 'Todos', key: 'todos', url: '/storefront/catalogo?genero=1' },
-        { label: 'Vestidos', key: 'cat:vestidos', url: '/storefront/catalogo?categoria=vestidos' },
-        { label: 'Tops & Blusas', key: 'cat:tops-blusas', url: '/storefront/catalogo?categoria=tops-blusas' },
-        { label: 'Jeans', key: 'cat:jeans', url: '/storefront/catalogo?categoria=jeans' },
-        { label: 'Casacas', key: 'cat:casacas-blazers', url: '/storefront/catalogo?categoria=casacas-blazers' },
-        { label: 'Faldas', key: 'cat:faldas', url: '/storefront/catalogo?categoria=faldas' }
+        { label: 'Todos', key: 'todos', url: `/storefront/catalogo?genero=${generoId}` },
+        ...categorias.map(cat => ({
+          label: cat.nombre,
+          key: `cat:${cat.slug}`,
+          url: `/storefront/catalogo?genero=${generoId}&categoria=${cat.slug}`
+        }))
       ];
     }
-    
-    // Filtros para HOMBRE
-    if (genero === '2') {
-      return [
-        { label: 'Todos', key: 'todos', url: '/storefront/catalogo?genero=2' },
-        { label: 'Hoodies', key: 'cat:hoodies-buzos', url: '/storefront/catalogo?categoria=hoodies-buzos' },
-        { label: 'Camisas', key: 'cat:camisas-polos', url: '/storefront/catalogo?categoria=camisas-polos' },
-        { label: 'Jeans', key: 'cat:jeans', url: '/storefront/catalogo?categoria=jeans' },
-        { label: 'Joggers', key: 'cat:joggers-shorts', url: '/storefront/catalogo?categoria=joggers-shorts' },
-        { label: 'Casacas', key: 'cat:casacas-blazers', url: '/storefront/catalogo?categoria=casacas-blazers' }
-      ];
-    }
-    
-    // Filtros para ACCESORIOS
-    if (seccion === 'accesorios') {
-      return [
-        { label: 'Todos', key: 'todos', url: '/storefront/catalogo?seccion=accesorios' },
-        { label: 'Lentes', key: 'cat:lentes-sol', url: '/storefront/catalogo?categoria=lentes-sol' },
-        { label: 'Bolsos', key: 'cat:bolsos-carteras', url: '/storefront/catalogo?categoria=bolsos-carteras' },
-        { label: 'Gorras', key: 'cat:gorras-sombreros', url: '/storefront/catalogo?categoria=gorras-sombreros' },
-        { label: 'Joyería', key: 'cat:joyeria', url: '/storefront/catalogo?categoria=joyeria' },
-        { label: 'Relojes', key: 'cat:relojes', url: '/storefront/catalogo?categoria=relojes' }
-      ];
-    }
-    
-    // Filtros para CALZADO
-    if (seccion === 'calzado') {
-      return [
-        { label: 'Todos', key: 'todos', url: '/storefront/catalogo?seccion=calzado' },
-        { label: 'Zapatillas', key: 'cat:zapatillas', url: '/storefront/catalogo?categoria=zapatillas' },
-        { label: 'Botas', key: 'cat:botas', url: '/storefront/catalogo?categoria=botas' },
-        { label: 'Sandalias', key: 'cat:sandalias', url: '/storefront/catalogo?categoria=sandalias' }
-      ];
-    }
-    
-    // Filtros para NEW IN
-    if (filtro === 'nuevo') {
-      return [
-        { label: 'Todos', key: 'todos', url: '/storefront/catalogo?filtro=nuevo' },
-        { label: 'Mujer', key: 'gen:1', url: '/storefront/catalogo?filtro=nuevo&genero=1' },
-        { label: 'Hombre', key: 'gen:2', url: '/storefront/catalogo?filtro=nuevo&genero=2' }
-      ];
-    }
-    
-    // Filtros para LIQUIDACIÓN
+
+    // Filtros para LIQUIDACION - chips de generos dinamicos
     if (liquidacion === 'true') {
       return [
         { label: 'Todos', key: 'todos', url: '/storefront/catalogo?liquidacion=true' },
-        { label: 'Mujer', key: 'gen:1', url: '/storefront/catalogo?liquidacion=true&genero=1' },
-        { label: 'Hombre', key: 'gen:2', url: '/storefront/catalogo?liquidacion=true&genero=2' }
+        ...generos.map(g => ({
+          label: g.descripcion,
+          key: `gen:${g.id}`,
+          url: `/storefront/catalogo?liquidacion=true&genero=${g.id}`
+        }))
       ];
     }
-    
+
+    // Sin filtro especifico: mostrar generos como chips
+    if (!searchParams.get('busqueda') && !searchParams.get('categoria')) {
+      return [
+        { label: 'Todos', key: 'todos', url: '/storefront/catalogo' },
+        ...generos.map(g => ({
+          label: g.descripcion,
+          key: `gen:${g.id}`,
+          url: `/storefront/catalogo?genero=${g.id}`
+        }))
+      ];
+    }
+
     return [];
   };
-  
+
   const filtros = generarFiltrosContextuales();
-  
+
   const handleOrdenar = (orden: string) => {
     const params = new URLSearchParams(searchParams);
     if (orden) {
@@ -179,7 +152,7 @@ export default function Catalog() {
     }
     navigate(`/storefront/catalogo?${params.toString()}`);
   };
-  
+
   return (
     <div className="min-h-screen py-12">
       <div className="max-w-[1440px] mx-auto px-8">
@@ -190,7 +163,7 @@ export default function Catalog() {
             {state.productos.length} producto{state.productos.length !== 1 ? 's' : ''}
           </p>
         </div>
-        
+
         {/* Barra de filtros y ordenamiento */}
         <div className="mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
           {/* Filtros con chips */}
@@ -200,13 +173,13 @@ export default function Catalog() {
                 <FilterChip
                   key={f.key}
                   label={f.label}
-                  active={filtroActivo === f.key || (f.key === 'todos' && !filtroActivo)}
+                  active={filtroActivo === f.key || (f.key === 'todos' && filtroActivo === 'todos')}
                   onClick={() => navigate(f.url)}
                 />
               ))}
             </div>
           )}
-          
+
           {/* Ordenamiento */}
           <div className="flex items-center gap-2">
             <SlidersHorizontal size={18} className="text-gray-500" />
@@ -216,15 +189,15 @@ export default function Catalog() {
               className="border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
             >
               <option value="">Ordenar por</option>
-              <option value="precio-asc">Precio: Menor a Mayor</option>
-              <option value="precio-desc">Precio: Mayor a Menor</option>
-              <option value="nombre-asc">Nombre: A-Z</option>
-              <option value="nombre-desc">Nombre: Z-A</option>
-              <option value="mas-nuevo">Más Nuevos</option>
+              <option value="precio_asc">Precio: Menor a Mayor</option>
+              <option value="precio_desc">Precio: Mayor a Menor</option>
+              <option value="nombre_asc">Nombre: A-Z</option>
+              <option value="nombre_desc">Nombre: Z-A</option>
+              <option value="nuevo">Mas Nuevos</option>
             </select>
           </div>
         </div>
-        
+
         {/* Grid de productos */}
         <div ref={gridRef} className="opacity-0 translate-y-4 transition-all duration-700">
           <ProductGrid productos={state.productos} loading={state.productosLoading} />

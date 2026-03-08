@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { Heart, Trash2, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
-import { apiObtenerProductoPorId } from '../services/storefrontApi';
+import { apiObtenerProductosPorIds } from '../services/storefrontApi';
 import ProductCard from '../components/product/ProductCard';
 import type { ProductoStorefront } from '@monorepo/shared-types';
 
@@ -32,11 +32,10 @@ export default function Favorites() {
           return;
         }
 
-        // Cargar productos completos
-        const productosPromises = favoritosIds.map(id => apiObtenerProductoPorId(id));
-        const productos = await Promise.all(productosPromises);
+        // Cargar productos completos en una sola peticion batch
+        const productos = await apiObtenerProductosPorIds(favoritosIds);
         
-        setProductosCompletos(productos.filter(p => p !== null) as ProductoStorefront[]);
+        setProductosCompletos(productos);
       } catch (error) {
         console.error('Error al cargar favoritos:', error);
       } finally {

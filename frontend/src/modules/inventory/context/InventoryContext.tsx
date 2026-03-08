@@ -1,7 +1,7 @@
 /**
  * ============================================
  * INVENTORY CONTEXT - Refactorizado
- * Usa useReducer + Mock API
+ * Usa useReducer + Real API (inventoryRealApi)
  * ============================================
  */
 
@@ -17,7 +17,7 @@ import type {
   StockStats,
   AlertasStock,
 } from '../types/inventario';
-import { inventoryMockApi } from '../services/inventoryRealApi';
+import { inventoryApi } from '../services/inventoryRealApi';
 import { useAuth } from '../../auth/context/AuthContext';
 
 // ========== TIPOS DEL ESTADO ==========
@@ -161,7 +161,7 @@ export const InventoryProvider: React.FC<InventoryProviderProps> = ({ children }
       
       console.log('🔍 [InventoryContext] Fetching stock with filters:', filters);
       
-      const response = await inventoryMockApi.getStock(filters);
+      const response = await inventoryApi.getStock(filters);
       
       console.log('✅ [InventoryContext] Stock response:', response);
       
@@ -193,7 +193,7 @@ export const InventoryProvider: React.FC<InventoryProviderProps> = ({ children }
       
       console.log('🔍 [InventoryContext] Fetching kardex with filters:', filters);
       
-      const response = await inventoryMockApi.getKardex(filters);
+      const response = await inventoryApi.getKardex(filters);
       
       console.log('✅ [InventoryContext] Kardex response:', response);
       
@@ -224,7 +224,7 @@ export const InventoryProvider: React.FC<InventoryProviderProps> = ({ children }
       try {
         console.log('📝 [InventoryContext] Creating adjustment:', data);
         
-        const response = await inventoryMockApi.createAjuste(data);
+        const response = await inventoryApi.createAjuste(data);
         
         if (window.showToast) {
           window.showToast(response.message, 'success');
@@ -251,7 +251,7 @@ export const InventoryProvider: React.FC<InventoryProviderProps> = ({ children }
    */
   const fetchAlertas = useCallback(async () => {
     try {
-      const alertas = await inventoryMockApi.getAlertas();
+      const alertas = await inventoryApi.getAlertas();
       dispatch({ type: 'FETCH_ALERTAS_SUCCESS', payload: alertas });
     } catch (error) {
       // No afectar el estado global de error

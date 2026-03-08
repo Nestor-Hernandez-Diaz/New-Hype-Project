@@ -1,38 +1,103 @@
-// @ts-nocheck
 /**
  * SERVICIO: Recepciones de Compra (Purchase Receipts)
  * Maneja todas las operaciones relacionadas con recepciones de órdenes de compra
- * Endpoints: http://localhost:3001/api/compras/recepciones
+ * Incluye mapeo bidireccional backend ↔ frontend
  */
 
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import type {
   PurchaseReceipt,
+  PurchaseReceiptItem,
   CreatePurchaseReceiptDto,
   ConfirmReceiptDto,
   FilterPurchaseReceiptDto,
   PaginatedResponse,
   ApiResponse,
+  PurchaseReceiptStatus,
 } from '../types/purchases.types';
 
-// Configuración dinámica de la API
 const getApiBaseUrl = (): string => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-
-  const currentHost = window.location.hostname;
-  const apiPort = 3001;
-
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return `http://localhost:${apiPort}/api`;
-  }
-
-  return `http://${currentHost}:${apiPort}/api`;
+  return import.meta.env.VITE_API_URL || 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
+
+// ==================== MAPEO BACKEND → FRONTEND ====================
+
+function mapBackendReceiptItem(item: any): PurchaseReceiptItem {
+  return {
+    id: String(item.id),
+    productoId: String(item.productoId),
+    producto: item.productoNombre ? {
+      id: String(item.productoId),
+      codigo: '',
+      nombre: item.productoNombre,
+    } : undefined,
+    ordenCompraItemId: String(item.detalleOrdenCompraId || ''),
+    ordenCompraItem: item.cantidadOrdenada != null ? {
+      cantidadOrdenada: item.cantidadOrdenada,
+      cantidadRecibida: item.cantidadRecibidaOC || 0,
+      cantidadPendiente: item.cantidadPendiente || 0,
+    } : undefined,
+    cantidadRecibida: item.cantidadRecibida || 0,
+    cantidadAceptada: item.cantidadAceptada || 0,
+    cantidadRechazada: item.cantidadRechazada || 0,
+    observaciones: item.observaciones,
+  };
+}
+
+function mapBackendReceipt(data: any): PurchaseReceipt {
+  return {
+    id: String(data.id),
+    codigo: data.codigo,
+    ordenCompraId: String(data.ordenCompraId),
+    ordenCompra: data.ordenCompraCodigo ? {
+      codigo: data.ordenCompraCodigo,
+      estado: data.ordenCompraEstado || undefined,
+      proveedor: data.proveedorNombre ? {
+        razonSocial: data.proveedorNombre,
+      } : undefined,
+    } as any : undefined,
+    almacenId: String(data.almacenId || ''),
+    almacen: data.almacenNombre ? {
+      id: String(data.almacenId),
+      codigo: '',
+      nombre: data.almacenNombre,
+    } : undefined,
+    fechaRecepcion: data.fechaRecepcion,
+    fecha: data.fechaRecepcion,
+    estado: data.estado as PurchaseReceiptStatus,
+    observaciones: data.observaciones,
+    recibidoPorId: String(data.recibidoPorId || ''),
+    guiaRemision: data.guiaRemision,
+    esRecepcionCompleta: data.esRecepcionCompleta,
+    cantidadItems: data.cantidadItems || 0,
+    items: (data.detalles || []).map(mapBackendReceiptItem),
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt || data.createdAt,
+  } as PurchaseReceipt;
+}
+
+/**
+ * Mapea request de creación de recepción al formato del backend
+ */
+function mapCreateReceiptRequest(data: CreatePurchaseReceiptDto): any {
+  return {
+    ordenCompraId: Number(data.ordenCompraId),
+    guiaRemision: data.guiaRemision || undefined,
+    observaciones: data.observaciones || undefined,
+    items: (data.items || []).map(item => ({
+      detalleOrdenCompraId: Number(item.ordenCompraItemId),
+      productoId: Number(item.productoId),
+      cantidadRecibida: item.cantidadRecibida,
+      cantidadAceptada: item.cantidadAceptada,
+      cantidadRechazada: item.cantidadRechazada || 0,
+      motivoRechazo: item.motivoRechazo || undefined,
+      observaciones: item.observaciones || undefined,
+    })),
+  };
+}
 
 /**
  * Clase de servicio para gestión de recepciones de compra
@@ -47,7 +112,7 @@ class PurchaseReceiptService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 30000, // 30 segundos
+      timeout: 30000,
     });
 
     // Interceptor para agregar token de autenticación
@@ -68,7 +133,6 @@ class PurchaseReceiptService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        // Si es 401, limpiar token y redirigir al login
         if (error.response?.status === 401) {
           localStorage.removeItem('authToken');
           localStorage.removeItem('alexatech_token');
@@ -81,8 +145,7 @@ class PurchaseReceiptService {
   }
 
   /**
-   * 1. Obtener listado de recepciones con filtros y paginación
-   * GET /api/compras/recepciones
+   * Obtener listado de recepciones con filtros y paginación
    */
   async getPurchaseReceipts(
     filters?: FilterPurchaseReceiptDto
@@ -90,19 +153,27 @@ class PurchaseReceiptService {
     try {
       const params = new URLSearchParams();
 
-      if (filters?.page) params.append('page', filters.page.toString());
-      if (filters?.limit) params.append('limit', filters.limit.toString());
+      if (filters?.page) params.append('page', String(Math.max(0, filters.page - 1)));
+      if (filters?.limit) params.append('size', filters.limit.toString());
       if (filters?.estado) params.append('estado', filters.estado);
       if (filters?.ordenCompraId) params.append('ordenCompraId', filters.ordenCompraId);
-      if (filters?.fechaInicio) params.append('fechaInicio', filters.fechaInicio);
-      if (filters?.fechaFin) params.append('fechaFin', filters.fechaFin);
-      if (filters?.search) params.append('search', filters.search);
 
-      const response = await this.api.get<PaginatedResponse<PurchaseReceipt>>(
-        `${this.baseEndpoint}?${params.toString()}`
-      );
+      const response = await this.api.get(`${this.baseEndpoint}?${params.toString()}`);
+      const raw = response.data;
 
-      return response.data;
+      const data = (raw.data || []).map(mapBackendReceipt);
+      const pagination = raw.pagination || {};
+
+      return {
+        success: true,
+        data,
+        pagination: {
+          total: pagination.totalElements || data.length,
+          page: (pagination.page || 0) + 1,
+          limit: pagination.size || filters?.limit || 20,
+          totalPages: pagination.totalPages || 1,
+        },
+      };
     } catch (error: any) {
       console.error('Error fetching purchase receipts:', error);
       throw this.handleError(error);
@@ -110,15 +181,18 @@ class PurchaseReceiptService {
   }
 
   /**
-   * 2. Obtener una recepción por ID
-   * GET /api/compras/recepciones/:id
+   * Obtener una recepción por ID
    */
   async getPurchaseReceiptById(id: string): Promise<ApiResponse<PurchaseReceipt>> {
     try {
-      const response = await this.api.get<ApiResponse<PurchaseReceipt>>(
-        `${this.baseEndpoint}/${id}`
-      );
-      return response.data;
+      const response = await this.api.get(`${this.baseEndpoint}/${id}`);
+      const raw = response.data;
+
+      return {
+        success: true,
+        data: mapBackendReceipt(raw.data),
+        message: raw.message,
+      };
     } catch (error: any) {
       console.error(`Error fetching purchase receipt ${id}:`, error);
       throw this.handleError(error);
@@ -126,18 +200,21 @@ class PurchaseReceiptService {
   }
 
   /**
-   * 3. Crear nueva recepción de compra
-   * POST /api/compras/recepciones
+   * Crear nueva recepción de compra
    */
   async createPurchaseReceipt(
     data: CreatePurchaseReceiptDto
   ): Promise<ApiResponse<PurchaseReceipt>> {
     try {
-      const response = await this.api.post<ApiResponse<PurchaseReceipt>>(
-        this.baseEndpoint,
-        data
-      );
-      return response.data;
+      const backendData = mapCreateReceiptRequest(data);
+      const response = await this.api.post(this.baseEndpoint, backendData);
+      const raw = response.data;
+
+      return {
+        success: true,
+        data: mapBackendReceipt(raw.data),
+        message: raw.message,
+      };
     } catch (error: any) {
       console.error('Error creating purchase receipt:', error);
       throw this.handleError(error);
@@ -145,19 +222,21 @@ class PurchaseReceiptService {
   }
 
   /**
-   * 4. Confirmar recepción (actualiza inventario)
-   * PATCH /api/compras/recepciones/:id/confirmar
+   * Confirmar recepción (actualiza inventario: stock + kardex)
    */
   async confirmPurchaseReceipt(
     id: string,
-    data?: ConfirmReceiptDto
+    _data?: ConfirmReceiptDto
   ): Promise<ApiResponse<PurchaseReceipt>> {
     try {
-      const response = await this.api.patch<ApiResponse<PurchaseReceipt>>(
-        `${this.baseEndpoint}/${id}/confirmar`,
-        data || { items: [] }
-      );
-      return response.data;
+      const response = await this.api.patch(`${this.baseEndpoint}/${id}/confirmar`);
+      const raw = response.data;
+
+      return {
+        success: true,
+        data: mapBackendReceipt(raw.data),
+        message: raw.message,
+      };
     } catch (error: any) {
       console.error(`Error confirming purchase receipt ${id}:`, error);
       throw this.handleError(error);
@@ -165,19 +244,24 @@ class PurchaseReceiptService {
   }
 
   /**
-   * 5. Anular recepción
-   * PATCH /api/compras/recepciones/:id/anular
+   * Anular recepción (solo PENDIENTE)
    */
   async cancelPurchaseReceipt(
     id: string,
     motivo?: string
   ): Promise<ApiResponse<PurchaseReceipt>> {
     try {
-      const response = await this.api.patch<ApiResponse<PurchaseReceipt>>(
+      const response = await this.api.patch(
         `${this.baseEndpoint}/${id}/anular`,
         { motivo }
       );
-      return response.data;
+      const raw = response.data;
+
+      return {
+        success: true,
+        data: mapBackendReceipt(raw.data),
+        message: raw.message,
+      };
     } catch (error: any) {
       console.error(`Error canceling purchase receipt ${id}:`, error);
       throw this.handleError(error);
@@ -185,45 +269,7 @@ class PurchaseReceiptService {
   }
 
   /**
-   * 6. Exportar recepción a PDF
-   * GET /api/compras/recepciones/:id/pdf
-   */
-  async exportToPDF(id: string): Promise<Blob> {
-    try {
-      const response = await this.api.get(`${this.baseEndpoint}/${id}/pdf`, {
-        responseType: 'blob',
-      });
-
-      return new Blob([response.data], { type: 'application/pdf' });
-    } catch (error: any) {
-      console.error(`Error exporting purchase receipt ${id} to PDF:`, error);
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Método auxiliar para descargar el PDF generado
-   */
-  async downloadPDF(id: string, filename?: string): Promise<void> {
-    try {
-      const blob = await this.exportToPDF(id);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename || `recepcion-compra-${id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      console.error(`Error downloading purchase receipt PDF ${id}:`, error);
-      throw this.handleError(error);
-    }
-  }
-
-  /**
    * Obtener recepciones pendientes de una orden de compra
-   * Método auxiliar útil para UI
    */
   async getPendingReceiptsByOrderId(
     ordenCompraId: string
@@ -241,18 +287,51 @@ class PurchaseReceiptService {
   }
 
   /**
+   * Exportar recepción de compra como documento HTML
+   */
+  async exportToPDF(id: string): Promise<Blob> {
+    try {
+      const response = await this.api.get(`${this.baseEndpoint}/${id}/pdf`, {
+        responseType: 'blob',
+      });
+
+      return new Blob([response.data], { type: 'text/html' });
+    } catch (error: any) {
+      console.error(`Error exporting purchase receipt ${id} to PDF:`, error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Descargar documento de recepción de compra
+   */
+  async downloadPDF(id: string, filename?: string): Promise<void> {
+    try {
+      const blob = await this.exportToPDF(id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename || `recepcion-compra-${id}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error(`Error downloading purchase receipt PDF ${id}:`, error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * Manejo centralizado de errores
    */
   private handleError(error: any): Error {
     if (error.response) {
-      // Error de respuesta del servidor (4xx, 5xx)
       const message = error.response.data?.message || error.response.data?.error || 'Error en la operación';
       return new Error(`${message} (Status: ${error.response.status})`);
     } else if (error.request) {
-      // Error de red (sin respuesta)
       return new Error('No se pudo conectar con el servidor. Verifica tu conexión.');
     } else {
-      // Error en la configuración de la petición
       return new Error(error.message || 'Error desconocido');
     }
   }

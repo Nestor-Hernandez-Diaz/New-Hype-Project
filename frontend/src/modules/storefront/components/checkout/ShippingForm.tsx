@@ -1,18 +1,7 @@
-/**
- * 📦 FORMULARIO DE ENVÍO
- * 
- * Formulario para capturar datos de envío (domicilio o tienda).
- * 
- * @example
- * <ShippingForm
- *   formData={formData}
- *   tipoEnvio="domicilio"
- *   onChange={handleChange}
- *   onTipoEnvioChange={setTipoEnvio}
- * />
- */
-
+import { useState, useEffect } from 'react';
 import { MapPin, Store } from 'lucide-react';
+import { apiObtenerDepartamentos, apiObtenerProvincias, apiObtenerDistritos } from '../../services/storefrontApi';
+import type { UbigeoItem } from '../../services/storefrontApi';
 
 type TipoEnvio = 'domicilio' | 'tienda';
 
@@ -29,40 +18,122 @@ interface FormData {
 }
 
 interface ShippingFormProps {
-  /**
-   * Datos del formulario
-   */
   formData: FormData;
-  
-  /**
-   * Tipo de envío seleccionado
-   */
   tipoEnvio: TipoEnvio;
-  
-  /**
-   * Callback cuando cambia un campo
-   */
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  
-  /**
-   * Callback cuando cambia el tipo de envío
-   */
   onTipoEnvioChange: (tipo: TipoEnvio) => void;
 }
 
-export default function ShippingForm({ 
-  formData, 
-  tipoEnvio, 
-  onChange, 
-  onTipoEnvioChange 
+export default function ShippingForm({
+  formData,
+  tipoEnvio,
+  onChange,
+  onTipoEnvioChange
 }: ShippingFormProps) {
-  
+  const [departamentos, setDepartamentos] = useState<UbigeoItem[]>([]);
+  const [provincias, setProvincias] = useState<UbigeoItem[]>([]);
+  const [distritos, setDistritos] = useState<UbigeoItem[]>([]);
+  const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
+  const [selectedProvId, setSelectedProvId] = useState<number | null>(null);
+  const [cargandoDepts, setCargandoDepts] = useState(false);
+  const [cargandoProvs, setCargandoProvs] = useState(false);
+  const [cargandoDists, setCargandoDists] = useState(false);
+
+  // Load departments on mount
+  useEffect(() => {
+    setCargandoDepts(true);
+    apiObtenerDepartamentos()
+      .then(setDepartamentos)
+      .catch(() => setDepartamentos([]))
+      .finally(() => setCargandoDepts(false));
+  }, []);
+
+  // Load provinces when department changes
+  useEffect(() => {
+    if (!selectedDeptId) {
+      setProvincias([]);
+      setDistritos([]);
+      return;
+    }
+    setCargandoProvs(true);
+    apiObtenerProvincias(selectedDeptId)
+      .then(setProvincias)
+      .catch(() => setProvincias([]))
+      .finally(() => setCargandoProvs(false));
+    setSelectedProvId(null);
+    setDistritos([]);
+  }, [selectedDeptId]);
+
+  // Load districts when province changes
+  useEffect(() => {
+    if (!selectedProvId) {
+      setDistritos([]);
+      return;
+    }
+    setCargandoDists(true);
+    apiObtenerDistritos(selectedProvId)
+      .then(setDistritos)
+      .catch(() => setDistritos([]))
+      .finally(() => setCargandoDists(false));
+  }, [selectedProvId]);
+
+  // Handle department select change
+  const handleDepartamentoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const deptId = e.target.value ? Number(e.target.value) : null;
+    const dept = departamentos.find(d => d.id === deptId);
+    setSelectedDeptId(deptId);
+
+    // Create synthetic event with the department name as value
+    const syntheticEvent = {
+      ...e,
+      target: { ...e.target, name: 'departamento', value: dept?.nombre || '' }
+    } as React.ChangeEvent<HTMLSelectElement>;
+    onChange(syntheticEvent);
+
+    // Clear provincia and distrito
+    const clearProv = { ...e, target: { ...e.target, name: 'provincia', value: '' } } as React.ChangeEvent<HTMLSelectElement>;
+    const clearDist = { ...e, target: { ...e.target, name: 'distrito', value: '' } } as React.ChangeEvent<HTMLSelectElement>;
+    onChange(clearProv);
+    onChange(clearDist);
+  };
+
+  // Handle province select change
+  const handleProvinciaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const provId = e.target.value ? Number(e.target.value) : null;
+    const prov = provincias.find(p => p.id === provId);
+    setSelectedProvId(provId);
+
+    const syntheticEvent = {
+      ...e,
+      target: { ...e.target, name: 'provincia', value: prov?.nombre || '' }
+    } as React.ChangeEvent<HTMLSelectElement>;
+    onChange(syntheticEvent);
+
+    // Clear distrito
+    const clearDist = { ...e, target: { ...e.target, name: 'distrito', value: '' } } as React.ChangeEvent<HTMLSelectElement>;
+    onChange(clearDist);
+  };
+
+  // Handle district select change
+  const handleDistritoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const distId = e.target.value ? Number(e.target.value) : null;
+    const dist = distritos.find(d => d.id === distId);
+
+    const syntheticEvent = {
+      ...e,
+      target: { ...e.target, name: 'distrito', value: dist?.nombre || '' }
+    } as React.ChangeEvent<HTMLSelectElement>;
+    onChange(syntheticEvent);
+  };
+
+  const selectClass = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none";
+  const inputClass = selectClass;
+
   return (
     <div className="space-y-6">
-      {/* Título */}
-      <h2 className="text-2xl font-bold">Información de envío</h2>
-      
-      {/* Tipo de Envío */}
+      <h2 className="text-2xl font-bold">Informacion de envio</h2>
+
+      {/* Tipo de Envio */}
       <div className="grid grid-cols-2 gap-4">
         <button
           type="button"
@@ -77,10 +148,10 @@ export default function ShippingForm({
           `}
         >
           <MapPin size={24} />
-          <span className="font-semibold">Envío a domicilio</span>
-          <span className="text-xs text-gray-600">S/ 9.90 • Gratis + S/150</span>
+          <span className="font-semibold">Envio a domicilio</span>
+          <span className="text-xs text-gray-600">S/ 9.90 | Gratis desde S/150</span>
         </button>
-        
+
         <button
           type="button"
           onClick={() => onTipoEnvioChange('tienda')}
@@ -98,7 +169,7 @@ export default function ShippingForm({
           <span className="text-xs text-gray-600">Gratis</span>
         </button>
       </div>
-      
+
       {/* Datos Personales */}
       <div className="grid md:grid-cols-2 gap-4">
         <div>
@@ -109,11 +180,11 @@ export default function ShippingForm({
             value={formData.nombre}
             onChange={onChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none"
+            className={inputClass}
             placeholder="Tu nombre"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">Apellido *</label>
           <input
@@ -122,12 +193,12 @@ export default function ShippingForm({
             value={formData.apellido}
             onChange={onChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none"
+            className={inputClass}
             placeholder="Tu apellido"
           />
         </div>
       </div>
-      
+
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-2">Email *</label>
@@ -137,41 +208,41 @@ export default function ShippingForm({
             value={formData.email}
             onChange={onChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none"
+            className={inputClass}
             placeholder="tu@email.com"
           />
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium mb-2">Teléfono *</label>
+          <label className="block text-sm font-medium mb-2">Telefono *</label>
           <input
             type="tel"
             name="telefono"
             value={formData.telefono}
             onChange={onChange}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none"
+            className={inputClass}
             placeholder="999 999 999"
           />
         </div>
       </div>
-      
-      {/* Datos de Dirección (solo si es envío a domicilio) */}
+
+      {/* Datos de Direccion (solo si es envio a domicilio) */}
       {tipoEnvio === 'domicilio' && (
         <>
           <div>
-            <label className="block text-sm font-medium mb-2">Dirección *</label>
+            <label className="block text-sm font-medium mb-2">Direccion *</label>
             <input
               type="text"
               name="direccion"
               value={formData.direccion}
               onChange={onChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none"
+              className={inputClass}
               placeholder="Av. Principal 123, Dpto. 456"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium mb-2">Referencia</label>
             <textarea
@@ -179,53 +250,62 @@ export default function ShippingForm({
               value={formData.referencia}
               onChange={onChange}
               rows={2}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none resize-none"
-              placeholder="Ej: Casa amarilla con portón negro, al frente del parque"
+              className={`${inputClass} resize-none`}
+              placeholder="Ej: Casa amarilla con porton negro, al frente del parque"
             />
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Departamento *</label>
               <select
-                name="departamento"
-                value={formData.departamento}
-                onChange={onChange}
+                value={selectedDeptId ?? ''}
+                onChange={handleDepartamentoChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none"
+                className={selectClass}
+                disabled={cargandoDepts}
               >
-                <option value="">Seleccionar</option>
-                <option value="Lima">Lima</option>
-                <option value="Arequipa">Arequipa</option>
-                <option value="Cusco">Cusco</option>
-                <option value="La Libertad">La Libertad</option>
+                <option value="">{cargandoDepts ? 'Cargando...' : 'Seleccionar'}</option>
+                {departamentos.map(d => (
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
+                ))}
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2">Provincia *</label>
-              <input
-                type="text"
-                name="provincia"
-                value={formData.provincia}
-                onChange={onChange}
+              <select
+                value={selectedProvId ?? ''}
+                onChange={handleProvinciaChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none"
-                placeholder="Provincia"
-              />
+                className={selectClass}
+                disabled={!selectedDeptId || cargandoProvs}
+              >
+                <option value="">
+                  {cargandoProvs ? 'Cargando...' : !selectedDeptId ? 'Seleccione departamento' : 'Seleccionar'}
+                </option>
+                {provincias.map(p => (
+                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                ))}
+              </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2">Distrito *</label>
-              <input
-                type="text"
-                name="distrito"
-                value={formData.distrito}
-                onChange={onChange}
+              <select
+                value={distritos.find(d => d.nombre === formData.distrito)?.id ?? ''}
+                onChange={handleDistritoChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none"
-                placeholder="Distrito"
-              />
+                className={selectClass}
+                disabled={!selectedProvId || cargandoDists}
+              >
+                <option value="">
+                  {cargandoDists ? 'Cargando...' : !selectedProvId ? 'Seleccione provincia' : 'Seleccionar'}
+                </option>
+                {distritos.map(d => (
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
+                ))}
+              </select>
             </div>
           </div>
         </>

@@ -23,6 +23,21 @@ export interface AlmacenFormData {
   capacidad?: number;
 }
 
+/** Map backend response (estado) to frontend interface (activo) */
+function mapAlmacenResponse(raw: any): Almacen {
+  return {
+    id: String(raw.id),
+    codigo: raw.codigo,
+    nombre: raw.nombre,
+    ubicacion: raw.ubicacion || null,
+    capacidad: raw.capacidad ?? null,
+    activo: raw.estado ?? raw.activo ?? true,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+    _count: raw._count || undefined,
+  };
+}
+
 class AlmacenesApiService {
   /**
    * Obtener todos los almacenes
@@ -36,17 +51,16 @@ class AlmacenesApiService {
 
       const queryString = queryParams.toString();
       const endpoint = queryString ? `/almacenes?${queryString}` : '/almacenes';
-      const response: ApiResponse<Almacen[]> = await apiService.get(endpoint);
+      const response: ApiResponse<any[]> = await apiService.get(endpoint);
 
       // Backend puede retornar data como array directo o con wrapper
+      let rawItems: any[] = [];
       if (Array.isArray(response.data)) {
-        return response.data;
+        rawItems = response.data;
+      } else if (response.data && (response.data as any).rows) {
+        rawItems = (response.data as any).rows;
       }
-      // Compatibilidad con formato {rows: [...]}
-      if (response.data && (response.data as any).rows) {
-        return (response.data as any).rows;
-      }
-      return response.data || [];
+      return rawItems.map(mapAlmacenResponse);
     } catch (error: any) {
       console.error('Error fetching almacenes:', error);
       throw new Error(error.message || 'Error al cargar almacenes');

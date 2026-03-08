@@ -12,18 +12,7 @@ import type {
 
 // Configuración dinámica de la API
 const getApiBaseUrl = (): string => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  const currentHost = window.location.hostname;
-  const apiPort = 3001;
-  
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return `http://localhost:${apiPort}/api`;
-  }
-  
-  return `http://${currentHost}:${apiPort}/api`;
+  return import.meta.env.VITE_API_URL || 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1';
 };
 
 class InventarioApiService {
@@ -189,11 +178,25 @@ class InventarioApiService {
    */
   async searchProducts(query: string): Promise<{ id: string; codigo: string; nombre: string }[]> {
     try {
-      const response: AxiosResponse<{ success: boolean; data: { id: string; codigo: string; nombre: string }[] }> = 
-        await this.api.get(`/productos/search?q=${encodeURIComponent(query)}`);
+      const response: AxiosResponse<{ success: boolean; data: any }> =
+        await this.api.get(`/productos/buscar?q=${encodeURIComponent(query)}&size=10`);
 
-      // El backend envuelve la respuesta en { success, data, message }
-      return response.data.data || [];
+      // El backend returns paginated data with content array
+      const rawData = response.data.data;
+      let items: any[] = [];
+      if (Array.isArray(rawData)) {
+        items = rawData;
+      } else if (rawData?.content) {
+        items = rawData.content;
+      } else if (rawData?.rows) {
+        items = rawData.rows;
+      }
+
+      return items.map((p: any) => ({
+        id: String(p.id),
+        codigo: p.sku || '',
+        nombre: p.nombre,
+      }));
     } catch (error) {
       console.error('Error searching products:', error);
       return [];

@@ -18,6 +18,8 @@ public interface ProductoRepository extends JpaRepository<Producto, Long>, JpaSp
 
     Page<Producto> findByTenantIdAndEstadoTrue(Long tenantId, Pageable pageable);
 
+    List<Producto> findByTenantIdAndSlugAndEstadoTrue(Long tenantId, String slug);
+
     Optional<Producto> findByIdAndTenantId(Long id, Long tenantId);
 
     boolean existsByTenantIdAndSku(Long tenantId, String sku);

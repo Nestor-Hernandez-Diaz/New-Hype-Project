@@ -4,27 +4,36 @@ import com.newhype.backend.dto.configuracion.*;
 import com.newhype.backend.entity.Almacen;
 import com.newhype.backend.exception.ResourceNotFoundException;
 import com.newhype.backend.repository.AlmacenRepository;
+import com.newhype.backend.repository.MovimientoInventarioRepository;
+import com.newhype.backend.repository.StockAlmacenRepository;
 import com.newhype.backend.security.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 public class AlmacenService {
 
     private final AlmacenRepository almacenRepository;
+    private final StockAlmacenRepository stockAlmacenRepository;
+    private final MovimientoInventarioRepository movimientoInventarioRepository;
 
-    public AlmacenService(AlmacenRepository almacenRepository) {
+    public AlmacenService(AlmacenRepository almacenRepository,
+                          StockAlmacenRepository stockAlmacenRepository,
+                          MovimientoInventarioRepository movimientoInventarioRepository) {
         this.almacenRepository = almacenRepository;
+        this.stockAlmacenRepository = stockAlmacenRepository;
+        this.movimientoInventarioRepository = movimientoInventarioRepository;
     }
 
     @Transactional(readOnly = true)
     public List<AlmacenResponse> listar() {
         Long tenantId = TenantContext.getCurrentTenantId();
         return almacenRepository.findByTenantId(tenantId).stream()
-                .map(this::toResponse).collect(Collectors.toList());
+                .map(a -> toResponse(a, tenantId)).collect(Collectors.toList());
     }
 
     @Transactional
@@ -44,7 +53,7 @@ public class AlmacenService {
                 .build();
 
         almacen = almacenRepository.save(almacen);
-        return toResponse(almacen);
+        return toResponse(almacen, tenantId);
     }
 
     @Transactional
@@ -65,7 +74,7 @@ public class AlmacenService {
         if (request.getCapacidad() != null) almacen.setCapacidad(request.getCapacidad());
 
         almacen = almacenRepository.save(almacen);
-        return toResponse(almacen);
+        return toResponse(almacen, tenantId);
     }
 
     @Transactional
@@ -77,10 +86,13 @@ public class AlmacenService {
 
         almacen.setEstado(!almacen.getEstado());
         almacen = almacenRepository.save(almacen);
-        return toResponse(almacen);
+        return toResponse(almacen, tenantId);
     }
 
-    private AlmacenResponse toResponse(Almacen a) {
+    private AlmacenResponse toResponse(Almacen a, Long tenantId) {
+        long stockCount = stockAlmacenRepository.countByTenantIdAndAlmacenId(tenantId, a.getId());
+        long movCount = movimientoInventarioRepository.countByTenantIdAndAlmacenId(tenantId, a.getId());
+
         return AlmacenResponse.builder()
                 .id(a.getId())
                 .codigo(a.getCodigo())
@@ -90,6 +102,7 @@ public class AlmacenService {
                 .estado(a.getEstado())
                 .createdAt(a.getCreatedAt())
                 .updatedAt(a.getUpdatedAt())
+                .count(Map.of("stockByWarehouses", stockCount, "inventoryMovements", movCount))
                 .build();
     }
 }

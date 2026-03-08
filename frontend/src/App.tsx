@@ -42,7 +42,7 @@ const RealizarVenta = lazy(() => import('./modules/sales/pages/RealizarVenta'));
 const ListaVentas = lazy(() => import('./modules/sales/pages/ListaVentas'));
 const DetalleVenta = lazy(() => import('./modules/sales/pages/DetalleVenta'));
 const Cotizaciones = lazy(() => import('./modules/sales/pages/Cotizaciones'));
-const AsistenteVentas = lazy(() => import('./modules/sales/pages/AsistenteVentas'));
+
 const ListaUsuarios = lazy(() => import('./modules/users/pages/ListaUsuarios'));
 const CrearUsuario = lazy(() => import('./modules/users/pages/CrearUsuario'));
 const EditarUsuario = lazy(() => import('./modules/users/pages/EditarUsuario'));
@@ -89,6 +89,7 @@ const StorefrontSizeGuide = lazy(() => import('./modules/storefront/pages/SizeGu
 const StorefrontContact = lazy(() => import('./modules/storefront/pages/Contact'));
 const StorefrontTrackOrder = lazy(() => import('./modules/storefront/pages/TrackOrder'));
 const StorefrontReturns = lazy(() => import('./modules/storefront/pages/Returns'));
+const StorefrontReturnPolicy = lazy(() => import('./modules/storefront/pages/ReturnPolicy'));
 
 // Componente interno para manejar el modal
 const AppContent = () => {
@@ -164,6 +165,7 @@ function App() {
                                   <Route path="contacto" element={<StorefrontContact />} />
                                   <Route path="seguir-pedido" element={<StorefrontTrackOrder />} />
                                   <Route path="devolucion/:pedidoId" element={<StorefrontReturns />} />
+                                  <Route path="devoluciones" element={<StorefrontReturnPolicy />} />
                                   <Route path="cuenta/login" element={<StorefrontLogin />} />
                                   <Route path="cuenta/registro" element={<StorefrontRegister />} />
                                   <Route path="cuenta/perfil" element={<StorefrontProfile />} />
@@ -236,11 +238,6 @@ function App() {
                     <Route path="/ventas/cotizaciones" element={
                       <ProtectedRoute requiredPermission="sales.create">
                         <Cotizaciones />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/ventas/asistente-ia" element={
-                      <ProtectedRoute requiredPermission="sales.create">
-                        <AsistenteVentas />
                       </ProtectedRoute>
                     } />
                     <Route path="/usuarios" element={

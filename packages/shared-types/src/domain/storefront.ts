@@ -160,10 +160,16 @@ export interface ProductoStorefront {
   materialNombre?: string;
   genero?: Genero;
   generoNombre?: string;
+  tallaNombre?: string;
+  colorNombre?: string;
+  unidadNombre?: string;
   
   // Variantes disponibles
   tallasDisponibles?: number[]; // IDs de tallas
   coloresDisponibles?: number[]; // IDs de colores
+
+  // Detalle de variantes (solo en página de detalle, no en listados)
+  variantes?: VarianteStorefront[];
 }
 
 /**
@@ -189,6 +195,25 @@ export interface VarianteProducto {
   stockActual: number;
   stockReservado: number;
   stockDisponible: number;
+}
+
+/**
+ * Info de variante para el storefront (devuelta por el endpoint de detalle).
+ * Cada variante = una fila de productos con una combinación talla+color específica.
+ */
+export interface VarianteStorefront {
+  id: number;           // productos.id de esta variante específica
+  sku: string;
+  tallaId: number;
+  tallaNombre: string;
+  colorId: number;
+  colorNombre: string;
+  colorHex?: string;
+  stock: number;        // stock disponible para esta variante
+  disponible: boolean;
+  imagenUrl?: string | null;
+  imagenes?: string[];
+  precioVenta: number;
 }
 
 // ============================================================================
@@ -310,9 +335,10 @@ export interface FiltrosProductos {
   precioMin?: number;
   precioMax?: number;
   soloLiquidacion?: boolean;
+  soloConStock?: boolean;
   soloNuevos?: boolean;
   tipoSeccion?: 'ropa' | 'accesorios' | 'calzado';
-  ordenarPor?: 'precio_asc' | 'precio_desc' | 'nuevo' | 'popular';
+  ordenarPor?: 'precio_asc' | 'precio_desc' | 'nombre_asc' | 'nombre_desc' | 'nuevo' | 'popular';
   talla?: number;
   color?: number;
 }

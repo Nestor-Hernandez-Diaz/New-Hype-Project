@@ -33,29 +33,29 @@ public class Producto {
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
-    @Column(name = "categoria_id")
+    @Column(name = "categoria_id", nullable = false)
     private Long categoriaId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categoria_id", insertable = false, updatable = false)
     private Categoria categoria;
 
-    @Column(name = "talla_id")
+    @Column(name = "talla_id", nullable = false)
     private Long tallaId;
 
-    @Column(name = "color_id")
+    @Column(name = "color_id", nullable = false)
     private Long colorId;
 
-    @Column(name = "marca_id")
+    @Column(name = "marca_id", nullable = false)
     private Long marcaId;
 
-    @Column(name = "material_id")
+    @Column(name = "material_id", nullable = false)
     private Long materialId;
 
-    @Column(name = "genero_id")
+    @Column(name = "genero_id", nullable = false)
     private Long generoId;
 
-    @Column(name = "unidad_medida_id")
+    @Column(name = "unidad_medida_id", nullable = false)
     private Long unidadMedidaId;
 
     @Column(name = "codigo_barras", length = 20)

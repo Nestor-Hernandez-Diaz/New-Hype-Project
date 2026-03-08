@@ -604,7 +604,7 @@ const PurchaseReceiptList: React.FC<PurchaseReceiptListProps> = ({
                     )}
                   </SharedTd>
                   <SharedTd data-label="Items">
-                    {receipt.items.length} productos
+                    {(receipt.items?.length || receipt.cantidadItems || 0)} productos
                     {receipt.estado === 'PENDIENTE' && (
                       <span style={{ marginLeft: '8px', fontSize: '0.85em', color: isReceiptComplete(receipt) ? '#10b981' : '#f59e0b' }}>
                         {isReceiptComplete(receipt) ? '✓ Completa' : '⚠ Incompleta'}

@@ -20,4 +20,7 @@ public class DetalleRecepcionResponse {
     private Integer cantidadRechazada;
     private String motivoRechazo;
     private String observaciones;
+    private Integer cantidadOrdenada;
+    private Integer cantidadRecibidaOC;
+    private Integer cantidadPendiente;
 }

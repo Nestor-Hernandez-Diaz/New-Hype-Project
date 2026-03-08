@@ -12,7 +12,7 @@ import { useSales, type CreateSaleInput } from '../context/SalesContext';
 import { useQuotes } from '../context/QuotesContext';
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../auth/context/AuthContext';
-import { tokenUtils, apiService } from '../../../utils/api';
+import { apiService } from '../../../utils/api';
 import { useConfiguracion } from '../../configuration/context/ConfiguracionContext';
 import type { ComprobanteData, MetodoPagoData } from '../../configuration/services/configuracionApi';
 import { PaymentProcessModal, type PaymentConfirmData } from '../components/PaymentProcessModal';
@@ -702,6 +702,7 @@ const RealizarVenta: React.FC = () => {
     createSale,
     confirmPayment, // 🆕
     downloadInvoice,
+    previewInvoice,
     loading: salesLoading,
   } = useSales();
   const { createQuote, updateQuoteStatus } = useQuotes(); // ✅ Usar updateQuoteStatus
@@ -1118,7 +1119,7 @@ const RealizarVenta: React.FC = () => {
   // Convertir proveedor a "Ambos" para poder realizar venta
   const handleConvertProviderToAmbos = async (client: Client) => {
     try {
-      await updateClient(client.id, { tipoEntidad: 'Ambos' as any });
+      await updateClient(client.id, { tipoEntidad: 'Ambos' as any, tipoDocumento: client.tipoDocumento, numeroDocumento: client.numeroDocumento });
       addNotification('success', 'Proveedor convertido', `${client.razonSocial || client.nombres} ahora es Cliente/Proveedor`);
       // Recargar clientes para actualizar la lista
       await loadClients();
@@ -1184,6 +1185,12 @@ const RealizarVenta: React.FC = () => {
 
     if (cart.length === 0) {
       addNotification('warning', 'Carrito Vacío', 'Agrega productos al carrito antes de procesar la venta');
+      return;
+    }
+
+    // Validar cliente obligatorio (no permitir "Cliente General")
+    if (!selectedClient) {
+      addNotification('error', 'Cliente Requerido', 'Debe seleccionar o crear un cliente antes de procesar la venta');
       return;
     }
 
@@ -1253,6 +1260,11 @@ const RealizarVenta: React.FC = () => {
         montoRecibido: paymentData.montoRecibido || Number(newSale.total),
         referenciaPago: paymentData.referencia,
         montoCambio: paymentData.cambio,
+        pagos: paymentData.payments?.map(p => ({
+          metodoPagoId: p.metodoPagoId || '1',
+          monto: p.monto,
+          referencia: p.referencia,
+        })),
       });
 
       // ✅ Actualizar estado de cotización si viene de una
@@ -1285,43 +1297,12 @@ const RealizarVenta: React.FC = () => {
         const shouldPrint = window.confirm('¿Deseas imprimir el comprobante?');
         if (shouldPrint) {
           try {
-            // Descargar PDF con autenticación
-            const token = tokenUtils.getAccessToken();
-            const pdfUrl = `${import.meta.env.VITE_API_URL}/sales/${newSale.id}/invoice/preview`;
-            
-            const response = await fetch(pdfUrl, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
-
-            if (!response.ok) {
-              throw new Error('Error al generar el PDF');
-            }
-
-            // Crear un Blob del PDF y abrirlo en nueva ventana
-            const blob = await response.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            
-            // Abrir en nueva ventana y activar el diálogo de impresión
-            const printWindow = window.open(blobUrl, '_blank');
-            
-            // Esperar a que cargue el PDF y abrir diálogo de impresión
-            if (printWindow) {
-              printWindow.onload = () => {
-                printWindow.focus();
-                printWindow.print();
-              };
-            }
-            
-            // Liberar memoria después de 1 minuto
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            await previewInvoice(newSale.id);
           } catch (error) {
-            console.error('❌ Error al abrir PDF:', error);
+            console.error('❌ Error al imprimir:', error);
             addNotification('error', 'Error', 'No se pudo abrir el comprobante para imprimir');
           }
         }
-        // ✅ Ya NO navegamos - nos quedamos en la página de realizar venta
       }, 500);
 
     } catch (error: any) {
@@ -1447,39 +1428,9 @@ const RealizarVenta: React.FC = () => {
         const shouldPrint = window.confirm('¿Deseas imprimir el comprobante?');
         if (shouldPrint) {
           try {
-            // Descargar PDF con autenticación
-            const token = tokenUtils.getAccessToken();
-            const pdfUrl = `${import.meta.env.VITE_API_URL}/sales/${completedSale.id}/invoice/preview`;
-            
-            const response = await fetch(pdfUrl, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
-
-            if (!response.ok) {
-              throw new Error('Error al generar el PDF');
-            }
-
-            // Crear un Blob del PDF y abrirlo en nueva ventana
-            const blob = await response.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            
-            // Abrir en nueva ventana y activar el diálogo de impresión
-            const printWindow = window.open(blobUrl, '_blank');
-            
-            // Esperar a que cargue el PDF y abrir diálogo de impresión
-            if (printWindow) {
-              printWindow.onload = () => {
-                printWindow.focus();
-                printWindow.print();
-              };
-            }
-            
-            // Liberar memoria después de 1 minuto
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            await previewInvoice(completedSale.id);
           } catch (error) {
-            console.error('❌ Error al abrir PDF:', error);
+            console.error('❌ Error al imprimir:', error);
             addNotification('error', 'Error', 'No se pudo abrir el comprobante para imprimir');
           }
         }
@@ -1515,6 +1466,12 @@ const RealizarVenta: React.FC = () => {
   const saveAsQuote = async () => {
     if (cart.length === 0) {
       addNotification('warning', 'Carrito Vacío', 'Agrega productos al carrito antes de guardar la cotización');
+      return;
+    }
+
+    // Validar cliente obligatorio
+    if (!selectedClient) {
+      addNotification('error', 'Cliente Requerido', 'Debe seleccionar o crear un cliente antes de guardar la cotización');
       return;
     }
 

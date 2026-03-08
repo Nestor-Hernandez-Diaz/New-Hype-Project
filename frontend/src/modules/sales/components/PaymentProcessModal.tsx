@@ -62,6 +62,7 @@ export interface PaymentConfirmData {
   cambio?: number;
   payments?: Array<{
     metodoPago: string;
+    metodoPagoId?: string;
     monto: number;
     referencia?: string;
   }>;
@@ -614,22 +615,26 @@ export const PaymentProcessModal: React.FC<PaymentProcessModalProps> = ({
       ? {
           // Pagos múltiples
           formaPago: 'Múltiple',
-          payments: payments.map(p => ({
-            metodoPago: p.metodoPago,
-            monto: parseFloat(p.monto) || 0,
-            referencia: p.referencia || undefined,
-          })),
+          payments: payments.map(p => {
+            const metodoInfo = metodosPago.find(m => m.nombre === p.metodoPago);
+            return {
+              metodoPago: p.metodoPago,
+              metodoPagoId: metodoInfo?.id,
+              monto: parseFloat(p.monto) || 0,
+              referencia: p.referencia || undefined,
+            };
+          }),
         }
       : {
-          // ✅ Pago único
+          // Pago único
           formaPago: selectedMethod,
           montoRecibido: isEfectivo ? montoRecibidoNum : undefined,
           referencia: requiresReference ? referencia : undefined,
           cambio: showCambio ? cambio : undefined,
-          // ✅ CORRECCIÓN: monto del pago es el total de la venta, NO el monto recibido
           payments: [{
             metodoPago: selectedMethod,
-            monto: Number(total), // Siempre el total de la venta
+            metodoPagoId: metodosPago.find(m => m.nombre === selectedMethod)?.id,
+            monto: Number(total),
             referencia: requiresReference ? referencia : undefined,
           }],
         };

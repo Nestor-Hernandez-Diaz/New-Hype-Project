@@ -40,7 +40,7 @@ public class EntidadComercialService {
 
         TipoEntidad tipoEntidad = TipoEntidad.CLIENTE;
         if (request.getTipoEntidad() != null) {
-            tipoEntidad = TipoEntidad.valueOf(request.getTipoEntidad());
+            tipoEntidad = TipoEntidad.valueOf(request.getTipoEntidad().toUpperCase());
         }
 
         if ((tipoEntidad == TipoEntidad.PROVEEDOR || tipoEntidad == TipoEntidad.AMBOS)
@@ -74,7 +74,7 @@ public class EntidadComercialService {
 
         TipoEntidad tipo = null;
         if (tipoEntidad != null && !tipoEntidad.isBlank()) {
-            tipo = TipoEntidad.valueOf(tipoEntidad);
+            tipo = TipoEntidad.valueOf(tipoEntidad.toUpperCase());
         }
 
         return entidadRepository.buscar(tenantId, tipo, q, pageable).map(this::toResponse);
@@ -95,18 +95,19 @@ public class EntidadComercialService {
                 .orElseThrow(() -> new ResourceNotFoundException("Entidad comercial", id));
 
         // No se puede cambiar tipo_documento ni numero_documento
-        entidad.setNombres(request.getNombres());
-        entidad.setApellidos(request.getApellidos());
-        entidad.setRazonSocial(request.getRazonSocial());
-        entidad.setEmail(request.getEmail());
-        entidad.setTelefono(request.getTelefono());
-        entidad.setDireccion(request.getDireccion());
-        entidad.setDepartamentoId(request.getDepartamentoId());
-        entidad.setProvinciaId(request.getProvinciaId());
-        entidad.setDistritoId(request.getDistritoId());
+        // Solo actualizar campos que vengan en el request (no null)
+        if (request.getNombres() != null) entidad.setNombres(request.getNombres());
+        if (request.getApellidos() != null) entidad.setApellidos(request.getApellidos());
+        if (request.getRazonSocial() != null) entidad.setRazonSocial(request.getRazonSocial());
+        if (request.getEmail() != null) entidad.setEmail(request.getEmail());
+        if (request.getTelefono() != null) entidad.setTelefono(request.getTelefono());
+        if (request.getDireccion() != null) entidad.setDireccion(request.getDireccion());
+        if (request.getDepartamentoId() != null) entidad.setDepartamentoId(request.getDepartamentoId());
+        if (request.getProvinciaId() != null) entidad.setProvinciaId(request.getProvinciaId());
+        if (request.getDistritoId() != null) entidad.setDistritoId(request.getDistritoId());
 
         if (request.getTipoEntidad() != null) {
-            entidad.setTipoEntidad(TipoEntidad.valueOf(request.getTipoEntidad()));
+            entidad.setTipoEntidad(TipoEntidad.valueOf(request.getTipoEntidad().toUpperCase()));
         }
 
         entidad = entidadRepository.save(entidad);

@@ -8,11 +8,12 @@
  * - Resumen del carrito
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import { useAuth } from '../hooks/useAuth';
-import { apiCrearPedido } from '../services/storefrontApi';
+import { apiCrearPedido, apiObtenerMetodosPago } from '../services/storefrontApi';
+import type { MetodoPagoStorefrontData } from '../services/storefrontApi';
 import ProcessingOverlay from '../components/common/ProcessingOverlay';
 import StepIndicator from '../components/checkout/StepIndicator';
 import ShippingForm from '../components/checkout/ShippingForm';
@@ -38,7 +39,7 @@ interface FormData {
 export default function Checkout() {
   const navigate = useNavigate();
   const { state, vaciarCarrito } = useStorefront();
-  const { estaAutenticado, cargando: authCargando } = useAuth();
+  const { estaAutenticado, cargando: authCargando, usuario } = useAuth();
   const { showToast } = useToast();
   const [tipoEnvio, setTipoEnvio] = useState<TipoEnvio>('domicilio');
   const [metodoPago, setMetodoPago] = useState<MetodoPago>('Efectivo');
@@ -47,6 +48,8 @@ export default function Checkout() {
   const [paso, setPaso] = useState(0); // 0: Envío, 1: Pago, 2: Confirmación
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [pedidoCompletado, setPedidoCompletado] = useState(false);
+  const [metodosPagoDisponibles, setMetodosPagoDisponibles] = useState<MetodoPagoStorefrontData[]>([]);
+  const autofillDone = useRef(false);
   
   const [formData, setFormData] = useState<FormData>({
     nombre: '',
@@ -84,6 +87,35 @@ export default function Checkout() {
       navigate('/storefront');
     }
   }, [state.carrito, navigate, pedidoCompletado, estaAutenticado, authCargando]);
+
+  // S6: Autofill form data from authenticated user profile
+  useEffect(() => {
+    if (autofillDone.current || !usuario) return;
+    autofillDone.current = true;
+    setFormData(prev => ({
+      ...prev,
+      nombre: prev.nombre || usuario.nombre || '',
+      apellido: prev.apellido || usuario.apellido || '',
+      email: prev.email || usuario.email || '',
+      telefono: prev.telefono || usuario.telefono || '',
+    }));
+  }, [usuario]);
+
+  // S3: Load payment methods from API
+  useEffect(() => {
+    apiObtenerMetodosPago()
+      .then(methods => {
+        setMetodosPagoDisponibles(methods);
+        if (methods.length > 0) {
+          const firstNombre = methods[0].nombre as MetodoPago;
+          setMetodoPago(firstNombre);
+        }
+      })
+      .catch(() => {
+        // Fallback: empty means PaymentForm shows all hardcoded methods
+        setMetodosPagoDisponibles([]);
+      });
+  }, []);
 
   // Calcular totales
   const subtotal = state.carrito.reduce((sum, item) => sum + item.precioUnitario * item.cantidad, 0);
@@ -307,6 +339,7 @@ export default function Checkout() {
                   pagoData={pagoData}
                   onMetodoPagoChange={setMetodoPago}
                   onPagoDataChange={handlePagoInputChange}
+                  availableMethods={metodosPagoDisponibles}
                 />
 
                 <div className="flex gap-4 mt-8">

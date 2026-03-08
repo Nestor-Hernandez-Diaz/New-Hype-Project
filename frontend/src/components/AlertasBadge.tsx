@@ -153,7 +153,7 @@ const AlertasBadge: React.FC = () => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/inventario/alertas`,
+        `${import.meta.env.VITE_API_URL || 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1'}/inventario/alertas`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       

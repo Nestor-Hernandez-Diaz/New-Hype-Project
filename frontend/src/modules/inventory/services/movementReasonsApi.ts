@@ -23,6 +23,22 @@ export interface MovementReasonFormData {
   requiereDocumento?: boolean;
 }
 
+/** Map backend response (estado) to frontend interface (activo) */
+function mapMovementReasonResponse(raw: any): MovementReason {
+  return {
+    id: String(raw.id),
+    tipo: raw.tipo,
+    codigo: raw.codigo,
+    nombre: raw.nombre,
+    descripcion: raw.descripcion || undefined,
+    activo: raw.estado ?? raw.activo ?? true,
+    requiereDocumento: raw.requiereDocumento ?? false,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+    _count: raw._count || undefined,
+  };
+}
+
 class MovementReasonsApiService {
   // Obtener todos los motivos
   async getMovementReasons(filters?: {
@@ -31,18 +47,27 @@ class MovementReasonsApiService {
   }): Promise<MovementReason[]> {
     const params = new URLSearchParams();
 
+    // Backend only supports ?tipo filter, not ?activo
     if (filters?.tipo) params.append('tipo', filters.tipo);
-    if (filters?.activo !== undefined)
-      params.append('activo', String(filters.activo));
 
     const queryString = params.toString();
     const url = `/configuracion/motivos-movimiento${queryString ? `?${queryString}` : ''}`;
-    const response = await apiService.get<MovementReason[]>(url);
+    const response = await apiService.get<any[]>(url);
 
     const data = response.data;
-    if (Array.isArray(data)) return data;
-    if (data && typeof data === 'object' && 'rows' in data) return (data as any).rows || [];
-    return [];
+    let rawItems: any[] = [];
+    if (Array.isArray(data)) rawItems = data;
+    else if (data && typeof data === 'object' && 'rows' in data) rawItems = (data as any).rows || [];
+
+    // Map backend fields to frontend interface
+    let items = rawItems.map(mapMovementReasonResponse);
+
+    // Client-side filter by activo (backend doesn't support this filter)
+    if (filters?.activo !== undefined) {
+      items = items.filter(item => item.activo === filters.activo);
+    }
+
+    return items;
   }
 
   // Obtener motivo por ID
@@ -68,9 +93,9 @@ class MovementReasonsApiService {
     return response.data as MovementReason;
   }
 
-  // Eliminar motivo
+  // Eliminar (desactivar) motivo - uses toggle endpoint
   async deleteMovementReason(id: string): Promise<void> {
-    await apiService.delete(`/configuracion/motivos-movimiento/${id}`);
+    await this.toggleMovementReason(id);
   }
 
   // Activar/Desactivar motivo

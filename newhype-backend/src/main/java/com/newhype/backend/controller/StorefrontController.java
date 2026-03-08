@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/storefront")
@@ -63,11 +64,12 @@ public class StorefrontController {
             @RequestParam Long tenantId,
             @RequestParam(required = false) Long categoriaId,
             @RequestParam(required = false) Long marcaId,
+            @RequestParam(required = false) Long generoId,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Page<ProductoStorefrontResponse> result = storefrontService.listarProductos(
-                tenantId, categoriaId, marcaId, q, page, size);
+                tenantId, categoriaId, marcaId, generoId, q, page, size);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
@@ -129,5 +131,80 @@ public class StorefrontController {
     @Operation(summary = "Cancelar pedido (solo PENDIENTE o CONFIRMADO)")
     public ResponseEntity<ApiResponse<PedidoResponse>> cancelarPedido(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok("Pedido cancelado", storefrontService.cancelarPedido(id)));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  FASE 1.1: GET /storefront/catalogos — Catálogos públicos
+    // ═══════════════════════════════════════════════════════════════
+    @GetMapping("/catalogos")
+    @Operation(summary = "Catálogos públicos: tallas, colores, marcas, materiales, géneros (no requiere auth)")
+    public ResponseEntity<ApiResponse<CatalogosStorefrontResponse>> obtenerCatalogos(
+            @RequestParam Long tenantId) {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.obtenerCatalogos(tenantId)));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  FASE 1.2: GET /storefront/empresa — Datos empresa públicos
+    // ═══════════════════════════════════════════════════════════════
+    @GetMapping("/empresa")
+    @Operation(summary = "Datos de empresa públicos: contacto, dirección, política devoluciones (no requiere auth)")
+    public ResponseEntity<ApiResponse<EmpresaStorefrontResponse>> obtenerEmpresa(
+            @RequestParam Long tenantId) {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.obtenerEmpresa(tenantId)));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  FASE 1.3: PUT /storefront/perfil/password — Cambiar password
+    // ═══════════════════════════════════════════════════════════════
+    @PutMapping("/perfil/password")
+    @Operation(summary = "Cambiar contraseña del cliente autenticado")
+    public ResponseEntity<ApiResponse<Void>> cambiarPassword(
+            @Valid @RequestBody CambiarPasswordStorefrontRequest request) {
+        storefrontService.cambiarPassword(request);
+        return ResponseEntity.ok(ApiResponse.ok("Contraseña actualizada correctamente", null));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  FASE 3.1: GET /storefront/productos/por-ids — Buscar por IDs
+    // ═══════════════════════════════════════════════════════════════
+    @GetMapping("/productos/por-ids")
+    @Operation(summary = "Obtener productos por lista de IDs (no requiere auth)")
+    public ResponseEntity<ApiResponse<List<ProductoStorefrontResponse>>> obtenerProductosPorIds(
+            @RequestParam Long tenantId,
+            @RequestParam List<Long> ids) {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.obtenerProductosPorIds(tenantId, ids)));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  FASE 3.2: GET /storefront/metodos-pago — Métodos de pago
+    // ═══════════════════════════════════════════════════════════════
+    @GetMapping("/metodos-pago")
+    @Operation(summary = "Métodos de pago activos (no requiere auth)")
+    public ResponseEntity<ApiResponse<List<MetodoPagoStorefrontResponse>>> obtenerMetodosPago(
+            @RequestParam Long tenantId) {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.obtenerMetodosPago(tenantId)));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  FASE 3.3: GET /storefront/ubigeo — Ubigeo público
+    // ═══════════════════════════════════════════════════════════════
+    @GetMapping("/ubigeo/departamentos")
+    @Operation(summary = "Lista de departamentos (no requiere auth)")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerDepartamentos() {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.obtenerDepartamentos()));
+    }
+
+    @GetMapping("/ubigeo/provincias")
+    @Operation(summary = "Provincias por departamento (no requiere auth)")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerProvincias(
+            @RequestParam Long departamentoId) {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.obtenerProvincias(departamentoId)));
+    }
+
+    @GetMapping("/ubigeo/distritos")
+    @Operation(summary = "Distritos por provincia (no requiere auth)")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerDistritos(
+            @RequestParam Long provinciaId) {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.obtenerDistritos(provinciaId)));
     }
 }

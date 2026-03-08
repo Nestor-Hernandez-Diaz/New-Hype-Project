@@ -48,17 +48,41 @@ public class StockService {
     }
 
     @Transactional(readOnly = true)
-    public Page<KardexResponse> getKardex(Long productoId, Long almacenId, int page, int size) {
+    public Page<KardexResponse> getKardex(Long productoId, Long almacenId, String tipo, int page, int size) {
         Long tenantId = TenantContext.getCurrentTenantId();
         Pageable pageable = PageRequest.of(page, size);
 
+        // Resolve tipo filter: AJUSTE expands to AJUSTE_INGRESO + AJUSTE_EGRESO
+        List<TipoMovimiento> tipoFilter = null;
+        if (tipo != null && !tipo.isBlank()) {
+            if (tipo.equals("AJUSTE")) {
+                tipoFilter = List.of(TipoMovimiento.AJUSTE_INGRESO, TipoMovimiento.AJUSTE_EGRESO);
+            } else {
+                try {
+                    tipoFilter = List.of(TipoMovimiento.valueOf(tipo));
+                } catch (IllegalArgumentException ignored) {
+                    // Invalid tipo value, ignore filter
+                }
+            }
+        }
+
         Page<MovimientoInventario> movimientos;
-        if (almacenId != null) {
-            movimientos = movimientoInventarioRepository
-                    .findByTenantIdAndProductoIdAndAlmacenIdOrderByCreatedAtDesc(tenantId, productoId, almacenId, pageable);
+        if (tipoFilter != null) {
+            if (almacenId != null) {
+                movimientos = movimientoInventarioRepository
+                        .findByTenantIdAndProductoIdAndAlmacenIdAndTipoInOrderByCreatedAtDesc(tenantId, productoId, almacenId, tipoFilter, pageable);
+            } else {
+                movimientos = movimientoInventarioRepository
+                        .findByTenantIdAndProductoIdAndTipoInOrderByCreatedAtDesc(tenantId, productoId, tipoFilter, pageable);
+            }
         } else {
-            movimientos = movimientoInventarioRepository
-                    .findByTenantIdAndProductoIdOrderByCreatedAtDesc(tenantId, productoId, pageable);
+            if (almacenId != null) {
+                movimientos = movimientoInventarioRepository
+                        .findByTenantIdAndProductoIdAndAlmacenIdOrderByCreatedAtDesc(tenantId, productoId, almacenId, pageable);
+            } else {
+                movimientos = movimientoInventarioRepository
+                        .findByTenantIdAndProductoIdOrderByCreatedAtDesc(tenantId, productoId, pageable);
+            }
         }
 
         return movimientos.map(this::toKardexResponse);

@@ -386,6 +386,9 @@ const GestionCaja: React.FC = () => {
     loadCashMovements,
     loadCashSummary,
     deleteCashMovement,
+    createCashRegister,
+    updateCashRegister,
+    toggleCashRegisterStatus,
   } = useSales();
 
   const { showSuccess, showError } = useNotification();
@@ -397,6 +400,7 @@ const GestionCaja: React.FC = () => {
 
   // Estado para Abrir Caja
   const [openAmount, setOpenAmount] = useState('');
+  const [selectedRegisterId, setSelectedRegisterId] = useState('');
 
   // Estado para Movimiento de Caja
   const [movementType, setMovementType] = useState<'INGRESO' | 'EGRESO'>('INGRESO');
@@ -406,6 +410,12 @@ const GestionCaja: React.FC = () => {
 
   // Estado para Cerrar Caja
   const [closeCountedAmount, setCloseCountedAmount] = useState('');
+
+  // Estado para CRUD Cajas Registradoras
+  const [showConfigSection, setShowConfigSection] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [editingRegister, setEditingRegister] = useState<{ id: string; codigo: string; nombre: string; ubicacion?: string } | null>(null);
+  const [registerForm, setRegisterForm] = useState({ codigo: '', nombre: '', ubicacion: '' });
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -426,21 +436,21 @@ const GestionCaja: React.FC = () => {
   const handleOpenCash = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!openAmount || parseFloat(openAmount) < 0) {
-      showError('Por favor ingresa un monto válido');
+      showError('Por favor ingresa un monto valido');
+      return;
+    }
+
+    if (!selectedRegisterId) {
+      showError('Selecciona una caja registradora');
       return;
     }
 
     try {
-      const firstRegister = cashRegisters[0];
-      if (!firstRegister) {
-        showError('No hay cajas registradas en el sistema');
-        return;
-      }
-
-      await openCashSession(firstRegister.id, parseFloat(openAmount), '');
+      await openCashSession(selectedRegisterId, parseFloat(openAmount), '');
       showSuccess('Caja abierta exitosamente');
       setShowOpenModal(false);
       setOpenAmount('');
+      setSelectedRegisterId('');
     } catch (error: any) {
       showError(error.message || 'Error al abrir la caja');
     }
@@ -516,6 +526,56 @@ const GestionCaja: React.FC = () => {
     }
   };
 
+  // ==================== CRUD CAJAS REGISTRADORAS ====================
+
+  const handleOpenRegisterModal = (register?: { id: string; codigo: string; nombre: string; ubicacion?: string }) => {
+    if (register) {
+      setEditingRegister(register);
+      setRegisterForm({ codigo: register.codigo || '', nombre: register.nombre, ubicacion: register.ubicacion || '' });
+    } else {
+      setEditingRegister(null);
+      setRegisterForm({ codigo: '', nombre: '', ubicacion: '' });
+    }
+    setShowRegisterModal(true);
+  };
+
+  const handleSaveRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!registerForm.codigo.trim() || !registerForm.nombre.trim()) {
+      showError('Codigo y nombre son obligatorios');
+      return;
+    }
+
+    try {
+      const data = {
+        codigo: registerForm.codigo.trim(),
+        nombre: registerForm.nombre.trim(),
+        ubicacion: registerForm.ubicacion.trim() || undefined,
+      };
+
+      if (editingRegister) {
+        await updateCashRegister(editingRegister.id, data);
+        showSuccess('Caja registradora actualizada');
+      } else {
+        await createCashRegister(data);
+        showSuccess('Caja registradora creada');
+      }
+      setShowRegisterModal(false);
+    } catch (error: any) {
+      showError(error.message || 'Error al guardar caja registradora');
+    }
+  };
+
+  const handleToggleRegisterStatus = async (id: string) => {
+    try {
+      await toggleCashRegisterStatus(id);
+      showSuccess('Estado de caja actualizado');
+      await loadCashRegisters();
+    } catch (error: any) {
+      showError(error.message || 'Error al cambiar estado');
+    }
+  };
+
   // ==================== COMPUTED VALUES ====================
 
   const totalEsperado = cashSummary?.totalEsperado 
@@ -570,6 +630,80 @@ const GestionCaja: React.FC = () => {
       <PageGrid>
         {/* ==================== COLUMNA IZQUIERDA ==================== */}
         <ColumnLeft>
+          {/* Card: Configurar Cajas Registradoras (colapsable, solo sin sesion activa) */}
+          {!activeCashSession && (
+            <Card>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowConfigSection(!showConfigSection)}>
+                <CardTitle style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>
+                  Cajas Registradoras {showConfigSection ? '▲' : '▼'}
+                </CardTitle>
+                <SharedButton $variant="primary" style={{ width: 'auto', padding: '6px 14px', fontSize: '13px' }} onClick={(e) => { e.stopPropagation(); handleOpenRegisterModal(); }}>
+                  + Nueva Caja
+                </SharedButton>
+              </div>
+              {showConfigSection && (
+                <MovementsTable style={{ marginTop: '16px' }}>
+                  <thead>
+                    <tr>
+                      <th>Codigo</th>
+                      <th>Nombre</th>
+                      <th>Ubicacion</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cashRegisters.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
+                          No hay cajas registradoras. Crea una para poder abrir sesion de caja.
+                        </td>
+                      </tr>
+                    ) : (
+                      cashRegisters.map((reg) => (
+                        <tr key={reg.id}>
+                          <td style={{ fontWeight: 600 }}>{reg.codigo}</td>
+                          <td>{reg.nombre}</td>
+                          <td style={{ color: '#666' }}>{reg.ubicacion || '—'}</td>
+                          <td>
+                            <span style={{
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              background: reg.activo ? '#d4edda' : '#f8d7da',
+                              color: reg.activo ? '#155724' : '#721c24',
+                            }}>
+                              {reg.activo ? 'Activa' : 'Inactiva'}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={() => handleOpenRegisterModal({ id: reg.id, codigo: reg.codigo, nombre: reg.nombre, ubicacion: reg.ubicacion })}
+                                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#0d6efd', fontSize: '14px', padding: '4px' }}
+                                title="Editar"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => handleToggleRegisterStatus(reg.id)}
+                                style={{ border: 'none', background: 'none', cursor: 'pointer', color: reg.activo ? '#dc3545' : '#28a745', fontSize: '14px', padding: '4px' }}
+                                title={reg.activo ? 'Desactivar' : 'Activar'}
+                              >
+                                {reg.activo ? 'Desactivar' : 'Activar'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </MovementsTable>
+              )}
+            </Card>
+          )}
+
           {/* Card: Estado de Caja */}
           <Card>
             <CardTitle>Estado de Caja</CardTitle>
@@ -740,7 +874,22 @@ const GestionCaja: React.FC = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleOpenCash}>
               <h3>Abrir Caja</h3>
-              <p>Ingresa el monto inicial en efectivo con el que abrirás la caja.</p>
+              <p>Selecciona la caja registradora e ingresa el monto inicial en efectivo.</p>
+
+              <label htmlFor="open-register">Caja Registradora</label>
+              <select
+                id="open-register"
+                value={selectedRegisterId}
+                onChange={(e) => setSelectedRegisterId(e.target.value)}
+                required
+              >
+                <option value="">-- Selecciona una caja --</option>
+                {cashRegisters.filter(r => r.activo).map((reg) => (
+                  <option key={reg.id} value={reg.id}>
+                    {reg.nombre}{reg.ubicacion ? ` (${reg.ubicacion})` : ''}
+                  </option>
+                ))}
+              </select>
 
               <label htmlFor="open-amount">Monto inicial en caja (S/)</label>
               <input
@@ -902,6 +1051,58 @@ const GestionCaja: React.FC = () => {
                 </SharedButton>
                 <SharedButton type="submit" $variant="primary">
                   Confirmar Cierre
+                </SharedButton>
+              </ModalActions>
+            </form>
+          </div>
+        </Modal>
+      )}
+      {/* ==================== MODAL: CREAR/EDITAR CAJA REGISTRADORA ==================== */}
+      {showRegisterModal && (
+        <Modal onClick={() => setShowRegisterModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleSaveRegister}>
+              <h3>{editingRegister ? 'Editar Caja Registradora' : 'Nueva Caja Registradora'}</h3>
+
+              <label htmlFor="reg-codigo">Codigo</label>
+              <input
+                type="text"
+                id="reg-codigo"
+                value={registerForm.codigo}
+                onChange={(e) => setRegisterForm(f => ({ ...f, codigo: e.target.value }))}
+                placeholder="Ej: CAJA-001"
+                required
+              />
+
+              <label htmlFor="reg-nombre">Nombre</label>
+              <input
+                type="text"
+                id="reg-nombre"
+                value={registerForm.nombre}
+                onChange={(e) => setRegisterForm(f => ({ ...f, nombre: e.target.value }))}
+                placeholder="Ej: Caja Principal"
+                required
+              />
+
+              <label htmlFor="reg-ubicacion">Ubicacion (opcional)</label>
+              <input
+                type="text"
+                id="reg-ubicacion"
+                value={registerForm.ubicacion}
+                onChange={(e) => setRegisterForm(f => ({ ...f, ubicacion: e.target.value }))}
+                placeholder="Ej: Mostrador principal"
+              />
+
+              <ModalActions>
+                <SharedButton
+                  type="button"
+                  $variant="secondary"
+                  onClick={() => setShowRegisterModal(false)}
+                >
+                  Cancelar
+                </SharedButton>
+                <SharedButton type="submit" $variant="primary">
+                  {editingRegister ? 'Guardar Cambios' : 'Crear Caja'}
                 </SharedButton>
               </ModalActions>
             </form>

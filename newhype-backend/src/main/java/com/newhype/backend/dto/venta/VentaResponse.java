@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.newhype.backend.dto.notacredito.NotaCreditoResponse;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,6 +24,9 @@ public class VentaResponse {
     private Long sesionCajaId;
     private Long clienteId;
     private String clienteNombre;
+    private String clienteTipoDocumento;
+    private String clienteNumeroDocumento;
+    private String clienteDireccion;
     private Long almacenId;
     private String almacenNombre;
     private Long usuarioId;
@@ -37,8 +42,14 @@ public class VentaResponse {
     private BigDecimal montoCambio;
     private String estado;
     private LocalDateTime fechaPago;
+    private Boolean incluyeIgv;
     private String observaciones;
     private List<DetalleVentaResponse> detalles;
     private List<PagoVentaResponse> pagos;
     private LocalDateTime createdAt;
+
+    // Campos de Notas de Crédito
+    private Boolean tieneNotaCredito;
+    private BigDecimal montoNotaCredito;
+    private List<NotaCreditoResponse> notasCredito;
 }

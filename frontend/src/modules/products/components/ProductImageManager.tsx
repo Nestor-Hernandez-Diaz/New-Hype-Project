@@ -405,7 +405,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({ productoId })
   // URL validation
   const [urlValidation, setUrlValidation] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
-  const validationTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const validationTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Drag & drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);

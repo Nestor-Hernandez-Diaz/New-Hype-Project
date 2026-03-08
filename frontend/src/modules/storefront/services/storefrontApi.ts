@@ -40,10 +40,8 @@ import {
   type BackendCategoria,
 } from './typeMappers';
 
-import configuracionApi from '../../configuration/services/configuracionApi';
-
 // ============================================================================
-// CACHED CATALOGS
+// CACHED CATALOGS (loaded from public /storefront/catalogos endpoint)
 // ============================================================================
 
 // Simple in-memory cache for catalog data (loaded once per session)
@@ -57,30 +55,37 @@ let catalogCache: {
 
 let catalogPromise: Promise<typeof catalogCache> | null = null;
 
+/** Raw shape returned by GET /storefront/catalogos */
+interface BackendCatalogosResponse {
+  tallas: Array<{ id: number; codigo: string; nombre: string }>;
+  colores: Array<{ id: number; codigo: string; nombre: string; codigoHex: string }>;
+  marcas: Array<{ id: number; codigo: string; nombre: string }>;
+  materiales: Array<{ id: number; codigo: string; nombre: string }>;
+  generos: Array<{ id: number; codigo: string; nombre: string }>;
+}
+
 async function loadCatalogs() {
   if (catalogCache) return catalogCache;
   if (catalogPromise) return catalogPromise;
 
   catalogPromise = (async () => {
     try {
-      const [tallasRaw, coloresRaw, marcasRaw, materialesRaw, generosRaw] =
-        await Promise.all([
-          configuracionApi.getTallas().catch(() => []),
-          configuracionApi.getColores().catch(() => []),
-          configuracionApi.getMarcas().catch(() => []),
-          configuracionApi.getMateriales().catch(() => []),
-          configuracionApi.getGeneros().catch(() => []),
-        ]);
+      const tenantId = getTenantId();
+      const res = await storefrontFetch<BackendApiResponse<BackendCatalogosResponse>>(
+        `/storefront/catalogos?tenantId=${tenantId}`
+      );
+
+      const data = res.data;
 
       catalogCache = {
-        tallas: tallasRaw.filter((t: any) => t.estado).map(mapCatalogToTalla),
-        colores: coloresRaw.filter((c: any) => c.estado).map(mapCatalogToColor),
-        marcas: marcasRaw.filter((m: any) => m.estado).map(mapCatalogToMarca),
-        materiales: materialesRaw.filter((m: any) => m.estado).map(mapCatalogToMaterial),
-        generos: generosRaw.filter((g: any) => g.estado).map(mapCatalogToGenero),
+        tallas: (data.tallas || []).map(mapCatalogToTalla),
+        colores: (data.colores || []).map(mapCatalogToColor),
+        marcas: (data.marcas || []).map(mapCatalogToMarca),
+        materiales: (data.materiales || []).map(mapCatalogToMaterial),
+        generos: (data.generos || []).map(mapCatalogToGenero),
       };
 
-      console.log('[storefrontApi] Catalogs loaded:', {
+      console.log('[storefrontApi] Catalogs loaded from /storefront/catalogos:', {
         tallas: catalogCache.tallas.length,
         colores: catalogCache.colores.length,
         marcas: catalogCache.marcas.length,
@@ -204,6 +209,9 @@ export async function apiObtenerProductos(
     let result = mapPaginado(res.data, mapProducto);
 
     // Apply client-side filters that backend may not support
+    if (filtros.generoId) {
+      result.data = result.data.filter((p) => p.generoId === filtros.generoId);
+    }
     if (filtros.soloLiquidacion) {
       result.data = result.data.filter((p) => p.enLiquidacion);
     }
@@ -254,6 +262,12 @@ export async function apiObtenerProductos(
             (a, b) =>
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
+          break;
+        case 'nombre_asc':
+          result.data.sort((a, b) => a.nombre.localeCompare(b.nombre));
+          break;
+        case 'nombre_desc':
+          result.data.sort((a, b) => b.nombre.localeCompare(a.nombre));
           break;
       }
     }
@@ -315,15 +329,9 @@ export async function apiObtenerProductoPorSlug(
 export async function apiObtenerProductoPorId(
   id: number
 ): Promise<ProductoStorefront | null> {
-  const tenantId = getTenantId();
   try {
-    // The backend may not have a dedicated /productos/{id} storefront endpoint,
-    // so we fall back to fetching the products list and finding by id
-    const res = await storefrontFetch<
-      BackendApiResponse<SpringPageable<BackendProducto>>
-    >(`/storefront/productos?tenantId=${tenantId}&page=0&size=100`);
-    const found = res.data.content.find((p) => p.id === id);
-    return found ? mapProducto(found) : null;
+    const productos = await apiObtenerProductosPorIds([id]);
+    return productos.length > 0 ? productos[0] : null;
   } catch (error) {
     console.error('[storefrontApi] Error fetching product by id:', id, error);
     return null;
@@ -331,12 +339,119 @@ export async function apiObtenerProductoPorId(
 }
 
 /**
+ * GET /storefront/productos/por-ids — Get multiple products by IDs (for favorites, cart, etc.)
+ */
+export async function apiObtenerProductosPorIds(
+  ids: number[]
+): Promise<ProductoStorefront[]> {
+  if (ids.length === 0) return [];
+  const tenantId = getTenantId();
+  try {
+    const res = await storefrontFetch<
+      BackendApiResponse<BackendProducto[]>
+    >(`/storefront/productos/por-ids?tenantId=${tenantId}&ids=${ids.join(',')}`);
+    return (res.data || []).map(mapProducto);
+  } catch (error) {
+    console.error('[storefrontApi] Error fetching products by ids:', ids, error);
+    return [];
+  }
+}
+
+/**
  * Get catalogs (tallas, colores, marcas, materiales, generos)
- * Uses the configuration API that already works for the admin panel.
+ * Uses the public /storefront/catalogos endpoint (no auth required).
  */
 export async function apiObtenerCatalogos() {
   const catalogs = await loadCatalogs();
   return catalogs!;
+}
+
+// ============================================================================
+// EMPRESA API (Public endpoint, no auth required)
+// ============================================================================
+
+/** Raw shape returned by GET /storefront/empresa */
+export interface EmpresaStorefrontData {
+  nombreComercial: string;
+  razonSocial?: string;
+  direccion?: string;
+  telefono?: string;
+  email?: string;
+  website?: string;
+  logoUrl?: string;
+  departamento?: string;
+  provincia?: string;
+  distrito?: string;
+  diasDevolucionBoleta?: number;
+  diasDevolucionFactura?: number;
+  diasVigenciaVale?: number;
+  requiereEtiquetasOriginales?: boolean;
+  requiereProductoSinUso?: boolean;
+}
+
+/**
+ * GET /storefront/empresa — Public empresa data (contact, address, return policy)
+ */
+export async function apiObtenerEmpresa(): Promise<EmpresaStorefrontData> {
+  const tenantId = getTenantId();
+  const res = await storefrontFetch<BackendApiResponse<EmpresaStorefrontData>>(
+    `/storefront/empresa?tenantId=${tenantId}`
+  );
+  return res.data;
+}
+
+// ============================================================================
+// METODOS DE PAGO API (Public endpoint, no auth required)
+// ============================================================================
+
+export interface MetodoPagoStorefrontData {
+  id: number;
+  codigo: string;
+  nombre: string;
+  tipo: string;
+  requiereReferencia: boolean;
+}
+
+/**
+ * GET /storefront/metodos-pago — Active payment methods
+ */
+export async function apiObtenerMetodosPago(): Promise<MetodoPagoStorefrontData[]> {
+  const tenantId = getTenantId();
+  const res = await storefrontFetch<BackendApiResponse<MetodoPagoStorefrontData[]>>(
+    `/storefront/metodos-pago?tenantId=${tenantId}`
+  );
+  return res.data || [];
+}
+
+// ============================================================================
+// UBIGEO API (Public endpoint, no auth required)
+// ============================================================================
+
+export interface UbigeoItem {
+  id: number;
+  nombre: string;
+  codigo?: string;
+}
+
+export async function apiObtenerDepartamentos(): Promise<UbigeoItem[]> {
+  const res = await storefrontFetch<BackendApiResponse<UbigeoItem[]>>(
+    '/storefront/ubigeo/departamentos'
+  );
+  return res.data || [];
+}
+
+export async function apiObtenerProvincias(departamentoId: number): Promise<UbigeoItem[]> {
+  const res = await storefrontFetch<BackendApiResponse<UbigeoItem[]>>(
+    `/storefront/ubigeo/provincias?departamentoId=${departamentoId}`
+  );
+  return res.data || [];
+}
+
+export async function apiObtenerDistritos(provinciaId: number): Promise<UbigeoItem[]> {
+  const res = await storefrontFetch<BackendApiResponse<UbigeoItem[]>>(
+    `/storefront/ubigeo/distritos?provinciaId=${provinciaId}`
+  );
+  return res.data || [];
 }
 
 // ============================================================================

@@ -7,6 +7,7 @@
 
 import type {
   ProductoStorefront,
+  VarianteStorefront,
   CategoriaStorefront,
   RespuestaPaginada,
   ImagenProducto,
@@ -43,6 +44,12 @@ export interface BackendProducto {
   materialId?: number;
   materialNombre?: string;
   generoNombre?: string;
+  tallaNombre?: string;
+  colorNombre?: string;
+  tallaId?: number;
+  colorId?: number;
+  unidadMedidaId?: number;
+  unidadNombre?: string;
   categoria?: any;
   imagenes?: string[];
   imagenUrl?: string;
@@ -55,6 +62,20 @@ export interface BackendProducto {
   updatedAt?: string;
   tallasDisponibles?: number[];
   coloresDisponibles?: number[];
+  variantes?: Array<{
+    id: number;
+    sku: string;
+    tallaId: number;
+    tallaNombre?: string;
+    colorId: number;
+    colorNombre?: string;
+    colorHex?: string;
+    stock: number;
+    disponible: boolean;
+    imagenUrl?: string;
+    imagenes?: string[];
+    precioVenta: number;
+  }>;
   tenantId?: number;
 }
 
@@ -73,6 +94,16 @@ export interface BackendCategoria {
  * Map a backend product to ProductoStorefront.
  */
 export function mapProducto(raw: BackendProducto): ProductoStorefront {
+  // Build imagenes array from backend string URLs
+  const imagenesArray: ImagenProducto[] = (raw.imagenes || []).map((url, index) => ({
+    id: index,
+    productoId: raw.id,
+    url,
+    altText: `${raw.nombre} - imagen ${index + 1}`,
+    orden: index,
+    esPrincipal: index === 0,
+  }));
+
   const producto: ProductoStorefront = {
     id: raw.id,
     tenantId: raw.tenantId ?? 1,
@@ -88,6 +119,7 @@ export function mapProducto(raw: BackendProducto): ProductoStorefront {
     generoId: raw.generoId ?? null,
 
     imagenUrl: null,
+    imagenes: imagenesArray,
     precioCosto: raw.precioCosto ?? 0,
     precioVenta: raw.precioVenta,
 
@@ -110,10 +142,35 @@ export function mapProducto(raw: BackendProducto): ProductoStorefront {
     marcaNombre: raw.marcaNombre,
     materialNombre: raw.materialNombre,
     generoNombre: raw.generoNombre || raw.genero,
+    tallaNombre: raw.tallaNombre,
+    colorNombre: raw.colorNombre,
+    unidadNombre: raw.unidadNombre,
 
-    tallasDisponibles: raw.tallasDisponibles || [],
-    coloresDisponibles: raw.coloresDisponibles || [],
+    tallasDisponibles: (raw.tallasDisponibles && raw.tallasDisponibles.length > 0)
+      ? raw.tallasDisponibles
+      : (raw.tallaId ? [raw.tallaId] : []),
+    coloresDisponibles: (raw.coloresDisponibles && raw.coloresDisponibles.length > 0)
+      ? raw.coloresDisponibles
+      : (raw.colorId ? [raw.colorId] : []),
   };
+
+  // Map variantes if present (only on product detail page)
+  if (raw.variantes && raw.variantes.length > 0) {
+    producto.variantes = raw.variantes.map((v): VarianteStorefront => ({
+      id: v.id,
+      sku: v.sku || '',
+      tallaId: v.tallaId,
+      tallaNombre: v.tallaNombre || '',
+      colorId: v.colorId,
+      colorNombre: v.colorNombre || '',
+      colorHex: v.colorHex,
+      stock: v.stock ?? 0,
+      disponible: v.disponible ?? (v.stock > 0),
+      imagenUrl: v.imagenUrl || null,
+      imagenes: v.imagenes || [],
+      precioVenta: v.precioVenta ?? producto.precioVenta,
+    }));
+  }
 
   // Compute precioLiquidacion
   if (producto.enLiquidacion && producto.porcentajeLiquidacion > 0) {
@@ -121,17 +178,21 @@ export function mapProducto(raw: BackendProducto): ProductoStorefront {
       producto.precioVenta - (producto.precioVenta * producto.porcentajeLiquidacion / 100);
   }
 
-  // Resolve image URL
-  producto.imagenUrl = resolverImagenProducto({
-    ...raw,
-    id: raw.id,
-    imagenUrl: raw.imagenUrl,
-    imagenes: raw.imagenes?.map(url => ({ url })),
-    generoId: raw.generoId,
-    genero: raw.genero,
-    nombre: raw.nombre,
-    categoriaNombre: raw.categoriaNombre,
-  });
+  // Resolve image URL: prioritize imagenes_producto, then imagenUrl field, then fallback
+  if (imagenesArray.length > 0) {
+    producto.imagenUrl = imagenesArray[0].url;
+  } else {
+    producto.imagenUrl = resolverImagenProducto({
+      ...raw,
+      id: raw.id,
+      imagenUrl: raw.imagenUrl,
+      imagenes: raw.imagenes?.map(url => ({ url })),
+      generoId: raw.generoId,
+      genero: raw.genero,
+      nombre: raw.nombre,
+      categoriaNombre: raw.categoriaNombre,
+    });
+  }
 
   return producto;
 }
@@ -143,13 +204,15 @@ export function mapPaginado<TRaw, TOutput>(
   page: SpringPageable<TRaw>,
   mapper: (item: TRaw) => TOutput
 ): RespuestaPaginada<TOutput> {
+  // Filter out null entries (backend may return nulls for filtered-out items)
+  const validContent = (page.content || []).filter((item): item is TRaw => item != null);
   return {
-    data: page.content.map(mapper),
+    data: validContent.map(mapper),
     pagination: {
       page: page.number + 1, // Spring is 0-based, our frontend is 1-based
       pageSize: page.size,
-      totalItems: page.totalElements,
-      totalPages: page.totalPages,
+      totalItems: validContent.length,
+      totalPages: Math.ceil(validContent.length / page.size) || 1,
     },
   };
 }
@@ -177,7 +240,7 @@ export function mapCatalogToTalla(raw: any): Talla {
     codigo: raw.codigo || '',
     descripcion: raw.nombre || raw.descripcion || '',
     ordenVisualizacion: raw.ordenVisualizacion ?? raw.id,
-    estado: raw.estado === true || raw.estado === 1 ? 1 : 0,
+    estado: raw.estado === false || raw.estado === 0 ? 0 : 1,
   };
 }
 
@@ -190,7 +253,7 @@ export function mapCatalogToColor(raw: any): Color {
     codigo: raw.codigo || '',
     nombre: raw.nombre || '',
     codigoHex: raw.codigoHex || '#000000',
-    estado: raw.estado === true || raw.estado === 1 ? 1 : 0,
+    estado: raw.estado === false || raw.estado === 0 ? 0 : 1,
   };
 }
 
@@ -203,7 +266,7 @@ export function mapCatalogToMarca(raw: any): Marca {
     codigo: raw.codigo || '',
     nombre: raw.nombre || '',
     logoUrl: raw.logoUrl || null,
-    estado: raw.estado === true || raw.estado === 1 ? 1 : 0,
+    estado: raw.estado === false || raw.estado === 0 ? 0 : 1,
   };
 }
 
@@ -215,7 +278,7 @@ export function mapCatalogToMaterial(raw: any): Material {
     id: raw.id,
     codigo: raw.codigo || '',
     descripcion: raw.nombre || raw.descripcion || '',
-    estado: raw.estado === true || raw.estado === 1 ? 1 : 0,
+    estado: raw.estado === false || raw.estado === 0 ? 0 : 1,
   };
 }
 
@@ -227,7 +290,7 @@ export function mapCatalogToGenero(raw: any): Genero {
     id: raw.id,
     codigo: raw.codigo || '',
     descripcion: raw.nombre || raw.descripcion || '',
-    estado: raw.estado === true || raw.estado === 1 ? 1 : 0,
+    estado: raw.estado === false || raw.estado === 0 ? 0 : 1,
   };
 }
 

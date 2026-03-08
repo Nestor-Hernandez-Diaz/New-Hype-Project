@@ -48,7 +48,10 @@ export enum TipoMovimientoCaja {
 export interface CajaRegistradora {
   /** ID de la caja registradora */
   id: string;
-  
+
+  /** Codigo unico de la caja */
+  codigo: string;
+
   /** Nombre de la caja */
   nombre: string;
   
@@ -181,19 +184,25 @@ export interface ResumenCaja {
 export interface ItemVenta {
   /** ID del item de venta */
   id: string;
-  
+
   /** ID del producto */
   productId: string;
-  
+
   /** Nombre del producto */
   nombreProducto: string;
-  
+
+  /** Codigo/SKU del producto */
+  codigoProducto?: string;
+
   /** Cantidad vendida */
   cantidad: number;
-  
+
   /** Precio unitario */
   precioUnitario: number;
-  
+
+  /** Descuento aplicado */
+  descuento?: number;
+
   /** Subtotal del item (cantidad * precioUnitario) */
   subtotal: number;
 }
@@ -372,7 +381,13 @@ export interface NotaCredito {
   
   /** Descripción adicional */
   creditNoteDescription?: string;
-  
+
+  /** Estado de la NC */
+  creditNoteStatus?: string;
+
+  /** Método de devolución (Efectivo/Transferencia/Vale) */
+  creditNotePaymentMethod?: string;
+
   /** Total de la NC */
   total: number;
   
@@ -414,6 +429,7 @@ export interface CrearNotaCreditoRequest {
   /** Items a devolver */
   items: Array<{
     saleItemId: string;
+    productoId: string;
     cantidad: number;
   }>;
   

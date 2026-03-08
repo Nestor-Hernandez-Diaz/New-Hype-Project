@@ -486,15 +486,15 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
 
   // ✅ Filtrar solo proveedores activos
   const suppliers = useMemo(() => {
-    return clients.filter(c => 
-      (c.tipoEntidad === 'Proveedor' || c.tipoEntidad === 'Ambos') && 
-      c.isActive
+    return clients.filter(c =>
+      (c.tipoEntidad === 'Proveedor' || c.tipoEntidad === 'Ambos') &&
+      c.activo
     );
   }, [clients]);
 
   // ✅ Filtrar solo productos activos
   const activeProducts = useMemo(() => {
-    return products.filter(p => p.isActive);
+    return products.filter(p => p.activo);
   }, [products]);
 
   // ==================== EFECTOS ====================
@@ -623,7 +623,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
 
   // ✅ Calcular totales de un item considerando IGV
   const calculateItemTotals = (item: CreatePurchaseOrderItemDto & { incluyeIGV?: boolean }) => {
-    const cantidad = item.cantidad || 0;
+    const cantidad = item.cantidadOrdenada || item.cantidad || 0;
     const precioUnitario = item.precioUnitario || 0;
     const base = cantidad * precioUnitario;
     
@@ -693,7 +693,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
           newErrors[`item_${index}_producto`] = 'Seleccione un producto';
           itemHasError = true;
         }
-        if (!item.cantidad || item.cantidad <= 0) {
+        if (!item.cantidadOrdenada || item.cantidadOrdenada <= 0) {
           newErrors[`item_${index}_cantidad`] = 'Cantidad debe ser mayor a 0';
           itemHasError = true;
         }
@@ -806,8 +806,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   };
 
   const getProductName = (productId: string): string => {
-    const product = activeProducts.find(p => p.id === productId);
-    return product ? `${product.productCode} - ${product.productName}` : '';
+    const product = activeProducts.find(p => String(p.id) === productId);
+    return product ? `${product.codigoProducto} - ${product.nombreProducto}` : '';
   };
 
   const formatCurrency = (amount: number) => {
@@ -994,8 +994,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                               >
                                 <option value="">Seleccione un producto...</option>
                                 {activeProducts.map(product => (
-                                  <option key={product.id} value={product.id}>
-                                    {product.productCode} - {product.productName}
+                                  <option key={product.id} value={String(product.id)}>
+                                    {product.codigoProducto} - {product.nombreProducto}
                                   </option>
                                 ))}
                               </ItemSelect>
@@ -1019,13 +1019,13 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                         <Td data-label="Unidad">
                           <small style={{ color: '#666' }}>
                             {item.productoId ? (() => {
-                              const product = activeProducts.find(p => p.id === item.productoId);  // ✅ Solo comparar por id
+                              const product = activeProducts.find(p => String(p.id) === item.productoId);
                               if (!product) return '-';
-                              // ✅ Verificación defensiva: asegurar que unit es string
-                              const unit = typeof product.unit === 'object' && (product.unit as any)?.nombre
-                                ? (product.unit as any).nombre
-                                : product.unit || 'UND';
-                              return unit;
+                              // Usar unidadMedida del producto si existe
+                              if (product.unidadMedida && product.unidadMedida.nombreUnidad) {
+                                return product.unidadMedida.nombreUnidad;
+                              }
+                              return 'UND';
                             })() : '-'}
                           </small>
                         </Td>
@@ -1038,8 +1038,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                                 type="number"
                                 min="0"
                                 step="1"
-                                value={item.cantidad || ''}
-                                onChange={(e) => handleItemChange(index, 'cantidad', Number(e.target.value))}
+                                value={item.cantidadOrdenada || ''}
+                                onChange={(e) => handleItemChange(index, 'cantidadOrdenada', Number(e.target.value))}
                                 $error={!!errors[`item_${index}_cantidad`]}
                                 disabled={!isItemsEditable() || loading}
                               />
@@ -1177,7 +1177,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
             </SummaryRow>
             <SummaryRow>
               <span>Unidades totales ordenadas:</span>
-              <strong>{formData.items.reduce((sum, item) => sum + (item.cantidad || 0), 0)}</strong>
+              <strong>{formData.items.reduce((sum, item) => sum + (item.cantidadOrdenada || item.cantidad || 0), 0)}</strong>
             </SummaryRow>
             <SummaryRow>
               <span>Subtotal (sin IGV):</span>

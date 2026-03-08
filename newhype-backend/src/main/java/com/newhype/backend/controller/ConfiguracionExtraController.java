@@ -92,4 +92,13 @@ public class ConfiguracionExtraController {
         MotivoMovimientoResponse response = motivoMovimientoService.actualizar(id, request);
         return ResponseEntity.ok(ApiResponse.ok("Motivo actualizado", response));
     }
+
+    @PatchMapping("/motivos-movimiento/{id}/estado")
+    @Tag(name = "Motivos Movimiento")
+    @Operation(summary = "Activar/desactivar motivo de movimiento")
+    public ResponseEntity<ApiResponse<MotivoMovimientoResponse>> cambiarEstadoMotivo(
+            @PathVariable Long id) {
+        MotivoMovimientoResponse response = motivoMovimientoService.cambiarEstado(id);
+        return ResponseEntity.ok(ApiResponse.ok("Estado actualizado", response));
+    }
 }

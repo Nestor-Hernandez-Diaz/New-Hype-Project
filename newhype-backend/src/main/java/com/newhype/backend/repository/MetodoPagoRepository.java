@@ -8,6 +8,8 @@ import java.util.Optional;
 
 public interface MetodoPagoRepository extends JpaRepository<MetodoPago, Long> {
 
+    List<MetodoPago> findByTenantId(Long tenantId);
+
     List<MetodoPago> findByTenantIdAndEstadoTrue(Long tenantId);
 
     Optional<MetodoPago> findByIdAndTenantId(Long id, Long tenantId);

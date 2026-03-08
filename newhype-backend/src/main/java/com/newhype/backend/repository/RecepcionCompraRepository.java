@@ -24,4 +24,6 @@ public interface RecepcionCompraRepository extends JpaRepository<RecepcionCompra
                                  Pageable pageable);
 
     long countByTenantIdAndOrdenCompraId(Long tenantId, Long ordenCompraId);
+
+    long countByTenantId(Long tenantId);
 }

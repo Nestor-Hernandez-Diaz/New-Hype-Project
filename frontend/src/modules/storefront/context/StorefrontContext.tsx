@@ -302,7 +302,7 @@ export function StorefrontProvider({ children }: StorefrontProviderProps) {
   // Obtener resumen del carrito
   const obtenerResumenCarrito = (): ResumenCarrito => {
     const subtotal = state.carrito.reduce((sum, item) => sum + (item.precioUnitario * item.cantidad), 0);
-    const envio = subtotal >= 150 ? 0 : 15; // Envío gratis si subtotal >= S/.150
+    const envio = subtotal >= 150 ? 0 : 9.90;
     const descuento = 0; // Por ahora sin descuentos adicionales
     const total = subtotal + envio - descuento;
     const cantidadItems = state.carrito.reduce((sum, item) => sum + item.cantidad, 0);

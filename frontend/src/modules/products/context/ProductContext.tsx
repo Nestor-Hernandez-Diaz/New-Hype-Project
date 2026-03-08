@@ -12,7 +12,7 @@ import type {
   Categoria,
   UnidadMedida,
 } from '@monorepo/shared-types';
-import * as productosMockApi from '../services/productosRealApi';
+import * as productosApi from '../services/productosRealApi';
 
 // ============= TIPOS DE ESTADO Y ACCIONES =============
 
@@ -122,7 +122,7 @@ interface ProductContextType {
 
   // Métodos
   loadProducts: (filtros?: ProductoFiltros) => Promise<void>;
-  addProduct: (data: CrearProductoDTO) => Promise<void>;
+  addProduct: (data: CrearProductoDTO) => Promise<Producto>;
   updateProduct: (id: string, data: ActualizarProductoDTO) => Promise<void>;
   toggleProductStatus: (id: string, activo: boolean) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -146,7 +146,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       dispatch({ type: 'FETCH_PRODUCTOS_START' });
       setIsLoading(true);
 
-      const response = await productosMockApi.getProductos(filtros);
+      const response = await productosApi.getProductos(filtros);
       dispatch({ type: 'FETCH_PRODUCTOS_SUCCESS', payload: response });
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al cargar productos';
@@ -158,12 +158,13 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [setIsLoading, showError]);
 
   // ========== CREATE PRODUCTO ==========
-  const addProduct = useCallback(async (data: CrearProductoDTO) => {
+  const addProduct = useCallback(async (data: CrearProductoDTO): Promise<Producto> => {
     try {
       setIsLoading(true);
-      const nuevoProducto = await productosMockApi.crearProducto(data);
+      const nuevoProducto = await productosApi.crearProducto(data);
       dispatch({ type: 'CREATE_PRODUCTO_SUCCESS', payload: nuevoProducto });
       showSuccess(`Producto ${data.nombreProducto} creado exitosamente`);
+      return nuevoProducto;
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al crear producto';
       showError(mensaje);
@@ -177,7 +178,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   const updateProduct = useCallback(async (id: string, data: ActualizarProductoDTO) => {
     try {
       setIsLoading(true);
-      const productoActualizado = await productosMockApi.actualizarProducto(Number(id), data);
+      const productoActualizado = await productosApi.actualizarProducto(Number(id), data);
       dispatch({ type: 'UPDATE_PRODUCTO_SUCCESS', payload: productoActualizado });
       showSuccess('Producto actualizado exitosamente');
     } catch (error) {
@@ -193,7 +194,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   const toggleProductStatus = useCallback(async (id: string, activo: boolean) => {
     try {
       setIsLoading(true);
-      const productoActualizado = await productosMockApi.cambiarEstadoProducto(Number(id), activo);
+      const productoActualizado = await productosApi.cambiarEstadoProducto(Number(id), activo);
       if (productoActualizado) {
         dispatch({ type: 'UPDATE_PRODUCTO_SUCCESS', payload: productoActualizado });
         showSuccess(activo ? 'Producto activado exitosamente' : 'Producto desactivado exitosamente');
@@ -211,7 +212,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   const deleteProduct = useCallback(async (id: string) => {
     try {
       setIsLoading(true);
-      await productosMockApi.eliminarProducto(Number(id));
+      await productosApi.eliminarProducto(Number(id));
       dispatch({ type: 'DELETE_PRODUCTO_SUCCESS', payload: id });
       showSuccess('Producto eliminado exitosamente');
     } catch (error) {
@@ -231,7 +232,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   // ========== LOAD CATEGORIAS ==========
   const loadCategorias = useCallback(async () => {
     try {
-      const categorias = await productosMockApi.getCategorias();
+      const categorias = await productosApi.getCategorias();
       dispatch({ type: 'FETCH_CATEGORIAS_SUCCESS', payload: categorias });
     } catch (error) {
       console.error('Error cargando categorías:', error);
@@ -241,7 +242,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   // ========== LOAD UNIDADES ==========
   const loadUnidadesMedida = useCallback(async () => {
     try {
-      const unidades = await productosMockApi.getUnidadesMedida();
+      const unidades = await productosApi.getUnidadesMedida();
       dispatch({ type: 'FETCH_UNIDADES_SUCCESS', payload: unidades });
     } catch (error) {
       console.error('Error cargando unidades:', error);
