@@ -207,4 +207,37 @@ public class StorefrontController {
             @RequestParam Long provinciaId) {
         return ResponseEntity.ok(ApiResponse.ok(storefrontService.obtenerDistritos(provinciaId)));
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  GET /storefront/almacenes — Almacenes para retiro en tienda
+    // ═══════════════════════════════════════════════════════════════
+    @GetMapping("/almacenes")
+    @Operation(summary = "Almacenes activos para retiro en tienda (no requiere auth)")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerAlmacenes(
+            @RequestParam Long tenantId) {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.obtenerAlmacenes(tenantId)));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  ADMIN: GET /storefront/admin/pedidos — Listar todos los pedidos
+    // ═══════════════════════════════════════════════════════════════
+    @GetMapping("/admin/pedidos")
+    @Operation(summary = "Admin: Listar todos los pedidos del tenant")
+    public ResponseEntity<ApiResponse<Page<PedidoResponse>>> listarPedidosAdmin(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.listarPedidosAdmin(page, size)));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  ADMIN: PATCH /storefront/admin/pedidos/{id}/estado — Cambiar estado
+    // ═══════════════════════════════════════════════════════════════
+    @PatchMapping("/admin/pedidos/{id}/estado")
+    @Operation(summary = "Admin: Cambiar estado de pedido (fulfillment)")
+    public ResponseEntity<ApiResponse<PedidoResponse>> cambiarEstadoPedido(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(ApiResponse.ok("Estado actualizado",
+                storefrontService.cambiarEstadoPedido(id, body.get("estado"))));
+    }
 }

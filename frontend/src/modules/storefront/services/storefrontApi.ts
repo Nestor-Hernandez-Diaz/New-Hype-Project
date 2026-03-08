@@ -387,6 +387,8 @@ export interface EmpresaStorefrontData {
   diasVigenciaVale?: number;
   requiereEtiquetasOriginales?: boolean;
   requiereProductoSinUso?: boolean;
+  igvActivo?: boolean;
+  igvPorcentaje?: number;
 }
 
 /**
@@ -462,6 +464,10 @@ export interface CrearPedidoApiRequest {
   items: Array<{ productoId: number; cantidad: number }>;
   direccionEnvio: string;
   instrucciones?: string;
+  metodoPagoId?: number;
+  referenciaPago?: string;
+  tipoEnvio?: string;    // DOMICILIO | RETIRO_TIENDA
+  almacenId?: number;    // For RETIRO_TIENDA
 }
 
 export interface PedidoApiResponse {
@@ -474,6 +480,11 @@ export interface PedidoApiResponse {
   total: number;
   direccionEnvio: string;
   instrucciones: string | null;
+  metodoPagoNombre: string | null;
+  referenciaPago: string | null;
+  tipoEnvio: string | null;
+  costoEnvio: number | null;
+  ventaId: number | null;
   createdAt: string;
   updatedAt: string | null;
   detalles: Array<{
@@ -535,4 +546,25 @@ export async function apiCancelarPedido(
     { method: 'PATCH' }
   );
   return res.data;
+}
+
+// ============================================================================
+// ALMACENES API (Public endpoint, for pickup in store)
+// ============================================================================
+
+export interface AlmacenStorefrontData {
+  id: number;
+  nombre: string;
+  direccion?: string;
+}
+
+/**
+ * GET /storefront/almacenes — Active warehouses for store pickup
+ */
+export async function apiObtenerAlmacenes(): Promise<AlmacenStorefrontData[]> {
+  const tenantId = getTenantId();
+  const res = await storefrontFetch<BackendApiResponse<AlmacenStorefrontData[]>>(
+    `/storefront/almacenes?tenantId=${tenantId}`
+  );
+  return res.data || [];
 }

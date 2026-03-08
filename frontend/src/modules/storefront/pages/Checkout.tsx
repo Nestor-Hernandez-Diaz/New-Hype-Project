@@ -1,10 +1,10 @@
 /**
- * 🛒 PÁGINA DE CHECKOUT
- * 
+ * PAGINA DE CHECKOUT
+ *
  * Proceso completo de compra con:
- * - Información del cliente
- * - Dirección de envío
- * - Métodos de pago (Efectivo, Tarjeta, Yape, Plin, Transferencia)
+ * - Informacion del cliente
+ * - Direccion de envio
+ * - Metodos de pago (Tarjeta, Yape, Plin, Transferencia)
  * - Resumen del carrito
  */
 
@@ -12,8 +12,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import { useAuth } from '../hooks/useAuth';
-import { apiCrearPedido, apiObtenerMetodosPago } from '../services/storefrontApi';
-import type { MetodoPagoStorefrontData } from '../services/storefrontApi';
+import { apiCrearPedido, apiObtenerMetodosPago, apiObtenerEmpresa, apiObtenerAlmacenes } from '../services/storefrontApi';
+import type { MetodoPagoStorefrontData, EmpresaStorefrontData, AlmacenStorefrontData } from '../services/storefrontApi';
 import ProcessingOverlay from '../components/common/ProcessingOverlay';
 import StepIndicator from '../components/checkout/StepIndicator';
 import ShippingForm from '../components/checkout/ShippingForm';
@@ -22,7 +22,7 @@ import OrderSummary from '../components/checkout/OrderSummary';
 import { useToast } from '../context/ToastContext';
 
 type TipoEnvio = 'domicilio' | 'tienda';
-type MetodoPago = 'Efectivo' | 'Tarjeta' | 'Yape' | 'Plin' | 'Transferencia';
+type MetodoPago = 'Tarjeta' | 'Yape' | 'Plin' | 'Transferencia';
 
 interface FormData {
   nombre: string;
@@ -42,13 +42,16 @@ export default function Checkout() {
   const { estaAutenticado, cargando: authCargando, usuario } = useAuth();
   const { showToast } = useToast();
   const [tipoEnvio, setTipoEnvio] = useState<TipoEnvio>('domicilio');
-  const [metodoPago, setMetodoPago] = useState<MetodoPago>('Efectivo');
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>('Yape');
   const [procesando, setProcesando] = useState(false);
   const [mostrarProcessing, setMostrarProcessing] = useState(false);
   const [paso, setPaso] = useState(0); // 0: Envío, 1: Pago, 2: Confirmación
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [pedidoCompletado, setPedidoCompletado] = useState(false);
   const [metodosPagoDisponibles, setMetodosPagoDisponibles] = useState<MetodoPagoStorefrontData[]>([]);
+  const [empresaData, setEmpresaData] = useState<EmpresaStorefrontData | null>(null);
+  const [almacenes, setAlmacenes] = useState<AlmacenStorefrontData[]>([]);
+  const [almacenSeleccionado, setAlmacenSeleccionado] = useState<number | null>(null);
   const autofillDone = useRef(false);
   
   const [formData, setFormData] = useState<FormData>({
@@ -101,20 +104,32 @@ export default function Checkout() {
     }));
   }, [usuario]);
 
-  // S3: Load payment methods from API
+  // S3: Load payment methods, empresa data, and almacenes from API
   useEffect(() => {
     apiObtenerMetodosPago()
       .then(methods => {
-        setMetodosPagoDisponibles(methods);
-        if (methods.length > 0) {
-          const firstNombre = methods[0].nombre as MetodoPago;
+        // Filter out "Efectivo" — online orders don't support cash
+        const onlineMethods = methods.filter(m => m.nombre.toLowerCase() !== 'efectivo');
+        setMetodosPagoDisponibles(onlineMethods);
+        if (onlineMethods.length > 0) {
+          const firstNombre = onlineMethods[0].nombre as MetodoPago;
           setMetodoPago(firstNombre);
         }
       })
       .catch(() => {
-        // Fallback: empty means PaymentForm shows all hardcoded methods
         setMetodosPagoDisponibles([]);
       });
+
+    apiObtenerEmpresa()
+      .then(setEmpresaData)
+      .catch(() => setEmpresaData(null));
+
+    apiObtenerAlmacenes()
+      .then(alms => {
+        setAlmacenes(alms);
+        if (alms.length === 1) setAlmacenSeleccionado(alms[0].id);
+      })
+      .catch(() => setAlmacenes([]));
   }, []);
 
   // Calcular totales
@@ -131,22 +146,6 @@ export default function Checkout() {
   const handlePagoInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setPagoData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Formatear número de tarjeta
-  const formatearTarjeta = (valor: string) => {
-    const limpio = valor.replace(/\s/g, '');
-    const grupos = limpio.match(/.{1,4}/g);
-    return grupos ? grupos.join(' ') : limpio;
-  };
-
-  // Formatear vencimiento
-  const formatearVencimiento = (valor: string) => {
-    const limpio = valor.replace(/\D/g, '');
-    if (limpio.length >= 2) {
-      return limpio.slice(0, 2) + '/' + limpio.slice(2, 4);
-    }
-    return limpio;
   };
 
   // Validar datos de envío
@@ -207,16 +206,28 @@ export default function Checkout() {
   // Completar pedido (llamado por ProcessingOverlay)
   const completarPedido = async () => {
     try {
-      // Build request for backend API
+      // Build address string
       const direccionEnvio = tipoEnvio === 'domicilio'
         ? `${formData.direccion}, ${formData.distrito}, ${formData.provincia}, ${formData.departamento}`
-        : 'Retiro en tienda — Jr. Comercio 456, Tarapoto';
+        : `Retiro en tienda — ${empresaData?.direccion || 'Tienda'}`;
 
       const instrucciones = [
         formData.referencia ? `Ref: ${formData.referencia}` : '',
-        `Pago: ${metodoPago}`,
-        `Envío: ${tipoEnvio}`,
       ].filter(Boolean).join(' | ');
+
+      // Resolve metodoPagoId from available methods
+      const mpMatch = metodosPagoDisponibles.find(
+        m => m.nombre.toLowerCase() === metodoPago.toLowerCase()
+      );
+
+      // Build referencia pago based on method
+      let referenciaPago = '';
+      switch (metodoPago) {
+        case 'Yape': referenciaPago = pagoData.codigoYape; break;
+        case 'Plin': referenciaPago = pagoData.codigoPlin; break;
+        case 'Tarjeta': referenciaPago = `****${pagoData.numeroTarjeta.replace(/\s/g, '').slice(-4)}`; break;
+        case 'Transferencia': referenciaPago = `${pagoData.bancoTransferencia} - ${pagoData.numeroOperacion}`; break;
+      }
 
       const request = {
         items: state.carrito.map(item => ({
@@ -224,7 +235,11 @@ export default function Checkout() {
           cantidad: item.cantidad,
         })),
         direccionEnvio,
-        instrucciones,
+        instrucciones: instrucciones || undefined,
+        metodoPagoId: mpMatch?.id,
+        referenciaPago,
+        tipoEnvio: tipoEnvio === 'tienda' ? 'RETIRO_TIENDA' : 'DOMICILIO',
+        almacenId: tipoEnvio === 'tienda' ? (almacenSeleccionado ?? undefined) : undefined,
       };
 
       // Call real backend API
@@ -315,6 +330,10 @@ export default function Checkout() {
                   tipoEnvio={tipoEnvio}
                   onChange={handleInputChange}
                   onTipoEnvioChange={setTipoEnvio}
+                  empresaData={empresaData}
+                  almacenes={almacenes}
+                  almacenSeleccionado={almacenSeleccionado}
+                  onAlmacenChange={setAlmacenSeleccionado}
                 />
                 
                 <button
@@ -340,6 +359,7 @@ export default function Checkout() {
                   onMetodoPagoChange={setMetodoPago}
                   onPagoDataChange={handlePagoInputChange}
                   availableMethods={metodosPagoDisponibles}
+                  empresaData={empresaData}
                 />
 
                 <div className="flex gap-4 mt-8">

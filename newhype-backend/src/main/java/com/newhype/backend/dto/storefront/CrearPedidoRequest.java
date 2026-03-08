@@ -19,6 +19,10 @@ public class CrearPedidoRequest {
 
     private String direccionEnvio;
     private String instrucciones;
+    private Long metodoPagoId;
+    private String referenciaPago;
+    private String tipoEnvio;       // DOMICILIO | RETIRO_TIENDA
+    private Long almacenId;         // Optional: for RETIRO_TIENDA
 
     @Data
     @NoArgsConstructor

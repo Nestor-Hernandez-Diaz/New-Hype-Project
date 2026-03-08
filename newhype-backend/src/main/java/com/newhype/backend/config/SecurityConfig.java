@@ -50,6 +50,7 @@ public class SecurityConfig {
                     "/api/v1/storefront/empresa",
                     "/api/v1/storefront/metodos-pago",
                     "/api/v1/storefront/ubigeo/**",
+                    "/api/v1/storefront/almacenes",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs/**",

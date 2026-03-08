@@ -125,6 +125,17 @@ interface BackendVenta {
   tieneNotaCredito?: boolean;
   montoNotaCredito?: number;
   notasCredito?: BackendNotaCredito[];
+  // Campos Storefront (pedido online)
+  origen?: string;
+  pedidoTiendaId?: number;
+  direccionEnvio?: string;
+  tipoEnvio?: string;
+  estadoPedido?: string;
+  clienteTelefono?: string;
+  clienteEmail?: string;
+  costoEnvio?: number;
+  referenciaPago?: string;
+  metodoPagoNombre?: string;
 }
 
 interface BackendNotaCredito {
@@ -302,6 +313,19 @@ function mapBackendVenta(b: BackendVenta): Venta {
     montoNotaCredito: b.montoNotaCredito != null ? Number(b.montoNotaCredito) :
       (creditNotes.length > 0 ? creditNotes.reduce((sum, nc) => sum + nc.total, 0) : undefined),
     creditNotes: creditNotes.length > 0 ? creditNotes : undefined,
+    // Storefront fields
+    origen: b.origen,
+    pedidoTiendaId: b.pedidoTiendaId,
+    direccionEnvio: b.direccionEnvio,
+    tipoEnvio: b.tipoEnvio,
+    estadoPedido: b.estadoPedido,
+    clienteNombre: b.clienteNombre,
+    clienteTelefono: b.clienteTelefono,
+    clienteEmail: b.clienteEmail,
+    clienteDireccion: b.clienteDireccion,
+    costoEnvio: b.costoEnvio != null ? Number(b.costoEnvio) : undefined,
+    metodoPagoNombre: b.metodoPagoNombre,
+    referenciaPagoStorefront: b.referenciaPago,
     createdAt: b.createdAt,
     updatedAt: b.createdAt,
   };
@@ -847,4 +871,20 @@ export const crearCotizacion = async (
   }
 
   return mapBackendCotizacion(res.data);
+};
+
+// ============= API STOREFRONT PEDIDOS (Admin fulfillment) =============
+
+export const cambiarEstadoPedido = async (
+  pedidoTiendaId: number,
+  estado: string
+): Promise<void> => {
+  const res: ApiResponse<any> = await apiService.patch(
+    `/storefront/admin/pedidos/${pedidoTiendaId}/estado`,
+    { estado }
+  );
+
+  if (!res.success) {
+    throw new Error(res.message || res.error || 'Error al cambiar estado del pedido');
+  }
 };

@@ -21,6 +21,10 @@ public class Venta {
         PENDIENTE, COMPLETADA, CANCELADA
     }
 
+    public enum OrigenVenta {
+        POS, STOREFRONT
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -95,6 +99,19 @@ public class Venta {
     @Column(name = "observaciones", columnDefinition = "TEXT")
     private String observaciones;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "origen", length = 20)
+    private OrigenVenta origen;
+
+    @Column(name = "pedido_tienda_id")
+    private Long pedidoTiendaId;
+
+    @Column(name = "direccion_envio", columnDefinition = "TEXT")
+    private String direccionEnvio;
+
+    @Column(name = "tipo_envio", length = 20)
+    private String tipoEnvio;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -113,6 +130,7 @@ public class Venta {
         if (total == null) total = BigDecimal.ZERO;
         if (montoRecibido == null) montoRecibido = BigDecimal.ZERO;
         if (montoCambio == null) montoCambio = BigDecimal.ZERO;
+        if (origen == null) origen = OrigenVenta.POS;
     }
 
     @PreUpdate

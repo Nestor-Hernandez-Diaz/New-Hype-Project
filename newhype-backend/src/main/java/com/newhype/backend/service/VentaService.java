@@ -35,6 +35,9 @@ public class VentaService {
     private final ConfiguracionEmpresaRepository configuracionEmpresaRepository;
     private final NotaCreditoRepository notaCreditoRepository;
     private final DetalleNotaCreditoRepository detalleNotaCreditoRepository;
+    private final PedidoTiendaRepository pedidoTiendaRepository;
+    private final ClienteTiendaRepository clienteTiendaRepository;
+    private final MetodoPagoRepository metodoPagoRepository;
 
     public VentaService(VentaRepository ventaRepository,
                         DetalleVentaRepository detalleVentaRepository,
@@ -45,7 +48,10 @@ public class VentaService {
                         SesionCajaRepository sesionCajaRepository,
                         ConfiguracionEmpresaRepository configuracionEmpresaRepository,
                         NotaCreditoRepository notaCreditoRepository,
-                        DetalleNotaCreditoRepository detalleNotaCreditoRepository) {
+                        DetalleNotaCreditoRepository detalleNotaCreditoRepository,
+                        PedidoTiendaRepository pedidoTiendaRepository,
+                        ClienteTiendaRepository clienteTiendaRepository,
+                        MetodoPagoRepository metodoPagoRepository) {
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.pagoVentaRepository = pagoVentaRepository;
@@ -56,6 +62,9 @@ public class VentaService {
         this.configuracionEmpresaRepository = configuracionEmpresaRepository;
         this.notaCreditoRepository = notaCreditoRepository;
         this.detalleNotaCreditoRepository = detalleNotaCreditoRepository;
+        this.pedidoTiendaRepository = pedidoTiendaRepository;
+        this.clienteTiendaRepository = clienteTiendaRepository;
+        this.metodoPagoRepository = metodoPagoRepository;
     }
 
     @Transactional
@@ -305,12 +314,6 @@ public class VentaService {
                 .codigoVenta(v.getCodigoVenta())
                 .sesionCajaId(v.getSesionCajaId())
                 .clienteId(v.getClienteId())
-                .clienteNombre(v.getCliente() != null ?
-                        (v.getCliente().getRazonSocial() != null ? v.getCliente().getRazonSocial() :
-                                v.getCliente().getNombres() + " " + v.getCliente().getApellidos()) : null)
-                .clienteTipoDocumento(v.getCliente() != null ? v.getCliente().getTipoDocumento() : null)
-                .clienteNumeroDocumento(v.getCliente() != null ? v.getCliente().getNumeroDocumento() : null)
-                .clienteDireccion(v.getCliente() != null ? v.getCliente().getDireccion() : null)
                 .almacenId(v.getAlmacenId())
                 .almacenNombre(v.getAlmacen() != null ? v.getAlmacen().getNombre() : null)
                 .usuarioId(v.getUsuarioId())
@@ -328,7 +331,47 @@ public class VentaService {
                 .fechaPago(v.getFechaPago())
                 .observaciones(v.getObservaciones())
                 .incluyeIgv(v.getIncluyeIgv())
-                .createdAt(v.getCreatedAt());
+                .createdAt(v.getCreatedAt())
+                .origen(v.getOrigen() != null ? v.getOrigen().name() : "POS")
+                .pedidoTiendaId(v.getPedidoTiendaId())
+                .direccionEnvio(v.getDireccionEnvio())
+                .tipoEnvio(v.getTipoEnvio());
+
+        // Client info -- for STOREFRONT orders, lookup ClienteTienda
+        if (v.getCliente() != null) {
+            builder.clienteNombre(v.getCliente().getRazonSocial() != null ? v.getCliente().getRazonSocial() :
+                            v.getCliente().getNombres() + " " + v.getCliente().getApellidos())
+                    .clienteTipoDocumento(v.getCliente().getTipoDocumento())
+                    .clienteNumeroDocumento(v.getCliente().getNumeroDocumento())
+                    .clienteDireccion(v.getCliente().getDireccion())
+                    .clienteTelefono(v.getCliente().getTelefono())
+                    .clienteEmail(v.getCliente().getEmail());
+        } else if (v.getOrigen() == Venta.OrigenVenta.STOREFRONT && v.getPedidoTiendaId() != null) {
+            pedidoTiendaRepository.findById(v.getPedidoTiendaId()).ifPresent(pedido -> {
+                clienteTiendaRepository.findByIdAndTenantId(pedido.getClienteTiendaId(), tenantId).ifPresent(ct -> {
+                    builder.clienteNombre((ct.getNombre() != null ? ct.getNombre() : "") + " " +
+                            (ct.getApellido() != null ? ct.getApellido() : ""))
+                            .clienteDireccion(pedido.getDireccionEnvio())
+                            .clienteTelefono(ct.getTelefono())
+                            .clienteEmail(ct.getEmail());
+                });
+                // Include storefront order details: costoEnvio, referenciaPago, metodoPago
+                builder.costoEnvio(pedido.getCostoEnvio());
+                builder.referenciaPago(pedido.getReferenciaPago());
+                if (pedido.getMetodoPagoId() != null) {
+                    metodoPagoRepository.findById(pedido.getMetodoPagoId()).ifPresent(mp -> {
+                        builder.metodoPagoNombre(mp.getNombre());
+                    });
+                }
+            });
+        }
+
+        // Fulfillment status for STOREFRONT orders
+        if (v.getPedidoTiendaId() != null) {
+            pedidoTiendaRepository.findById(v.getPedidoTiendaId()).ifPresent(pedido -> {
+                builder.estadoPedido(pedido.getEstado() != null ? pedido.getEstado().name() : null);
+            });
+        }
 
         // Agregar info de Notas de Crédito
         List<NotaCredito> ncs = notaCreditoRepository.findByVentaOrigenIdAndTenantId(v.getId(), tenantId);

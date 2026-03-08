@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Store } from 'lucide-react';
 import { apiObtenerDepartamentos, apiObtenerProvincias, apiObtenerDistritos } from '../../services/storefrontApi';
-import type { UbigeoItem } from '../../services/storefrontApi';
+import type { UbigeoItem, EmpresaStorefrontData, AlmacenStorefrontData } from '../../services/storefrontApi';
 
 type TipoEnvio = 'domicilio' | 'tienda';
 
@@ -22,13 +22,21 @@ interface ShippingFormProps {
   tipoEnvio: TipoEnvio;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onTipoEnvioChange: (tipo: TipoEnvio) => void;
+  empresaData?: EmpresaStorefrontData | null;
+  almacenes?: AlmacenStorefrontData[];
+  almacenSeleccionado?: number | null;
+  onAlmacenChange?: (almacenId: number | null) => void;
 }
 
 export default function ShippingForm({
   formData,
   tipoEnvio,
   onChange,
-  onTipoEnvioChange
+  onTipoEnvioChange,
+  empresaData,
+  almacenes,
+  almacenSeleccionado,
+  onAlmacenChange
 }: ShippingFormProps) {
   const [departamentos, setDepartamentos] = useState<UbigeoItem[]>([]);
   const [provincias, setProvincias] = useState<UbigeoItem[]>([]);
@@ -169,6 +177,36 @@ export default function ShippingForm({
           <span className="text-xs text-gray-600">Gratis</span>
         </button>
       </div>
+
+      {/* Pickup in store info */}
+      {tipoEnvio === 'tienda' && (
+        <div className="p-4 bg-blue-50 rounded-xl space-y-3">
+          <p className="font-semibold text-sm">Punto de recojo:</p>
+          {almacenes && almacenes.length > 1 ? (
+            <select
+              value={almacenSeleccionado ?? ''}
+              onChange={(e) => onAlmacenChange?.(e.target.value ? Number(e.target.value) : null)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black outline-none"
+            >
+              <option value="">Seleccionar almacen</option>
+              {almacenes.map(a => (
+                <option key={a.id} value={a.id}>{a.nombre}</option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-sm text-gray-700">
+              {almacenes && almacenes.length === 1 ? almacenes[0].nombre : empresaData?.nombreComercial || 'Tienda'}
+            </p>
+          )}
+          {empresaData && (
+            <div className="text-sm text-gray-600 space-y-1">
+              {empresaData.direccion && <p>Direccion: {empresaData.direccion}</p>}
+              {empresaData.distrito && <p>{empresaData.distrito}, {empresaData.provincia}, {empresaData.departamento}</p>}
+              {empresaData.telefono && <p>Telefono: {empresaData.telefono}</p>}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Datos Personales */}
       <div className="grid md:grid-cols-2 gap-4">

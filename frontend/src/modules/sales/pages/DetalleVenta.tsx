@@ -7,6 +7,7 @@ import { useSales } from '../context/SalesContext';
 import { useConfiguracion } from '../../configuration/context/ConfiguracionContext';
 import { useNotification } from '../../../context/NotificationContext';
 import { ModalNotaCredito } from '../components/ModalNotaCredito';
+import { cambiarEstadoPedido } from '../services/ventasRealApi';
 
 // ✅ Helper para obtener el nombre del motivo de NC (simplificado a 2 motivos)
 const getCreditNoteReasonLabel = (reason: string): string => {
@@ -142,7 +143,7 @@ const StatusBadge = styled.span<{ status: string }>`
   font-size: 0.9rem;
   font-weight: 600;
   display: inline-block;
-  
+
   ${props => {
     const status = props.status.toLowerCase();
     switch (status) {
@@ -159,10 +160,35 @@ const StatusBadge = styled.span<{ status: string }>`
           border: 2px solid #28a745;
         `;
       case 'cancelada':
+      case 'cancelado':
         return `
           background: #f8d7da;
           color: #721c24;
           border: 2px solid #dc3545;
+        `;
+      case 'confirmado':
+        return `
+          background: #d1ecf1;
+          color: #0c5460;
+          border: 2px solid #17a2b8;
+        `;
+      case 'preparando':
+        return `
+          background: #e8daef;
+          color: #6c3483;
+          border: 2px solid #8e44ad;
+        `;
+      case 'enviado':
+        return `
+          background: #d6eaf8;
+          color: #1b4f72;
+          border: 2px solid #2e86c1;
+        `;
+      case 'entregado':
+        return `
+          background: #d5f5e3;
+          color: #196f3d;
+          border: 2px solid #27ae60;
         `;
       default:
         return `
@@ -489,7 +515,7 @@ const DetalleVenta: React.FC = () => {
     ? (sale.cliente.tipoDocumento === 'RUC'
         ? sale.cliente.razonSocial
         : `${sale.cliente.nombres} ${sale.cliente.apellidos}`)
-    : 'Cliente General';
+    : (sale.clienteNombre || 'Cliente General');
 
   const subtotal = Number(sale.subtotal) || 0;
   const igv = Number(sale.igv) || 0;
@@ -611,10 +637,155 @@ const DetalleVenta: React.FC = () => {
                 </InfoItem>
               )}
             </InfoGrid>
+          ) : sale.origen === 'STOREFRONT' && sale.clienteNombre ? (
+            <InfoGrid>
+              <InfoItem>
+                <InfoLabel>Nombre (Cliente Online)</InfoLabel>
+                <InfoValue>{sale.clienteNombre}</InfoValue>
+              </InfoItem>
+              {sale.clienteEmail && (
+                <InfoItem>
+                  <InfoLabel>Email</InfoLabel>
+                  <InfoValue>{sale.clienteEmail}</InfoValue>
+                </InfoItem>
+              )}
+              {sale.clienteTelefono && (
+                <InfoItem>
+                  <InfoLabel>Teléfono</InfoLabel>
+                  <InfoValue>{sale.clienteTelefono}</InfoValue>
+                </InfoItem>
+              )}
+              {sale.clienteDireccion && (
+                <InfoItem>
+                  <InfoLabel>Dirección</InfoLabel>
+                  <InfoValue>{sale.clienteDireccion}</InfoValue>
+                </InfoItem>
+              )}
+            </InfoGrid>
           ) : (
             <InfoValue>Cliente General (Sin datos registrados)</InfoValue>
           )}
         </Card>
+
+        {/* Información de Envío (solo para ventas Storefront) */}
+        {sale.origen === 'STOREFRONT' && (
+          <Card>
+            <CardTitle>Informacion de Envio (Pedido Online)</CardTitle>
+            <InfoGrid>
+              <InfoItem>
+                <InfoLabel>Origen</InfoLabel>
+                <InfoValue>
+                  <span style={{
+                    padding: '4px 12px',
+                    borderRadius: '12px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    background: '#e8f5e9',
+                    color: '#2e7d32',
+                    border: '1px solid #66bb6a',
+                  }}>
+                    Storefront (Online)
+                  </span>
+                </InfoValue>
+              </InfoItem>
+              <InfoItem>
+                <InfoLabel>Tipo de Envio</InfoLabel>
+                <InfoValue>{sale.tipoEnvio === 'RETIRO_TIENDA' ? 'Retiro en Tienda' : 'Envio a Domicilio'}</InfoValue>
+              </InfoItem>
+              {sale.direccionEnvio && (
+                <InfoItem>
+                  <InfoLabel>Direccion de Envio</InfoLabel>
+                  <InfoValue>{sale.direccionEnvio}</InfoValue>
+                </InfoItem>
+              )}
+              {sale.costoEnvio != null && (
+                <InfoItem>
+                  <InfoLabel>Costo de Envio</InfoLabel>
+                  <InfoValue>{Number(sale.costoEnvio) === 0 ? 'Gratis' : formatCurrency(sale.costoEnvio)}</InfoValue>
+                </InfoItem>
+              )}
+              {sale.metodoPagoNombre && (
+                <InfoItem>
+                  <InfoLabel>Metodo de Pago (Online)</InfoLabel>
+                  <InfoValue>{sale.metodoPagoNombre}</InfoValue>
+                </InfoItem>
+              )}
+              {sale.referenciaPago && (
+                <InfoItem>
+                  <InfoLabel>Referencia de Pago</InfoLabel>
+                  <InfoValue>{sale.referenciaPago}</InfoValue>
+                </InfoItem>
+              )}
+              {sale.estadoPedido && (
+                <InfoItem>
+                  <InfoLabel>Estado del Pedido</InfoLabel>
+                  <InfoValue>
+                    <StatusBadge status={sale.estadoPedido.toLowerCase()}>
+                      {sale.estadoPedido}
+                    </StatusBadge>
+                  </InfoValue>
+                </InfoItem>
+              )}
+            </InfoGrid>
+
+            {/* Fulfillment Status Buttons */}
+            {sale.pedidoTiendaId && sale.estadoPedido && sale.estadoPedido !== 'ENTREGADO' && sale.estadoPedido !== 'CANCELADO' && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e0e0e0' }}>
+                <InfoLabel style={{ marginBottom: '0.5rem' }}>Cambiar estado de fulfillment:</InfoLabel>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {sale.estadoPedido === 'CONFIRMADO' && (
+                    <ActionButton
+                      onClick={async () => {
+                        try {
+                          await cambiarEstadoPedido(sale.pedidoTiendaId!, 'PREPARANDO');
+                          addNotification('success', 'Estado Actualizado', 'Pedido marcado como PREPARANDO');
+                          loadSaleDetails();
+                        } catch (e: any) {
+                          addNotification('error', 'Error', e.message);
+                        }
+                      }}
+                      disabled={isProcessing}
+                    >
+                      Marcar como Preparando
+                    </ActionButton>
+                  )}
+                  {(sale.estadoPedido === 'CONFIRMADO' || sale.estadoPedido === 'PREPARANDO') && (
+                    <ActionButton
+                      onClick={async () => {
+                        try {
+                          await cambiarEstadoPedido(sale.pedidoTiendaId!, 'ENVIADO');
+                          addNotification('success', 'Estado Actualizado', 'Pedido marcado como ENVIADO');
+                          loadSaleDetails();
+                        } catch (e: any) {
+                          addNotification('error', 'Error', e.message);
+                        }
+                      }}
+                      disabled={isProcessing}
+                    >
+                      Marcar como Enviado
+                    </ActionButton>
+                  )}
+                  {(sale.estadoPedido === 'ENVIADO' || sale.estadoPedido === 'PREPARANDO') && (
+                    <ActionButton
+                      onClick={async () => {
+                        try {
+                          await cambiarEstadoPedido(sale.pedidoTiendaId!, 'ENTREGADO');
+                          addNotification('success', 'Estado Actualizado', 'Pedido marcado como ENTREGADO');
+                          loadSaleDetails();
+                        } catch (e: any) {
+                          addNotification('error', 'Error', e.message);
+                        }
+                      }}
+                      disabled={isProcessing}
+                    >
+                      Marcar como Entregado
+                    </ActionButton>
+                  )}
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Detalle de Productos */}
         <Card>

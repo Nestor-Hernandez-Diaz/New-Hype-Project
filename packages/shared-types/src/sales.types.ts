@@ -305,18 +305,55 @@ export interface Venta {
   // ========== ITEMS Y RELACIONES ==========
   /** Items de la venta */
   items: ItemVenta[];
-  
+
   /** Fecha de creación */
   createdAt: string;
-  
+
   /** Fecha de actualización */
   updatedAt: string;
-  
+
   /** Información del cliente (nested) */
   cliente?: any; // TODO: Definir tipo Cliente
-  
+
   /** Información del almacén (nested) */
   almacen?: any; // TODO: Definir tipo Almacén
+
+  // ========== STOREFRONT (Pedido Online) ==========
+  /** Origen de la venta: POS o STOREFRONT */
+  origen?: string;
+
+  /** ID del pedido online vinculado */
+  pedidoTiendaId?: number;
+
+  /** Direccion de envio (storefront) */
+  direccionEnvio?: string;
+
+  /** Tipo de envio: DOMICILIO o RETIRO_TIENDA */
+  tipoEnvio?: string;
+
+  /** Estado del pedido online (fulfillment) */
+  estadoPedido?: string;
+
+  /** Nombre del cliente (storefront: viene de ClienteTienda) */
+  clienteNombre?: string;
+
+  /** Email del cliente online */
+  clienteEmail?: string;
+
+  /** Telefono del cliente online */
+  clienteTelefono?: string;
+
+  /** Direccion del cliente */
+  clienteDireccion?: string;
+
+  /** Costo de envio del pedido online */
+  costoEnvio?: number;
+
+  /** Nombre del metodo de pago online */
+  metodoPagoNombre?: string;
+
+  /** Referencia de pago del pedido online */
+  referenciaPagoStorefront?: string;
 }
 
 // ========== CREAR VENTA (Request) ==========

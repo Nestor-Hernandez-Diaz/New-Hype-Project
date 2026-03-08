@@ -1,7 +1,7 @@
-import { CreditCard, DollarSign, Smartphone, Building2, Banknote } from 'lucide-react';
-import type { MetodoPagoStorefrontData } from '../../services/storefrontApi';
+import { CreditCard, Smartphone, Building2, Banknote } from 'lucide-react';
+import type { MetodoPagoStorefrontData, EmpresaStorefrontData } from '../../services/storefrontApi';
 
-type MetodoPago = 'Efectivo' | 'Tarjeta' | 'Yape' | 'Plin' | 'Transferencia';
+type MetodoPago = 'Tarjeta' | 'Yape' | 'Plin' | 'Transferencia';
 
 interface PagoData {
   numeroTarjeta: string;
@@ -20,10 +20,10 @@ interface PaymentFormProps {
   onMetodoPagoChange: (metodo: MetodoPago) => void;
   onPagoDataChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   availableMethods?: MetodoPagoStorefrontData[];
+  empresaData?: EmpresaStorefrontData | null;
 }
 
-const ALL_METHODS: { key: MetodoPago; icon: typeof DollarSign; label: string }[] = [
-  { key: 'Efectivo', icon: DollarSign, label: 'Efectivo' },
+const ALL_METHODS: { key: MetodoPago; icon: typeof CreditCard; label: string }[] = [
   { key: 'Tarjeta', icon: CreditCard, label: 'Tarjeta' },
   { key: 'Yape', icon: Smartphone, label: 'Yape' },
   { key: 'Plin', icon: Banknote, label: 'Plin' },
@@ -36,9 +36,10 @@ export default function PaymentForm({
   onMetodoPagoChange,
   onPagoDataChange,
   availableMethods,
+  empresaData,
 }: PaymentFormProps) {
 
-  // Filter methods: if API returned methods, show only those; otherwise show all
+  // Filter methods: if API returned methods, show only those (excluding Efectivo); otherwise show all
   const visibleMethods = availableMethods && availableMethods.length > 0
     ? ALL_METHODS.filter(m =>
         availableMethods.some(am => am.nombre.toLowerCase() === m.key.toLowerCase())
@@ -168,7 +169,7 @@ export default function PaymentForm({
           <p className="text-sm text-gray-700 mb-4">
             Escanea el codigo QR o realiza la transferencia al numero:
           </p>
-          <p className="text-2xl font-bold text-center mb-4">999 999 999</p>
+          <p className="text-2xl font-bold text-center mb-4">{empresaData?.telefono || '---'}</p>
           <div>
             <label className="block text-sm font-medium mb-2">Codigo de operacion *</label>
             <input
@@ -189,7 +190,7 @@ export default function PaymentForm({
           <p className="text-sm text-gray-700 mb-4">
             Escanea el codigo QR o realiza la transferencia al numero:
           </p>
-          <p className="text-2xl font-bold text-center mb-4">999 999 999</p>
+          <p className="text-2xl font-bold text-center mb-4">{empresaData?.telefono || '---'}</p>
           <div>
             <label className="block text-sm font-medium mb-2">Codigo de operacion *</label>
             <input
@@ -210,8 +211,10 @@ export default function PaymentForm({
           <div className="p-6 bg-gray-50 rounded-xl">
             <p className="text-sm text-gray-700 mb-2">Datos bancarios:</p>
             <p className="font-semibold">Banco: BCP</p>
-            <p className="font-semibold">Cuenta: 191-1234567-0-89</p>
-            <p className="font-semibold">CCI: 00219100123456789012</p>
+            <p className="font-semibold">Cuenta: {empresaData?.razonSocial ? 'Consultar con la tienda' : '---'}</p>
+            {empresaData?.telefono && (
+              <p className="text-sm text-gray-500 mt-2">Contacto: {empresaData.telefono}</p>
+            )}
           </div>
 
           <div>
@@ -244,14 +247,6 @@ export default function PaymentForm({
               placeholder="123456789"
             />
           </div>
-        </div>
-      )}
-
-      {metodoPago === 'Efectivo' && (
-        <div className="mt-6 p-6 bg-green-50 rounded-xl">
-          <p className="text-sm text-gray-700">
-            Pagaras en efectivo al recibir tu pedido. Por favor, ten el monto exacto preparado.
-          </p>
         </div>
       )}
     </div>

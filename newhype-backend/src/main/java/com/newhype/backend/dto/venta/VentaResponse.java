@@ -52,4 +52,16 @@ public class VentaResponse {
     private Boolean tieneNotaCredito;
     private BigDecimal montoNotaCredito;
     private List<NotaCreditoResponse> notasCredito;
+
+    // Campos Storefront
+    private String origen;
+    private Long pedidoTiendaId;
+    private String direccionEnvio;
+    private String tipoEnvio;
+    private String estadoPedido;
+    private String clienteTelefono;
+    private String clienteEmail;
+    private BigDecimal costoEnvio;
+    private String referenciaPago;
+    private String metodoPagoNombre;
 }

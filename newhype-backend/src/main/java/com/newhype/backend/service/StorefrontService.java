@@ -40,6 +40,10 @@ public class StorefrontService {
     private final UnidadMedidaRepository unidadMedidaRepository;
     private final ConfiguracionEmpresaRepository configuracionEmpresaRepository;
     private final MetodoPagoRepository metodoPagoRepository;
+    private final VentaRepository ventaRepository;
+    private final DetalleVentaRepository detalleVentaRepository;
+    private final PagoVentaRepository pagoVentaRepository;
+    private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final DepartamentoRepository departamentoRepository;
     private final ProvinciaRepository provinciaRepository;
     private final DistritoRepository distritoRepository;
@@ -62,6 +66,10 @@ public class StorefrontService {
                              UnidadMedidaRepository unidadMedidaRepository,
                              ConfiguracionEmpresaRepository configuracionEmpresaRepository,
                              MetodoPagoRepository metodoPagoRepository,
+                             VentaRepository ventaRepository,
+                             DetalleVentaRepository detalleVentaRepository,
+                             PagoVentaRepository pagoVentaRepository,
+                             MovimientoInventarioRepository movimientoInventarioRepository,
                              DepartamentoRepository departamentoRepository,
                              ProvinciaRepository provinciaRepository,
                              DistritoRepository distritoRepository,
@@ -83,6 +91,10 @@ public class StorefrontService {
         this.unidadMedidaRepository = unidadMedidaRepository;
         this.configuracionEmpresaRepository = configuracionEmpresaRepository;
         this.metodoPagoRepository = metodoPagoRepository;
+        this.ventaRepository = ventaRepository;
+        this.detalleVentaRepository = detalleVentaRepository;
+        this.pagoVentaRepository = pagoVentaRepository;
+        this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.departamentoRepository = departamentoRepository;
         this.provinciaRepository = provinciaRepository;
         this.distritoRepository = distritoRepository;
@@ -308,11 +320,18 @@ public class StorefrontService {
         Long userId = TenantContext.getCurrentUserId();
         Long tenantId = TenantContext.getCurrentTenantId();
 
-        // Get default almacen
-        Almacen almacen = almacenRepository.findByTenantId(tenantId).stream()
-                .filter(a -> Boolean.TRUE.equals(a.getEstado()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No hay almacén activo en la tienda"));
+        // Get almacen: use requested almacen for RETIRO_TIENDA, otherwise default
+        Almacen almacen;
+        if ("RETIRO_TIENDA".equals(request.getTipoEnvio()) && request.getAlmacenId() != null) {
+            almacen = almacenRepository.findById(request.getAlmacenId())
+                    .filter(a -> a.getTenantId().equals(tenantId) && Boolean.TRUE.equals(a.getEstado()))
+                    .orElseThrow(() -> new IllegalStateException("Almacén no válido para retiro en tienda"));
+        } else {
+            almacen = almacenRepository.findByTenantId(tenantId).stream()
+                    .filter(a -> Boolean.TRUE.equals(a.getEstado()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("No hay almacén activo en la tienda"));
+        }
 
         // Generate codigo
         long count = pedidoTiendaRepository.countByTenantId(tenantId);
@@ -325,6 +344,9 @@ public class StorefrontService {
                 .almacenId(almacen.getId())
                 .direccionEnvio(request.getDireccionEnvio())
                 .instrucciones(request.getInstrucciones())
+                .metodoPagoId(request.getMetodoPagoId())
+                .referenciaPago(request.getReferenciaPago())
+                .tipoEnvio(request.getTipoEnvio())
                 .build();
         pedido = pedidoTiendaRepository.save(pedido);
 
@@ -338,26 +360,16 @@ public class StorefrontService {
                 throw new IllegalArgumentException("Producto no disponible: " + producto.getNombre());
             }
 
-            // FASE 2.1: Validar stock disponible
-            int stockDisponible = stockAlmacenRepository.findByTenantId(tenantId).stream()
-                    .filter(s -> s.getProductoId().equals(producto.getId()) && s.getCantidad() != null)
-                    .mapToInt(StockAlmacen::getCantidad)
-                    .sum();
+            // Validate stock (no deduction here -- bridge method handles it)
+            int stockDisponible = stockAlmacenRepository
+                    .findByTenantIdAndProductoIdAndAlmacenId(tenantId, producto.getId(), almacen.getId())
+                    .map(StockAlmacen::getCantidad)
+                    .orElse(0);
 
             if (stockDisponible < item.getCantidad()) {
                 throw new IllegalArgumentException(
                         "Stock insuficiente para '" + producto.getNombre() + "'. " +
                         "Disponible: " + stockDisponible + ", Solicitado: " + item.getCantidad());
-            }
-
-            // Descontar stock del almacen principal
-            StockAlmacen stockPrincipal = stockAlmacenRepository
-                    .findByTenantIdAndProductoIdAndAlmacenId(tenantId, producto.getId(), almacen.getId())
-                    .orElse(null);
-
-            if (stockPrincipal != null && stockPrincipal.getCantidad() >= item.getCantidad()) {
-                stockPrincipal.setCantidad(stockPrincipal.getCantidad() - item.getCantidad());
-                stockAlmacenRepository.save(stockPrincipal);
             }
 
             BigDecimal precio = producto.getPrecioVenta();
@@ -381,16 +393,138 @@ public class StorefrontService {
             subtotal = subtotal.add(lineSubtotal);
         }
 
-        // Calculate IGV (18%)
-        BigDecimal igv = subtotal.multiply(BigDecimal.valueOf(0.18)).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal total = subtotal.add(igv);
+        // Calculate IGV from ConfiguracionEmpresa
+        ConfiguracionEmpresa config = configuracionEmpresaRepository.findByTenantId(tenantId).orElse(null);
+        boolean aplicarIgv = config == null || Boolean.TRUE.equals(config.getIgvActivo());
+        BigDecimal igvPct = (config != null && config.getIgvPorcentaje() != null)
+                ? config.getIgvPorcentaje() : new BigDecimal("18");
+        BigDecimal igv = aplicarIgv
+                ? subtotal.multiply(igvPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        // Calculate shipping cost
+        BigDecimal costoEnvio;
+        if ("RETIRO_TIENDA".equals(request.getTipoEnvio())) {
+            costoEnvio = BigDecimal.ZERO;
+        } else if (subtotal.compareTo(new BigDecimal("150")) >= 0) {
+            costoEnvio = BigDecimal.ZERO;
+        } else {
+            costoEnvio = new BigDecimal("9.90");
+        }
+
+        BigDecimal total = subtotal.add(igv).add(costoEnvio);
 
         pedido.setSubtotal(subtotal);
         pedido.setIgv(igv);
+        pedido.setCostoEnvio(costoEnvio);
         pedido.setTotal(total);
         pedido = pedidoTiendaRepository.save(pedido);
 
+        // Bridge: create Venta from this storefront order
+        crearVentaDesdeStorefront(pedido, tenantId);
+
         return toPedidoResponse(pedido);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  7b. Bridge: PedidoTienda → Venta
+    // ═══════════════════════════════════════════════════════════════
+    private void crearVentaDesdeStorefront(PedidoTienda pedido, Long tenantId) {
+        // 1. Generate VEN code
+        long count = ventaRepository.countByTenantId(tenantId);
+        String codigoVenta = String.format("VEN-%05d", count + 1);
+
+        // 2. Get client name for observaciones
+        String clienteNombre = clienteTiendaRepository.findByIdAndTenantId(pedido.getClienteTiendaId(), tenantId)
+                .map(c -> (c.getNombre() != null ? c.getNombre() : "") + " " + (c.getApellido() != null ? c.getApellido() : ""))
+                .orElse("Cliente Online");
+
+        // 3. Get IGV config
+        ConfiguracionEmpresa config = configuracionEmpresaRepository.findByTenantId(tenantId).orElse(null);
+        boolean aplicarIgv = config == null || Boolean.TRUE.equals(config.getIgvActivo());
+
+        // 4. Get admin user ID for the Venta (fallback)
+        Long usuarioId = 1L;
+
+        // 5. Create Venta
+        Venta venta = Venta.builder()
+                .tenantId(tenantId)
+                .codigoVenta(codigoVenta)
+                .sesionCajaId(null)
+                .clienteId(null) // Storefront uses ClienteTienda, not EntidadComercial
+                .almacenId(pedido.getAlmacenId())
+                .usuarioId(usuarioId)
+                .fechaEmision(LocalDateTime.now())
+                .tipoComprobante(Venta.TipoComprobante.BOLETA)
+                .subtotal(pedido.getSubtotal())
+                .igv(pedido.getIgv())
+                .descuento(pedido.getDescuento())
+                .total(pedido.getTotal())
+                .montoRecibido(pedido.getTotal())
+                .montoCambio(BigDecimal.ZERO)
+                .estado(Venta.EstadoVenta.COMPLETADA)
+                .fechaPago(LocalDateTime.now())
+                .incluyeIgv(aplicarIgv)
+                .origen(Venta.OrigenVenta.STOREFRONT)
+                .pedidoTiendaId(pedido.getId())
+                .direccionEnvio(pedido.getDireccionEnvio())
+                .tipoEnvio(pedido.getTipoEnvio())
+                .observaciones("Pedido online " + pedido.getCodigo() + " - " + clienteNombre.trim())
+                .build();
+        venta = ventaRepository.save(venta);
+
+        // 6. Copy details + deduct stock + create Kardex
+        List<DetallePedidoTienda> detallesPedido = detallePedidoTiendaRepository.findByPedidoTiendaId(pedido.getId());
+        for (DetallePedidoTienda dp : detallesPedido) {
+            // Copy to DetalleVenta
+            DetalleVenta dv = new DetalleVenta();
+            dv.setVentaId(venta.getId());
+            dv.setProductoId(dp.getProductoId());
+            dv.setNombreProducto(dp.getNombreProducto());
+            dv.setCantidad(dp.getCantidad());
+            dv.setPrecioUnitario(dp.getPrecioUnitario());
+            dv.setDescuento(dp.getDescuento() != null ? dp.getDescuento() : BigDecimal.ZERO);
+            dv.setSubtotal(dp.getSubtotal());
+            detalleVentaRepository.save(dv);
+
+            // Deduct stock from almacen
+            StockAlmacen sa = stockAlmacenRepository
+                    .findByTenantIdAndProductoIdAndAlmacenId(tenantId, dp.getProductoId(), pedido.getAlmacenId())
+                    .orElse(null);
+            if (sa != null && sa.getCantidad() >= dp.getCantidad()) {
+                int stockAntes = sa.getCantidad();
+                sa.setCantidad(sa.getCantidad() - dp.getCantidad());
+                stockAlmacenRepository.save(sa);
+
+                // Create Kardex entry
+                MovimientoInventario mov = new MovimientoInventario();
+                mov.setTenantId(tenantId);
+                mov.setProductoId(dp.getProductoId());
+                mov.setAlmacenId(pedido.getAlmacenId());
+                mov.setTipo(MovimientoInventario.TipoMovimiento.SALIDA);
+                mov.setCantidad(dp.getCantidad());
+                mov.setStockAntes(stockAntes);
+                mov.setStockDespues(sa.getCantidad());
+                mov.setDocumentoReferencia(codigoVenta);
+                mov.setUsuarioId(usuarioId);
+                movimientoInventarioRepository.save(mov);
+            }
+        }
+
+        // 7. Record PagoVenta
+        if (pedido.getMetodoPagoId() != null) {
+            PagoVenta pago = new PagoVenta();
+            pago.setVentaId(venta.getId());
+            pago.setMetodoPagoId(pedido.getMetodoPagoId());
+            pago.setMonto(pedido.getTotal());
+            pago.setReferencia(pedido.getReferenciaPago());
+            pagoVentaRepository.save(pago);
+        }
+
+        // 8. Link back pedido -> venta
+        pedido.setVentaId(venta.getId());
+        pedido.setEstado(PedidoTienda.EstadoPedido.CONFIRMADO);
+        pedidoTiendaRepository.save(pedido);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -442,9 +576,83 @@ public class StorefrontService {
         }
 
         pedido.setEstado(PedidoTienda.EstadoPedido.CANCELADO);
-        pedido = pedidoTiendaRepository.save(pedido);
+        final PedidoTienda savedPedido = pedidoTiendaRepository.save(pedido);
 
+        // Restore stock for each item
+        List<DetallePedidoTienda> detalles = detallePedidoTiendaRepository.findByPedidoTiendaId(savedPedido.getId());
+        for (DetallePedidoTienda d : detalles) {
+            stockAlmacenRepository.findByTenantIdAndProductoIdAndAlmacenId(
+                    tenantId, d.getProductoId(), savedPedido.getAlmacenId()
+            ).ifPresent(sa -> {
+                int stockAntes = sa.getCantidad();
+                sa.setCantidad(sa.getCantidad() + d.getCantidad());
+                stockAlmacenRepository.save(sa);
+
+                MovimientoInventario mov = new MovimientoInventario();
+                mov.setTenantId(tenantId);
+                mov.setProductoId(d.getProductoId());
+                mov.setAlmacenId(savedPedido.getAlmacenId());
+                mov.setTipo(MovimientoInventario.TipoMovimiento.ENTRADA);
+                mov.setCantidad(d.getCantidad());
+                mov.setStockAntes(stockAntes);
+                mov.setStockDespues(sa.getCantidad());
+                mov.setDocumentoReferencia("CANCEL-" + savedPedido.getCodigo());
+                mov.setUsuarioId(userId);
+                movimientoInventarioRepository.save(mov);
+            });
+        }
+
+        // If linked Venta exists, cancel it too
+        if (savedPedido.getVentaId() != null) {
+            ventaRepository.findById(savedPedido.getVentaId()).ifPresent(venta -> {
+                venta.setEstado(Venta.EstadoVenta.CANCELADA);
+                ventaRepository.save(venta);
+            });
+        }
+
+        return toPedidoResponse(savedPedido);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  11. Admin: List all storefront orders for tenant
+    // ═══════════════════════════════════════════════════════════════
+    @Transactional(readOnly = true)
+    public Page<PedidoResponse> listarPedidosAdmin(int page, int size) {
+        Long tenantId = TenantContext.getCurrentTenantId();
+        return pedidoTiendaRepository
+                .findByTenantIdOrderByCreatedAtDesc(tenantId, PageRequest.of(page, size))
+                .map(this::toPedidoResponse);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  12. Admin: Change fulfillment status
+    // ═══════════════════════════════════════════════════════════════
+    @Transactional
+    public PedidoResponse cambiarEstadoPedido(Long pedidoId, String nuevoEstado) {
+        Long tenantId = TenantContext.getCurrentTenantId();
+        PedidoTienda pedido = pedidoTiendaRepository.findByIdAndTenantId(pedidoId, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
+
+        PedidoTienda.EstadoPedido estado = PedidoTienda.EstadoPedido.valueOf(nuevoEstado);
+        pedido.setEstado(estado);
+        pedido = pedidoTiendaRepository.save(pedido);
         return toPedidoResponse(pedido);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  13. Public: List active warehouses for pickup
+    // ═══════════════════════════════════════════════════════════════
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerAlmacenes(Long tenantId) {
+        return almacenRepository.findByTenantId(tenantId).stream()
+                .filter(a -> Boolean.TRUE.equals(a.getEstado()))
+                .map(a -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", a.getId());
+                    m.put("nombre", a.getNombre());
+                    return m;
+                })
+                .collect(Collectors.toList());
     }
 
     // ── Helper ──
@@ -473,6 +681,13 @@ public class StorefrontService {
                 .total(pedido.getTotal())
                 .direccionEnvio(pedido.getDireccionEnvio())
                 .instrucciones(pedido.getInstrucciones())
+                .metodoPagoNombre(pedido.getMetodoPagoId() != null
+                        ? metodoPagoRepository.findById(pedido.getMetodoPagoId()).map(MetodoPago::getNombre).orElse(null)
+                        : null)
+                .referenciaPago(pedido.getReferenciaPago())
+                .tipoEnvio(pedido.getTipoEnvio())
+                .costoEnvio(pedido.getCostoEnvio())
+                .ventaId(pedido.getVentaId())
                 .createdAt(pedido.getCreatedAt())
                 .updatedAt(pedido.getUpdatedAt())
                 .detalles(detalleResponses)
@@ -545,6 +760,8 @@ public class StorefrontService {
                 .diasVigenciaVale(emp.getDiasVigenciaVale())
                 .requiereEtiquetasOriginales(emp.getRequiereEtiquetasOriginales())
                 .requiereProductoSinUso(emp.getRequiereProductoSinUso())
+                .igvActivo(emp.getIgvActivo())
+                .igvPorcentaje(emp.getIgvPorcentaje())
                 .build();
     }
 

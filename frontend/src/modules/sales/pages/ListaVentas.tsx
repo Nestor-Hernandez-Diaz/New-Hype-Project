@@ -381,6 +381,7 @@ const ListaVentas: React.FC = () => {
   const [voucherFilter, setVoucherFilter] = useState(''); // Nuevo: filtro por tipo comprobante
   const [clientFilter, setClientFilter] = useState(''); // Nuevo: filtro por cliente
   const [dateFilter, setDateFilter] = useState('');
+  const [origenFilter, setOrigenFilter] = useState(''); // Filtro por origen: POS/STOREFRONT
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Paginación
@@ -421,13 +422,15 @@ const ListaVentas: React.FC = () => {
       const matchesPayment = !paymentFilter || sale.formaPago === paymentFilter;
       const matchesVoucher = !voucherFilter || sale.tipoComprobante === voucherFilter; // Nuevo
       const matchesClient = !clientFilter || sale.clienteId === clientFilter; // Nuevo
-      
-      const matchesDate = !dateFilter || 
+
+      const matchesDate = !dateFilter ||
         new Date(sale.fechaEmision).toISOString().split('T')[0] === dateFilter;
 
-      return matchesSearch && matchesStatus && matchesPayment && matchesVoucher && matchesClient && matchesDate;
+      const matchesOrigen = !origenFilter || (sale.origen || 'POS') === origenFilter;
+
+      return matchesSearch && matchesStatus && matchesPayment && matchesVoucher && matchesClient && matchesDate && matchesOrigen;
     });
-  }, [sales, searchTerm, statusFilter, paymentFilter, voucherFilter, clientFilter, dateFilter]);
+  }, [sales, searchTerm, statusFilter, paymentFilter, voucherFilter, clientFilter, dateFilter, origenFilter]);
 
   // Paginación de resultados filtrados
   const paginatedSales = useMemo(() => {
@@ -442,7 +445,7 @@ const ListaVentas: React.FC = () => {
   // Reset página cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, paymentFilter, voucherFilter, clientFilter, dateFilter]);
+  }, [searchTerm, statusFilter, paymentFilter, voucherFilter, clientFilter, dateFilter, origenFilter]);
 
   const stats = useMemo(() => {
     const totalSales = filteredSales.length;
@@ -680,6 +683,7 @@ const ListaVentas: React.FC = () => {
     setVoucherFilter('');
     setClientFilter('');
     setDateFilter('');
+    setOrigenFilter('');
   };
 
   return (
@@ -736,6 +740,18 @@ const ListaVentas: React.FC = () => {
                 <option value="Pendiente">Pendiente</option>
                 <option value="Completada">Completada</option>
                 <option value="Cancelada">Cancelada</option>
+              </SharedSelect>
+            </FormGroup>
+            <FormGroup>
+              <SharedLabel htmlFor="origen">Origen</SharedLabel>
+              <SharedSelect
+                id="origen"
+                value={origenFilter}
+                onChange={(e) => setOrigenFilter(e.target.value)}
+              >
+                <option value="">Todos los origenes</option>
+                <option value="POS">POS (Tienda)</option>
+                <option value="STOREFRONT">Storefront (Online)</option>
               </SharedSelect>
             </FormGroup>
             <FormGroup>
@@ -850,6 +866,21 @@ const ListaVentas: React.FC = () => {
                         <div style={{ fontSize: '0.75rem', color: COLORS.text.secondary }}>
                           {sale.items.length} item{sale.items.length !== 1 ? 's' : ''}
                         </div>
+                        {sale.origen === 'STOREFRONT' && (
+                          <span style={{
+                            display: 'inline-block',
+                            marginTop: '4px',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            background: '#e8f5e9',
+                            color: '#2e7d32',
+                            border: '1px solid #66bb6a',
+                          }}>
+                            Online
+                          </span>
+                        )}
                       </SharedTd>
                       <SharedTd>
                         <strong>{clientName}</strong>

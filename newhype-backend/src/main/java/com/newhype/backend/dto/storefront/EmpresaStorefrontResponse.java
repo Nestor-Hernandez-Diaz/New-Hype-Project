@@ -26,4 +26,8 @@ public class EmpresaStorefrontResponse {
     private Integer diasVigenciaVale;
     private Boolean requiereEtiquetasOriginales;
     private Boolean requiereProductoSinUso;
+
+    // Configuracion IGV
+    private Boolean igvActivo;
+    private java.math.BigDecimal igvPorcentaje;
 }

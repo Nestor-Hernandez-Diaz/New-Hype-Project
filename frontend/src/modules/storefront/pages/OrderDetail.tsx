@@ -60,7 +60,7 @@ export default function OrderDetail() {
     const map: Record<string, string> = {
       PENDIENTE: 'bg-yellow-100 text-yellow-800',
       CONFIRMADO: 'bg-blue-100 text-blue-800',
-      PROCESANDO: 'bg-purple-100 text-purple-800',
+      PREPARANDO: 'bg-purple-100 text-purple-800',
       ENVIADO: 'bg-indigo-100 text-indigo-800',
       ENTREGADO: 'bg-green-100 text-green-800',
       CANCELADO: 'bg-red-100 text-red-800',
@@ -70,8 +70,8 @@ export default function OrderDetail() {
 
   const getTimelineSteps = (estado: string) => {
     const steps = [
-      { label: 'Pedido Confirmado', icon: <CheckCircle2 size={20} />, key: 'PENDIENTE' },
-      { label: 'En Preparación', icon: <Package size={20} />, key: 'CONFIRMADO' },
+      { label: 'Pedido Confirmado', icon: <CheckCircle2 size={20} />, key: 'CONFIRMADO' },
+      { label: 'En Preparación', icon: <Package size={20} />, key: 'PREPARANDO' },
       { label: 'Enviado', icon: <Truck size={20} />, key: 'ENVIADO' },
       { label: 'Entregado', icon: <CheckCircle2 size={20} />, key: 'ENTREGADO' },
     ];
@@ -80,7 +80,7 @@ export default function OrderDetail() {
       return [{ label: 'Cancelado', icon: <XCircle size={20} />, completed: true }];
     }
 
-    const stateOrder = ['PENDIENTE', 'CONFIRMADO', 'PROCESANDO', 'ENVIADO', 'ENTREGADO'];
+    const stateOrder = ['PENDIENTE', 'CONFIRMADO', 'PREPARANDO', 'ENVIADO', 'ENTREGADO'];
     const currentIdx = stateOrder.indexOf(estado);
 
     return steps.map((step, idx) => ({

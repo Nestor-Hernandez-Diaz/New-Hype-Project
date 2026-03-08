@@ -16,4 +16,13 @@ public interface PedidoTiendaRepository extends JpaRepository<PedidoTienda, Long
             Long id, Long tenantId, Long clienteTiendaId);
 
     long countByTenantId(Long tenantId);
+
+    // Admin: list all orders for tenant
+    Page<PedidoTienda> findByTenantIdOrderByCreatedAtDesc(Long tenantId, Pageable pageable);
+
+    // Admin: get single order by id and tenant
+    Optional<PedidoTienda> findByIdAndTenantId(Long id, Long tenantId);
+
+    // Lookup by linked venta
+    Optional<PedidoTienda> findByVentaId(Long ventaId);
 }

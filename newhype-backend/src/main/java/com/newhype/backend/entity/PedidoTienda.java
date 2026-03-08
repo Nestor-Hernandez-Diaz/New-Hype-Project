@@ -55,6 +55,21 @@ public class PedidoTienda {
     @Column(name = "instrucciones", columnDefinition = "TEXT")
     private String instrucciones;
 
+    @Column(name = "metodo_pago_id")
+    private Long metodoPagoId;
+
+    @Column(name = "referencia_pago", length = 100)
+    private String referenciaPago;
+
+    @Column(name = "tipo_envio", length = 20)
+    private String tipoEnvio;
+
+    @Column(name = "costo_envio", precision = 10, scale = 2)
+    private BigDecimal costoEnvio;
+
+    @Column(name = "venta_id")
+    private Long ventaId;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -70,6 +85,8 @@ public class PedidoTienda {
         if (igv == null) igv = BigDecimal.ZERO;
         if (descuento == null) descuento = BigDecimal.ZERO;
         if (total == null) total = BigDecimal.ZERO;
+        if (costoEnvio == null) costoEnvio = BigDecimal.ZERO;
+        if (tipoEnvio == null) tipoEnvio = "DOMICILIO";
     }
 
     @PreUpdate

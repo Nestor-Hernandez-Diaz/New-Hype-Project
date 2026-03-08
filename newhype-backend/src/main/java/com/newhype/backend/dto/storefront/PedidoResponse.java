@@ -22,6 +22,11 @@ public class PedidoResponse {
     private BigDecimal total;
     private String direccionEnvio;
     private String instrucciones;
+    private String metodoPagoNombre;
+    private String referenciaPago;
+    private String tipoEnvio;
+    private BigDecimal costoEnvio;
+    private Long ventaId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<DetallePedidoResponse> detalles;
