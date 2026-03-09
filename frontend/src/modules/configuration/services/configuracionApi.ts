@@ -134,6 +134,29 @@ function mapTipoComprobante(tipo: string): ComprobanteData['tipo'] {
   return map[tipo] || (tipo?.toLowerCase().replace(/_/g, '-') as ComprobanteData['tipo']) || 'boleta';
 }
 
+/** Reverse mapper: frontend tipo → backend tipoComprobante enum */
+function mapTipoToBackend(tipo: string): string {
+  const map: Record<string, string> = {
+    'boleta': 'BOLETA',
+    'factura': 'FACTURA',
+    'nota-credito': 'NOTA_CREDITO',
+    'nota-debito': 'NOTA_DEBITO',
+    'orden-compra': 'GUIA_REMISION',
+    'recepcion-compra': 'GUIA_REMISION',
+  };
+  return map[tipo] || tipo?.toUpperCase().replace(/-/g, '_') || 'BOLETA';
+}
+
+/** Build the request body expected by backend (CrearSerieComprobanteRequest) */
+function buildComprobanteRequest(data: Partial<ComprobanteData>): Record<string, unknown> {
+  return {
+    tipoComprobante: data.tipo ? mapTipoToBackend(data.tipo) : undefined,
+    serie: data.serie,
+    numeroInicio: data.numeroInicio,
+    numeroFin: data.numeroFin,
+  };
+}
+
 function mapBackendMetodoPago(raw: any): MetodoPagoData {
   return {
     id: String(raw.id),
@@ -169,13 +192,15 @@ const configuracionApi = {
   },
 
   createComprobante: async (data: ComprobanteData): Promise<ComprobanteData> => {
-    const response = await apiService.post<ComprobanteData>('/configuracion/series-comprobantes', data);
-    return response.data as ComprobanteData;
+    const body = buildComprobanteRequest(data);
+    const response = await apiService.post<ComprobanteData>('/configuracion/series-comprobantes', body);
+    return mapBackendComprobante(response.data);
   },
 
   updateComprobante: async (id: string, data: Partial<ComprobanteData>): Promise<ComprobanteData> => {
-    const response = await apiService.put<ComprobanteData>(`/configuracion/series-comprobantes/${id}`, data);
-    return response.data as ComprobanteData;
+    const body = buildComprobanteRequest(data);
+    const response = await apiService.put<ComprobanteData>(`/configuracion/series-comprobantes/${id}`, body);
+    return mapBackendComprobante(response.data);
   },
 
   toggleComprobanteEstado: async (id: string): Promise<void> => {

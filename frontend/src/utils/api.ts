@@ -714,28 +714,34 @@ class ApiService {
 
   // ==== REPORTES ====
   async getReporteVentas(params: {
-    fechaInicio?: string;
-    fechaFin?: string;
-    almacenId?: string;
+    fechaDesde?: string;
+    fechaHasta?: string;
     usuarioId?: string;
+    clienteId?: string;
+    tipoComprobante?: string;
   }): Promise<ApiResponse<any>> {
     const queryParams = new URLSearchParams();
-    if (params.fechaInicio) queryParams.append('fechaInicio', params.fechaInicio);
-    if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
-    if (params.almacenId) queryParams.append('almacenId', params.almacenId);
+    if (params.fechaDesde) queryParams.append('fechaDesde', params.fechaDesde);
+    if (params.fechaHasta) queryParams.append('fechaHasta', params.fechaHasta);
     if (params.usuarioId) queryParams.append('usuarioId', params.usuarioId);
+    if (params.clienteId) queryParams.append('clienteId', params.clienteId);
+    if (params.tipoComprobante) queryParams.append('tipoComprobante', params.tipoComprobante);
 
     const queryString = queryParams.toString();
     return this.request(`/reportes/ventas?${queryString}`);
   }
 
   async getReporteCompras(params: {
-    fechaInicio?: string;
-    fechaFin?: string;
+    fechaDesde?: string;
+    fechaHasta?: string;
+    proveedorId?: string;
+    estado?: string;
   }): Promise<ApiResponse<any>> {
     const queryParams = new URLSearchParams();
-    if (params.fechaInicio) queryParams.append('fechaInicio', params.fechaInicio);
-    if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
+    if (params.fechaDesde) queryParams.append('fechaDesde', params.fechaDesde);
+    if (params.fechaHasta) queryParams.append('fechaHasta', params.fechaHasta);
+    if (params.proveedorId) queryParams.append('proveedorId', params.proveedorId);
+    if (params.estado) queryParams.append('estado', params.estado);
 
     const queryString = queryParams.toString();
     return this.request(`/reportes/compras?${queryString}`);
@@ -743,38 +749,62 @@ class ApiService {
 
   async getReporteInventario(params: {
     almacenId?: string;
+    categoriaId?: string;
   }): Promise<ApiResponse<any>> {
     const queryParams = new URLSearchParams();
     if (params.almacenId) queryParams.append('almacenId', params.almacenId);
+    if (params.categoriaId) queryParams.append('categoriaId', params.categoriaId);
 
     const queryString = queryParams.toString();
     return this.request(`/reportes/inventario?${queryString}`);
   }
 
   async getReporteFinanciero(params: {
-    fechaInicio?: string;
-    fechaFin?: string;
+    fechaDesde?: string;
+    fechaHasta?: string;
   }): Promise<ApiResponse<any>> {
     const queryParams = new URLSearchParams();
-    if (params.fechaInicio) queryParams.append('fechaInicio', params.fechaInicio);
-    if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
+    if (params.fechaDesde) queryParams.append('fechaDesde', params.fechaDesde);
+    if (params.fechaHasta) queryParams.append('fechaHasta', params.fechaHasta);
 
     const queryString = queryParams.toString();
     return this.request(`/reportes/financiero?${queryString}`);
   }
 
   async getReporteCaja(params: {
-    fechaInicio?: string;
-    fechaFin?: string;
+    fechaDesde?: string;
+    fechaHasta?: string;
     cajaId?: string;
+    usuarioId?: string;
   }): Promise<ApiResponse<any>> {
     const queryParams = new URLSearchParams();
-    if (params.fechaInicio) queryParams.append('fechaInicio', params.fechaInicio);
-    if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
+    if (params.fechaDesde) queryParams.append('fechaDesde', params.fechaDesde);
+    if (params.fechaHasta) queryParams.append('fechaHasta', params.fechaHasta);
     if (params.cajaId) queryParams.append('cajaId', params.cajaId);
+    if (params.usuarioId) queryParams.append('usuarioId', params.usuarioId);
 
     const queryString = queryParams.toString();
     return this.request(`/reportes/caja?${queryString}`);
+  }
+
+  async getReporteProductosMasVendidos(params: {
+    fechaDesde?: string;
+    fechaHasta?: string;
+    categoriaId?: string;
+    top?: number;
+  }): Promise<ApiResponse<any>> {
+    const queryParams = new URLSearchParams();
+    if (params.fechaDesde) queryParams.append('fechaDesde', params.fechaDesde);
+    if (params.fechaHasta) queryParams.append('fechaHasta', params.fechaHasta);
+    if (params.categoriaId) queryParams.append('categoriaId', params.categoriaId);
+    if (params.top) queryParams.append('top', params.top.toString());
+
+    const queryString = queryParams.toString();
+    return this.request(`/reportes/productos-mas-vendidos?${queryString}`);
+  }
+
+  async getResumenDashboard(): Promise<ApiResponse<any>> {
+    return this.request('/reportes/resumen');
   }
 }
 

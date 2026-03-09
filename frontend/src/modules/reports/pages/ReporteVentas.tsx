@@ -3,13 +3,13 @@ import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { apiService } from '../../../utils/api';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
-import { 
-  Button, 
-  Input, 
-  FiltersCard, 
-  SummaryCard, 
-  SummaryCards, 
-  CardTitle, 
+import {
+  Button,
+  Input,
+  FiltersCard,
+  SummaryCard,
+  SummaryCards,
+  CardTitle,
   CardValue,
   TableContainer,
   Table,
@@ -27,10 +27,13 @@ import {
 // Helpers
 const formatDateInput = (d: Date) => d.toISOString().slice(0, 10);
 const formatDMY = (dateStr: string) => new Date(dateStr).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-const formatCurrency = (num: number) => `S/ ${num.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatCurrency = (num: number | undefined | null) => {
+  if (num === undefined || num === null || isNaN(Number(num))) return 'S/ 0.00';
+  return `S/ ${Number(num).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 // ============================================================================
-// ESTILOS ESPECÍFICOS DE REPORTES
+// ESTILOS
 // ============================================================================
 
 const Container = styled.div`
@@ -108,7 +111,7 @@ const Tab = styled.button<{ $active: boolean }>`
   border-bottom: 2px solid ${props => props.$active ? COLORS.primary : 'transparent'};
   transition: ${TRANSITIONS.normal};
   margin-bottom: -1px;
-  
+
   &:hover {
     background-color: ${props => props.$active ? COLORS.white : COLORS.borderLight};
     color: ${props => props.$active ? COLORS.primary : COLORS.text};
@@ -160,11 +163,27 @@ const RankBadge = styled.span<{ $rank: number }>`
 // COMPONENTE PRINCIPAL
 // ============================================================================
 
+/**
+ * Backend DTO: ReporteVentasResponse
+ * - totalVentas: long (count)
+ * - montoTotal: BigDecimal
+ * - montoIgv: BigDecimal
+ * - montoDescuentos: BigDecimal
+ * - ticketPromedio: BigDecimal
+ * - ventasPorDia: [{fecha, cantidad, total}]
+ * - ventasPorTipo: [{tipoComprobante, cantidad, total}]
+ *
+ * Also uses: ProductosMasVendidosResponse
+ * - totalProductosVendidos: long
+ * - productos: [{productoId, sku, nombre, categoriaNombre, cantidadVendida, montoTotal}]
+ */
+
 const ReporteVentas: React.FC = () => {
-  const [fechaInicio, setFechaInicio] = useState(formatDateInput(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
-  const [fechaFin, setFechaFin] = useState(formatDateInput(new Date()));
+  const [fechaDesde, setFechaDesde] = useState(formatDateInput(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
+  const [fechaHasta, setFechaHasta] = useState(formatDateInput(new Date()));
   const [loading, setLoading] = useState(false);
   const [reporteData, setReporteData] = useState<any>(null);
+  const [topProductos, setTopProductos] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'resumen' | 'detalles' | 'analisis'>('resumen');
 
   useEffect(() => {
@@ -174,27 +193,41 @@ const ReporteVentas: React.FC = () => {
   const handleBuscar = async () => {
     setLoading(true);
     try {
-      const res = await apiService.getReporteVentas({
-        fechaInicio: fechaInicio || undefined,
-        fechaFin: fechaFin || undefined,
-      });
+      const [resVentas, resTopProd] = await Promise.all([
+        apiService.getReporteVentas({
+          fechaDesde: fechaDesde || undefined,
+          fechaHasta: fechaHasta || undefined,
+        }),
+        apiService.getReporteProductosMasVendidos({
+          fechaDesde: fechaDesde || undefined,
+          fechaHasta: fechaHasta || undefined,
+          top: 10,
+        }),
+      ]);
 
-      if (res.success && res.data) {
-        setReporteData(res.data);
+      if (resVentas.success && resVentas.data) {
+        setReporteData(resVentas.data);
       } else {
         setReporteData(null);
+      }
+
+      if (resTopProd.success && resTopProd.data) {
+        setTopProductos(resTopProd.data.productos || []);
+      } else {
+        setTopProductos([]);
       }
     } catch (e) {
       console.error('Error cargando reporte ventas:', e);
       setReporteData(null);
+      setTopProductos([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleLimpiar = () => {
-    setFechaInicio(formatDateInput(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
-    setFechaFin(formatDateInput(new Date()));
+    setFechaDesde(formatDateInput(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
+    setFechaHasta(formatDateInput(new Date()));
   };
 
   const handleExportar = () => {
@@ -202,66 +235,50 @@ const ReporteVentas: React.FC = () => {
 
     const fecha = new Date().toLocaleDateString('es-PE');
     const hora = new Date().toLocaleTimeString('es-PE');
-    
+
     const csvLines = [
       '=================================================================',
       '                    REPORTE DE VENTAS                           ',
       '=================================================================',
-      `Fecha de Generación:\t${fecha}\t${hora}`,
-      `Período Analizado:\t${fechaInicio || 'Todas las fechas'}\tal\t${fechaFin || 'Hoy'}`,
+      `Fecha de Generacion:\t${fecha}\t${hora}`,
+      `Periodo Analizado:\t${fechaDesde || 'Todas las fechas'}\tal\t${fechaHasta || 'Hoy'}`,
       '',
       '=================================================================',
       '                    RESUMEN GENERAL                              ',
       '=================================================================',
       'Indicador\tValor',
-      `Total de Ventas\t${formatCurrency(reporteData.resumen.totalVentas)}`,
-      `Cantidad de Ventas\t${reporteData.resumen.cantidadVentas}`,
-      `Ticket Promedio\t${formatCurrency(reporteData.resumen.ticketPromedio)}`,
-      `Venta Máxima\t${formatCurrency(reporteData.resumen.ventasMayor)}`,
-      `Venta Mínima\t${formatCurrency(reporteData.resumen.ventasMenor)}`,
+      `Total de Ventas (monto)\t${formatCurrency(reporteData.montoTotal)}`,
+      `Cantidad de Ventas\t${reporteData.totalVentas || 0}`,
+      `Ticket Promedio\t${formatCurrency(reporteData.ticketPromedio)}`,
+      `IGV Total\t${formatCurrency(reporteData.montoIgv)}`,
+      `Descuentos Total\t${formatCurrency(reporteData.montoDescuentos)}`,
       '',
       '=================================================================',
-      '              DISTRIBUCIÓN POR MÉTODO DE PAGO                   ',
+      '              VENTAS POR TIPO DE COMPROBANTE                    ',
       '=================================================================',
-      'Método de Pago\tCantidad\tMonto Total\tPorcentaje',
-      ...reporteData.ventasPorMetodoPago.map((m: any) => 
-        `${m.metodoPago}\t${m.cantidad}\t${formatCurrency(m.total)}\t${m.porcentaje.toFixed(2)}%`
+      'Tipo Comprobante\tCantidad\tMonto Total',
+      ...(reporteData.ventasPorTipo || []).map((t: any) =>
+        `${t.tipoComprobante}\t${t.cantidad}\t${formatCurrency(t.total)}`
       ),
       '',
       '=================================================================',
-      '                   VENTAS POR DÍA                                ',
+      '                   VENTAS POR DIA                                ',
       '=================================================================',
-      'Fecha\tCantidad de Ventas\tTotal del Día',
-      ...reporteData.ventasPorDia.map((v: any) => 
+      'Fecha\tCantidad de Ventas\tTotal del Dia',
+      ...(reporteData.ventasPorDia || []).map((v: any) =>
         `${formatDMY(v.fecha)}\t${v.cantidad}\t${formatCurrency(v.total)}`
       ),
       '',
       '=================================================================',
-      '            TOP 10 PRODUCTOS MÁS VENDIDOS                       ',
+      '            TOP 10 PRODUCTOS MAS VENDIDOS                       ',
       '=================================================================',
-      'Ranking\tProducto\tCantidad Vendida\tTotal Vendido',
-      ...reporteData.topProductos.map((p: any, idx: number) => 
-        `#${idx + 1}\t${p.nombreProducto}\t${p.cantidadVendida}\t${formatCurrency(p.totalVendido)}`
+      'Ranking\tSKU\tProducto\tCategoria\tCantidad Vendida\tTotal',
+      ...topProductos.map((p: any, idx: number) =>
+        `#${idx + 1}\t${p.sku || '-'}\t${p.nombre}\t${p.categoriaNombre || '-'}\t${p.cantidadVendida}\t${formatCurrency(p.montoTotal)}`
       ),
       '',
       '=================================================================',
-      '                  TOP 10 MEJORES CLIENTES                        ',
-      '=================================================================',
-      'Ranking\tCliente\tCantidad de Compras\tTotal Gastado',
-      ...reporteData.topClientes.map((c: any, idx: number) => 
-        `#${idx + 1}\t${c.nombreCliente}\t${c.cantidadCompras}\t${formatCurrency(c.totalCompras)}`
-      ),
-      '',
-      '=================================================================',
-      '                 VENTAS POR VENDEDOR                             ',
-      '=================================================================',
-      'Vendedor\tCantidad de Ventas\tTotal Vendido',
-      ...reporteData.ventasPorVendedor.map((v: any) => 
-        `${v.nombreVendedor}\t${v.cantidadVentas}\t${formatCurrency(v.totalVentas)}`
-      ),
-      '',
-      '=================================================================',
-      `Reporte generado por: Sistema de Gestión AlexaTech`,
+      `Reporte generado por: Sistema de Gestion New Hype`,
       '================================================================='
     ];
 
@@ -270,7 +287,7 @@ const ReporteVentas: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Reporte_Ventas_${fechaInicio || 'completo'}_${fechaFin || new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `Reporte_Ventas_${fechaDesde || 'completo'}_${fechaHasta || new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -281,7 +298,7 @@ const ReporteVentas: React.FC = () => {
         <PageHeader>
           <div>
             <PageTitle>Reporte de Ventas</PageTitle>
-            <PageSubtitle>Análisis detallado de ventas, productos más vendidos y clientes</PageSubtitle>
+            <PageSubtitle>Resumen de ventas, desglose por tipo de comprobante y productos top</PageSubtitle>
           </div>
           <Button $variant="success" onClick={handleExportar} disabled={!reporteData || loading}>
             Exportar Reporte
@@ -291,19 +308,19 @@ const ReporteVentas: React.FC = () => {
         <FiltersCard>
           <FiltersGrid>
             <FilterGroup>
-              <FilterLabel>Fecha Inicio</FilterLabel>
+              <FilterLabel>Fecha Desde</FilterLabel>
               <Input
                 type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
               />
             </FilterGroup>
             <FilterGroup>
-              <FilterLabel>Fecha Fin</FilterLabel>
+              <FilterLabel>Fecha Hasta</FilterLabel>
               <Input
                 type="date"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
               />
             </FilterGroup>
           </FiltersGrid>
@@ -339,10 +356,10 @@ const ReporteVentas: React.FC = () => {
                 Resumen General
               </Tab>
               <Tab $active={activeTab === 'detalles'} onClick={() => setActiveTab('detalles')}>
-                Detalles por Período
+                Detalles por Periodo
               </Tab>
               <Tab $active={activeTab === 'analisis'} onClick={() => setActiveTab('analisis')}>
-                Análisis y Rankings
+                Top Productos
               </Tab>
             </TabsHeader>
 
@@ -351,57 +368,66 @@ const ReporteVentas: React.FC = () => {
                 <>
                   <SummaryCards>
                     <SummaryCard>
-                      <CardTitle>Total Ventas</CardTitle>
-                      <CardValue>{formatCurrency(reporteData.resumen.totalVentas)}</CardValue>
+                      <CardTitle>Monto Total Ventas</CardTitle>
+                      <CardValue>{formatCurrency(reporteData.montoTotal)}</CardValue>
                     </SummaryCard>
                     <SummaryCard>
                       <CardTitle>Cantidad de Ventas</CardTitle>
-                      <CardValue>{reporteData.resumen.cantidadVentas}</CardValue>
+                      <CardValue>{reporteData.totalVentas || 0}</CardValue>
                     </SummaryCard>
                     <SummaryCard>
                       <CardTitle>Ticket Promedio</CardTitle>
-                      <CardValue>{formatCurrency(reporteData.resumen.ticketPromedio)}</CardValue>
+                      <CardValue>{formatCurrency(reporteData.ticketPromedio)}</CardValue>
                     </SummaryCard>
                     <SummaryCard>
-                      <CardTitle>Venta Máxima</CardTitle>
-                      <CardValue>{formatCurrency(reporteData.resumen.ventasMayor)}</CardValue>
+                      <CardTitle>IGV Total</CardTitle>
+                      <CardValue>{formatCurrency(reporteData.montoIgv)}</CardValue>
                     </SummaryCard>
                   </SummaryCards>
 
                   <Section>
-                    <SectionTitle>Distribución por Método de Pago</SectionTitle>
-                    <TableContainer>
-                      <Table>
-                        <Thead>
-                          <tr>
-                            <Th>Método</Th>
-                            <Th>Cantidad</Th>
-                            <Th>Total</Th>
-                            <Th>Porcentaje</Th>
-                          </tr>
-                        </Thead>
-                        <Tbody>
-                          {reporteData.ventasPorMetodoPago.map((m: any, idx: number) => (
-                            <Tr key={idx}>
-                              <Td>{m.metodoPago}</Td>
-                              <Td>{m.cantidad}</Td>
-                              <Td>{formatCurrency(m.total)}</Td>
-                              <Td>
-                                <PercentageBadge>{m.porcentaje.toFixed(1)}%</PercentageBadge>
-                              </Td>
-                            </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
+                    <SectionTitle>Ventas por Tipo de Comprobante</SectionTitle>
+                    {(reporteData.ventasPorTipo || []).length > 0 ? (
+                      <TableContainer>
+                        <Table>
+                          <Thead>
+                            <tr>
+                              <Th>Tipo Comprobante</Th>
+                              <Th>Cantidad</Th>
+                              <Th>Total</Th>
+                              <Th>Porcentaje</Th>
+                            </tr>
+                          </Thead>
+                          <Tbody>
+                            {reporteData.ventasPorTipo.map((t: any, idx: number) => {
+                              const porcentaje = reporteData.montoTotal > 0
+                                ? (Number(t.total) / Number(reporteData.montoTotal) * 100)
+                                : 0;
+                              return (
+                                <Tr key={idx}>
+                                  <Td>{t.tipoComprobante}</Td>
+                                  <Td>{t.cantidad}</Td>
+                                  <Td>{formatCurrency(t.total)}</Td>
+                                  <Td>
+                                    <PercentageBadge>{porcentaje.toFixed(1)}%</PercentageBadge>
+                                  </Td>
+                                </Tr>
+                              );
+                            })}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    ) : (
+                      <EmptyText>No hay datos de tipos de comprobante.</EmptyText>
+                    )}
                   </Section>
                 </>
               )}
 
               {activeTab === 'detalles' && (
-                <>
-                  <Section>
-                    <SectionTitle>Ventas por Día</SectionTitle>
+                <Section>
+                  <SectionTitle>Ventas por Dia</SectionTitle>
+                  {(reporteData.ventasPorDia || []).length > 0 ? (
                     <TableContainer>
                       <Table>
                         <Thead>
@@ -422,88 +448,46 @@ const ReporteVentas: React.FC = () => {
                         </Tbody>
                       </Table>
                     </TableContainer>
-                  </Section>
-
-                  <Section>
-                    <SectionTitle>Ventas por Vendedor</SectionTitle>
-                    <TableContainer>
-                      <Table>
-                        <Thead>
-                          <tr>
-                            <Th>Vendedor</Th>
-                            <Th>Cantidad Ventas</Th>
-                            <Th>Total Ventas</Th>
-                          </tr>
-                        </Thead>
-                        <Tbody>
-                          {reporteData.ventasPorVendedor.map((v: any, idx: number) => (
-                            <Tr key={idx}>
-                              <Td>{v.nombreVendedor}</Td>
-                              <Td>{v.cantidadVentas}</Td>
-                              <Td>{formatCurrency(v.totalVentas)}</Td>
-                            </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
-                  </Section>
-                </>
+                  ) : (
+                    <EmptyText>No hay ventas en el periodo seleccionado.</EmptyText>
+                  )}
+                </Section>
               )}
 
               {activeTab === 'analisis' && (
-                <>
-                  <Section>
-                    <SectionTitle>Top 10 Productos Más Vendidos</SectionTitle>
+                <Section>
+                  <SectionTitle>Top 10 Productos Mas Vendidos</SectionTitle>
+                  {topProductos.length > 0 ? (
                     <TableContainer>
                       <Table>
                         <Thead>
                           <tr>
                             <Th>#</Th>
+                            <Th>SKU</Th>
                             <Th>Producto</Th>
+                            <Th>Categoria</Th>
                             <Th>Cantidad</Th>
-                            <Th>Total Vendido</Th>
+                            <Th>Total</Th>
                           </tr>
                         </Thead>
                         <Tbody>
-                          {reporteData.topProductos.map((p: any, idx: number) => (
+                          {topProductos.map((p: any, idx: number) => (
                             <Tr key={idx}>
                               <Td><RankBadge $rank={idx + 1}>{idx + 1}</RankBadge></Td>
-                              <Td style={{ fontWeight: idx < 3 ? 600 : 400 }}>{p.nombreProducto}</Td>
+                              <Td>{p.sku || '-'}</Td>
+                              <Td style={{ fontWeight: idx < 3 ? 600 : 400 }}>{p.nombre}</Td>
+                              <Td>{p.categoriaNombre || '-'}</Td>
                               <Td>{p.cantidadVendida}</Td>
-                              <Td>{formatCurrency(p.totalVendido)}</Td>
+                              <Td>{formatCurrency(p.montoTotal)}</Td>
                             </Tr>
                           ))}
                         </Tbody>
                       </Table>
                     </TableContainer>
-                  </Section>
-
-                  <Section>
-                    <SectionTitle>Top 10 Clientes</SectionTitle>
-                    <TableContainer>
-                      <Table>
-                        <Thead>
-                          <tr>
-                            <Th>#</Th>
-                            <Th>Cliente</Th>
-                            <Th>Cantidad Compras</Th>
-                            <Th>Total Compras</Th>
-                          </tr>
-                        </Thead>
-                        <Tbody>
-                          {reporteData.topClientes.map((c: any, idx: number) => (
-                            <Tr key={idx}>
-                              <Td><RankBadge $rank={idx + 1}>{idx + 1}</RankBadge></Td>
-                              <Td style={{ fontWeight: idx < 3 ? 600 : 400 }}>{c.nombreCliente}</Td>
-                              <Td>{c.cantidadCompras}</Td>
-                              <Td>{formatCurrency(c.totalCompras)}</Td>
-                            </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
-                  </Section>
-                </>
+                  ) : (
+                    <EmptyText>No hay datos de productos vendidos en este periodo.</EmptyText>
+                  )}
+                </Section>
               )}
             </TabContent>
           </TabsContainer>

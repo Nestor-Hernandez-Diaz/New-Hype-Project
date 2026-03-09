@@ -3,13 +3,13 @@ import styled from 'styled-components';
 import Layout from '../../../components/Layout';
 import { apiService } from '../../../utils/api';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
-import { 
-  Button, 
-  Select, 
-  FiltersCard, 
-  SummaryCard, 
-  SummaryCards, 
-  CardTitle, 
+import {
+  Button,
+  Select,
+  FiltersCard,
+  SummaryCard,
+  SummaryCards,
+  CardTitle,
   CardValue,
   TableContainer,
   Table,
@@ -25,13 +25,13 @@ import {
 } from '../../../components/shared';
 
 // Helpers
-const formatCurrency = (num: number | undefined) => {
-  if (num === undefined || num === null || isNaN(num)) return 'S/ 0.00';
-  return `S/ ${num.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatCurrency = (num: number | undefined | null) => {
+  if (num === undefined || num === null || isNaN(Number(num))) return 'S/ 0.00';
+  return `S/ ${Number(num).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 // ============================================================================
-// ESTILOS ESPECÍFICOS DE REPORTES
+// ESTILOS
 // ============================================================================
 
 const Container = styled.div`
@@ -109,7 +109,7 @@ const Tab = styled.button<{ $active: boolean }>`
   border-bottom: 2px solid ${props => props.$active ? COLORS.primary : 'transparent'};
   transition: ${TRANSITIONS.normal};
   margin-bottom: -1px;
-  
+
   &:hover {
     background-color: ${props => props.$active ? COLORS.white : COLORS.borderLight};
     color: ${props => props.$active ? COLORS.primary : COLORS.text};
@@ -144,38 +144,25 @@ const PercentageBadge = styled.span`
   font-size: ${TYPOGRAPHY.fontSize.small};
 `;
 
-const RankBadge = styled.span<{ $rank: number }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
-  background: ${props => props.$rank <= 3 ? COLOR_SCALES.success[100] : COLORS.borderLight};
-  color: ${props => props.$rank <= 3 ? COLOR_SCALES.success[600] : COLORS.textLight};
-  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
-  font-size: ${TYPOGRAPHY.fontSize.xs};
-`;
-
-const AlertValue = styled.span<{ $isZero?: boolean }>`
-  color: ${props => props.$isZero ? COLOR_SCALES.danger[600] : COLOR_SCALES.warning[600]};
-  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
-`;
-
-const DifferenceValue = styled.span`
-  color: ${COLOR_SCALES.danger[600]};
-  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
-`;
-
 // ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
+
+/**
+ * Backend DTO: ReporteInventarioResponse
+ * - totalProductos: long
+ * - productosConStock: long
+ * - productosStockBajo: long
+ * - productosSinStock: long
+ * - valorizacionTotal: BigDecimal
+ * - porAlmacen: [{almacenId, almacenNombre, totalItems, stockBajo, valorizacion}]
+ */
 
 const ReporteInventario: React.FC = () => {
   const [almacenId, setAlmacenId] = useState('');
   const [loading, setLoading] = useState(false);
   const [reporteData, setReporteData] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'resumen' | 'stock' | 'analisis'>('resumen');
+  const [activeTab, setActiveTab] = useState<'resumen' | 'almacenes'>('resumen');
   const [almacenes, setAlmacenes] = useState<{ id: string; nombre: string }[]>([]);
 
   useEffect(() => {
@@ -188,7 +175,7 @@ const ReporteInventario: React.FC = () => {
       const res = await apiService.getWarehouses();
       const data = res.data as any;
       let warehouses = [];
-      
+
       if (data?.data?.rows) {
         warehouses = data.data.rows;
       } else if (data?.rows) {
@@ -196,7 +183,7 @@ const ReporteInventario: React.FC = () => {
       } else if (Array.isArray(data)) {
         warehouses = data;
       }
-      
+
       setAlmacenes(warehouses.filter((w: any) => w.activo !== false));
     } catch (error) {
       console.error('Error cargando almacenes:', error);
@@ -230,71 +217,36 @@ const ReporteInventario: React.FC = () => {
 
     const fecha = new Date().toLocaleDateString('es-PE');
     const hora = new Date().toLocaleTimeString('es-PE');
-    
+
     const csvLines = [
       '=================================================================',
       '                  REPORTE DE INVENTARIO                          ',
       '=================================================================',
-      `Fecha de Generación:\t${fecha}\t${hora}`,
-      `Almacén Filtrado:\t${almacenId || 'Todos los almacenes'}`,
+      `Fecha de Generacion:\t${fecha}\t${hora}`,
+      `Almacen Filtrado:\t${almacenId || 'Todos los almacenes'}`,
       '',
       '=================================================================',
       '                    RESUMEN GENERAL                              ',
       '=================================================================',
       'Indicador\tValor',
-      `Valor Total del Inventario\t${formatCurrency(reporteData.resumen?.valorTotalInventario)}`,
-      `Total de Almacenes\t${(reporteData.stockPorAlmacen || []).length}`,
-      `Productos en Alerta\t${reporteData.resumen?.productosEnAlerta || 0}`,
+      `Total Productos\t${reporteData.totalProductos || 0}`,
+      `Productos con Stock\t${reporteData.productosConStock || 0}`,
+      `Productos Stock Bajo\t${reporteData.productosStockBajo || 0}`,
+      `Productos Sin Stock\t${reporteData.productosSinStock || 0}`,
+      `Valorizacion Total\t${formatCurrency(reporteData.valorizacionTotal)}`,
       '',
       '=================================================================',
-      '                  STOCK POR ALMACÉN                              ',
+      '                  STOCK POR ALMACEN                              ',
       '=================================================================',
-      'Almacén\tCantidad Total de Productos\tValor Total del Stock',
-      ...(reporteData.stockPorAlmacen || []).map((a: any) =>
-        `${a.nombreAlmacen || a.almacen || 'Sin nombre'}\t${a.cantidadProductos || a._sum?.cantidad || 0}\t${formatCurrency(a.valorInventario || a._sum?.valor)}`
+      'Almacen\tTotal Items\tStock Bajo\tValorizacion',
+      ...(reporteData.porAlmacen || []).map((a: any) =>
+        `${a.almacenNombre || 'Sin nombre'}\t${a.totalItems || 0}\t${a.stockBajo || 0}\t${formatCurrency(a.valorizacion)}`
       ),
       '',
       '=================================================================',
-      '               VALOR POR CATEGORÍA                               ',
-      '=================================================================',
-      'Categoría\tValor Total\tParticipación %',
-      ...(reporteData.valorPorCategoria || []).map((c: any) => {
-        const porcentaje = reporteData.valorTotalInventario > 0 
-          ? (c.valorTotal / reporteData.valorTotalInventario * 100).toFixed(2)
-          : '0.00';
-        return `${c.categoria || 'Sin categoría'}\t${formatCurrency(c.valorTotal)}\t${porcentaje}%`;
-      }),
-      '',
-      '=================================================================',
-      '          PRODUCTOS CON MAYOR ROTACIÓN                          ',
-      '=================================================================',
-      'Ranking\tProducto\tCantidad de Movimientos',
-      ...(reporteData.productosMasRotacion || []).map((p: any, idx: number) =>
-        `#${idx + 1}\t${p.nombreProducto || 'Sin nombre'}\t${p.cantidadMovimientos || 0}`
-      ),
-      '',
-    ];
-
-    // Agregar productos en alerta si existen
-    if ((reporteData.productosEnAlerta || []).length > 0) {
-      csvLines.push(
-        '=================================================================',
-        '          PRODUCTOS EN ALERTA (STOCK BAJO)                      ',
-        '=================================================================',
-        'Producto\tStock Actual\tStock Mínimo Requerido\tDiferencia',
-        ...(reporteData.productosEnAlerta || []).map((p: any) => {
-          const diferencia = (p.stockMinimo || 0) - (p.stockActual || 0);
-          return `${p.nombreProducto || 'Sin nombre'}\t${p.stockActual || 0}\t${p.stockMinimo || 0}\t${diferencia}`;
-        }),
-        ''
-      );
-    }
-
-    csvLines.push(
-      '=================================================================',
-      `Reporte generado por: Sistema de Gestión AlexaTech`,
+      `Reporte generado por: Sistema de Gestion New Hype`,
       '================================================================='
-    );
+    ];
 
     const csvContent = '\uFEFF' + csvLines.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -312,7 +264,7 @@ const ReporteInventario: React.FC = () => {
         <PageHeader>
           <div>
             <PageTitle>Reporte de Inventario</PageTitle>
-            <PageSubtitle>Análisis de stock, valorización y productos con alertas</PageSubtitle>
+            <PageSubtitle>Stock actual, valorizacion y desglose por almacen</PageSubtitle>
           </div>
           <Button $variant="success" onClick={handleExportar} disabled={!reporteData || loading}>
             Exportar Reporte
@@ -322,7 +274,7 @@ const ReporteInventario: React.FC = () => {
         <FiltersCard>
           <FiltersGrid>
             <FilterGroup>
-              <FilterLabel>Almacén</FilterLabel>
+              <FilterLabel>Almacen</FilterLabel>
               <Select
                 value={almacenId}
                 onChange={(e) => setAlmacenId(e.target.value)}
@@ -355,7 +307,7 @@ const ReporteInventario: React.FC = () => {
           <EmptyState>
             <EmptyIcon>📦</EmptyIcon>
             <EmptyTitle>Sin datos disponibles</EmptyTitle>
-            <EmptyText>Haga clic en "Generar Reporte" para ver el análisis de inventario.</EmptyText>
+            <EmptyText>Haga clic en "Generar Reporte" para ver el inventario.</EmptyText>
           </EmptyState>
         )}
 
@@ -365,11 +317,8 @@ const ReporteInventario: React.FC = () => {
               <Tab $active={activeTab === 'resumen'} onClick={() => setActiveTab('resumen')}>
                 Resumen General
               </Tab>
-              <Tab $active={activeTab === 'stock'} onClick={() => setActiveTab('stock')}>
-                Stock por Almacén
-              </Tab>
-              <Tab $active={activeTab === 'analisis'} onClick={() => setActiveTab('analisis')}>
-                Análisis de Rotación
+              <Tab $active={activeTab === 'almacenes'} onClick={() => setActiveTab('almacenes')}>
+                Por Almacen
               </Tab>
             </TabsHeader>
 
@@ -378,40 +327,64 @@ const ReporteInventario: React.FC = () => {
                 <>
                   <SummaryCards>
                     <SummaryCard>
-                      <CardTitle>Valor Total Inventario</CardTitle>
-                      <CardValue>{formatCurrency(reporteData.resumen?.valorTotalInventario)}</CardValue>
+                      <CardTitle>Total Productos</CardTitle>
+                      <CardValue>{reporteData.totalProductos || 0}</CardValue>
                     </SummaryCard>
                     <SummaryCard>
-                      <CardTitle>Total Almacenes</CardTitle>
-                      <CardValue>{(reporteData.stockPorAlmacen || []).length}</CardValue>
+                      <CardTitle>Con Stock</CardTitle>
+                      <CardValue>{reporteData.productosConStock || 0}</CardValue>
                     </SummaryCard>
                     <SummaryCard>
-                      <CardTitle>Productos en Alerta</CardTitle>
-                      <CardValue style={{ color: reporteData.resumen?.productosEnAlerta > 0 ? COLOR_SCALES.danger[600] : 'inherit' }}>
-                        {reporteData.resumen?.productosEnAlerta || 0}
+                      <CardTitle>Stock Bajo</CardTitle>
+                      <CardValue style={{ color: reporteData.productosStockBajo > 0 ? COLOR_SCALES.danger[600] : 'inherit' }}>
+                        {reporteData.productosStockBajo || 0}
+                      </CardValue>
+                    </SummaryCard>
+                    <SummaryCard>
+                      <CardTitle>Sin Stock</CardTitle>
+                      <CardValue style={{ color: reporteData.productosSinStock > 0 ? COLOR_SCALES.danger[600] : 'inherit' }}>
+                        {reporteData.productosSinStock || 0}
                       </CardValue>
                     </SummaryCard>
                   </SummaryCards>
 
                   <Section>
-                    <SectionTitle>Valor por Categoría</SectionTitle>
+                    <SectionTitle>Valorizacion Total del Inventario</SectionTitle>
+                    <CardValue style={{ fontSize: '1.5rem' }}>{formatCurrency(reporteData.valorizacionTotal)}</CardValue>
+                  </Section>
+                </>
+              )}
+
+              {activeTab === 'almacenes' && (
+                <Section>
+                  <SectionTitle>Stock por Almacen</SectionTitle>
+                  {(reporteData.porAlmacen || []).length > 0 ? (
                     <TableContainer>
                       <Table>
                         <Thead>
                           <tr>
-                            <Th>Categoría</Th>
-                            <Th>Valor Total</Th>
-                            <Th>Participación</Th>
+                            <Th>Almacen</Th>
+                            <Th>Total Items</Th>
+                            <Th>Stock Bajo</Th>
+                            <Th>Valorizacion</Th>
+                            <Th>% del Total</Th>
                           </tr>
                         </Thead>
                         <Tbody>
-                          {(reporteData.valorPorCategoria || []).map((c: any, idx: number) => {
+                          {reporteData.porAlmacen.map((a: any, idx: number) => {
+                            const porcentaje = reporteData.valorizacionTotal > 0
+                              ? (Number(a.valorizacion) / Number(reporteData.valorizacionTotal) * 100)
+                              : 0;
                             return (
                               <Tr key={idx}>
-                                <Td>{c.categoria || 'Sin categoría'}</Td>
-                                <Td>{formatCurrency(c.valorTotal)}</Td>
+                                <Td style={{ fontWeight: 500 }}>{a.almacenNombre || 'Sin nombre'}</Td>
+                                <Td>{a.totalItems || 0}</Td>
+                                <Td style={{ color: a.stockBajo > 0 ? COLOR_SCALES.danger[600] : 'inherit', fontWeight: a.stockBajo > 0 ? 600 : 400 }}>
+                                  {a.stockBajo || 0}
+                                </Td>
+                                <Td>{formatCurrency(a.valorizacion)}</Td>
                                 <Td>
-                                  <PercentageBadge>{(c.porcentaje || 0).toFixed(1)}%</PercentageBadge>
+                                  <PercentageBadge>{porcentaje.toFixed(1)}%</PercentageBadge>
                                 </Td>
                               </Tr>
                             );
@@ -419,100 +392,10 @@ const ReporteInventario: React.FC = () => {
                         </Tbody>
                       </Table>
                     </TableContainer>
-                  </Section>
-
-                  {(reporteData.productosEnAlerta || []).length > 0 && (
-                    <Section>
-                      <SectionTitle>Productos en Alerta (Stock Bajo)</SectionTitle>
-                      <TableContainer>
-                        <Table>
-                          <Thead>
-                            <tr>
-                              <Th>Producto</Th>
-                              <Th>Stock Actual</Th>
-                              <Th>Stock Mínimo</Th>
-                              <Th>Diferencia</Th>
-                            </tr>
-                          </Thead>
-                          <Tbody>
-                            {(reporteData.productosEnAlerta || []).map((p: any, idx: number) => (
-                              <Tr key={idx}>
-                                <Td style={{ fontWeight: 500 }}>{p.nombreProducto || 'Sin nombre'}</Td>
-                                <Td>
-                                  <AlertValue $isZero={p.stockActual === 0}>
-                                    {p.stockActual || 0}
-                                  </AlertValue>
-                                </Td>
-                                <Td>{p.stockMinimo || 0}</Td>
-                                <Td>
-                                  <DifferenceValue>
-                                    {(p.stockMinimo || 0) - (p.stockActual || 0)}
-                                  </DifferenceValue>
-                                </Td>
-                              </Tr>
-                            ))}
-                          </Tbody>
-                        </Table>
-                      </TableContainer>
-                    </Section>
+                  ) : (
+                    <EmptyText>No hay datos de almacenes.</EmptyText>
                   )}
-                </>
-              )}
-
-              {activeTab === 'stock' && (
-                <>
-                  <Section>
-                    <SectionTitle>Stock por Almacén</SectionTitle>
-                    <TableContainer>
-                      <Table>
-                        <Thead>
-                          <tr>
-                            <Th>Almacén</Th>
-                            <Th>Cantidad Total</Th>
-                            <Th>Valor Total</Th>
-                          </tr>
-                        </Thead>
-                        <Tbody>
-                          {(reporteData.stockPorAlmacen || []).map((a: any, idx: number) => (
-                            <Tr key={idx}>
-                              <Td style={{ fontWeight: 500 }}>{a.nombreAlmacen || a.almacen || 'Sin nombre'}</Td>
-                              <Td>{a.cantidadProductos || a._sum?.cantidad || 0}</Td>
-                              <Td>{formatCurrency(a.valorInventario || a._sum?.valor)}</Td>
-                            </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
-                  </Section>
-                </>
-              )}
-
-              {activeTab === 'analisis' && (
-                <>
-                  <Section>
-                    <SectionTitle>Productos con Mayor Rotación</SectionTitle>
-                    <TableContainer>
-                      <Table>
-                        <Thead>
-                          <tr>
-                            <Th>#</Th>
-                            <Th>Producto</Th>
-                            <Th>Cantidad de Movimientos</Th>
-                          </tr>
-                        </Thead>
-                        <Tbody>
-                          {(reporteData.productosMasRotacion || []).map((p: any, idx: number) => (
-                            <Tr key={idx}>
-                              <Td><RankBadge $rank={idx + 1}>{idx + 1}</RankBadge></Td>
-                              <Td style={{ fontWeight: idx < 3 ? 600 : 400 }}>{p.nombreProducto || 'Sin nombre'}</Td>
-                              <Td>{p.cantidadMovimientos || 0}</Td>
-                            </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
-                  </Section>
-                </>
+                </Section>
               )}
             </TabContent>
           </TabsContainer>
