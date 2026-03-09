@@ -5,7 +5,7 @@
 $ErrorActionPreference = "Stop"
 
 # === CONFIGURACION ===
-$localJar = "C:\Dev\New-Hype-Project\newhype-backend\target\newhype-backend-0.0.1-SNAPSHOT.jar"
+$localJar = "$PSScriptRoot\newhype-backend\target\newhype-backend-0.0.1-SNAPSHOT.jar"
 $remoteUser = "ventas@spring.informaticapp.com"
 $remotePath = "/home/ventas/public_html/New-Hype-Project"
 $remoteJar = "$remotePath/newhype-backend-0.0.1-SNAPSHOT.jar"

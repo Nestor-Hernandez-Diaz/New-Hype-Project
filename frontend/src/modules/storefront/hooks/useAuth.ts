@@ -11,6 +11,7 @@ import {
   getSfToken,
   setSfToken,
   clearSfToken,
+  getTenantId,
   type BackendApiResponse,
 } from '../services/storefrontFetch';
 
@@ -137,7 +138,7 @@ export function useAuth(): UseAuthReturn {
         {
           method: 'POST',
           body: JSON.stringify({
-            tenantId: 1,
+            tenantId: Number(getTenantId()),
             email,
             password,
           }),
@@ -176,7 +177,7 @@ export function useAuth(): UseAuthReturn {
         {
           method: 'POST',
           body: JSON.stringify({
-            tenantId: 1,
+            tenantId: Number(getTenantId()),
             email: datos.email,
             password: datos.password,
             nombre: datos.nombre,

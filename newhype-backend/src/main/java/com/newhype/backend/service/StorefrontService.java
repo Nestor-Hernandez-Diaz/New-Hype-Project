@@ -46,6 +46,7 @@ public class StorefrontService {
     private final DetalleVentaRepository detalleVentaRepository;
     private final PagoVentaRepository pagoVentaRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
+    private final UsuarioRepository usuarioRepository;
     private final DepartamentoRepository departamentoRepository;
     private final ProvinciaRepository provinciaRepository;
     private final DistritoRepository distritoRepository;
@@ -73,6 +74,7 @@ public class StorefrontService {
                              DetalleVentaRepository detalleVentaRepository,
                              PagoVentaRepository pagoVentaRepository,
                              MovimientoInventarioRepository movimientoInventarioRepository,
+                             UsuarioRepository usuarioRepository,
                              DepartamentoRepository departamentoRepository,
                              ProvinciaRepository provinciaRepository,
                              DistritoRepository distritoRepository,
@@ -99,6 +101,7 @@ public class StorefrontService {
         this.detalleVentaRepository = detalleVentaRepository;
         this.pagoVentaRepository = pagoVentaRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
+        this.usuarioRepository = usuarioRepository;
         this.departamentoRepository = departamentoRepository;
         this.provinciaRepository = provinciaRepository;
         this.distritoRepository = distritoRepository;
@@ -467,8 +470,10 @@ public class StorefrontService {
         ConfiguracionEmpresa config = configuracionEmpresaRepository.findByTenantId(tenantId).orElse(null);
         boolean aplicarIgv = config == null || Boolean.TRUE.equals(config.getIgvActivo());
 
-        // 4. Get admin user ID for the Venta (fallback)
-        Long usuarioId = 1L;
+        // 4. Get admin user ID for the Venta
+        Long usuarioId = usuarioRepository.findFirstByTenantIdAndEstadoTrue(tenantId)
+                .map(Usuario::getId)
+                .orElseThrow(() -> new IllegalStateException("No hay usuario administrador activo en el tenant"));
 
         // 5. Create Venta
         Venta venta = Venta.builder()

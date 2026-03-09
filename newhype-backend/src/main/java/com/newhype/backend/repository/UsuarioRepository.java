@@ -40,4 +40,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
                          Pageable pageable);
 
     long countByTenantIdAndRolId(Long tenantId, Long rolId);
+
+    Optional<Usuario> findFirstByTenantIdAndEstadoTrue(Long tenantId);
 }
