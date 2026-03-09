@@ -31,8 +31,9 @@ public class AuthController {
 
     @PostMapping("/api/v1/auth/login")
     @Operation(summary = "Login de usuario tenant")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = authService.login(request);
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request,
+                                                           HttpServletRequest httpRequest) {
+        AuthResponse response = authService.login(request, httpRequest);
         return ResponseEntity.ok(ApiResponse.ok("Login exitoso", response));
     }
 
@@ -63,7 +64,7 @@ public class AuthController {
     @Operation(summary = "Invalidar token actual")
     public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request) {
         String token = request.getHeader("Authorization");
-        authService.logout(token);
+        authService.logout(token, request);
         return ResponseEntity.ok(ApiResponse.ok("Sesión cerrada", null));
     }
 

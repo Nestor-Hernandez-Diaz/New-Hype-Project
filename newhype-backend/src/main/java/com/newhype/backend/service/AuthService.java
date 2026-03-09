@@ -6,6 +6,7 @@ import com.newhype.backend.repository.*;
 import com.newhype.backend.security.JwtUtil;
 import com.newhype.backend.security.TenantContext;
 import com.newhype.backend.security.TokenBlacklist;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final TokenBlacklist tokenBlacklist;
+    private final AuditoriaService auditoriaService;
 
     public AuthService(TenantRepository tenantRepository,
                        RolRepository rolRepository,
@@ -32,7 +34,8 @@ public class AuthService {
                        ClienteTiendaRepository clienteTiendaRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
-                       TokenBlacklist tokenBlacklist) {
+                       TokenBlacklist tokenBlacklist,
+                       AuditoriaService auditoriaService) {
         this.tenantRepository = tenantRepository;
         this.rolRepository = rolRepository;
         this.usuarioRepository = usuarioRepository;
@@ -41,6 +44,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.tokenBlacklist = tokenBlacklist;
+        this.auditoriaService = auditoriaService;
     }
 
     /**
@@ -63,7 +67,8 @@ public class AuthService {
                 .build();
     }
 
-    public AuthResponse login(LoginRequest request) {
+    @Transactional
+    public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
         Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("Credenciales inválidas"));
 
@@ -81,6 +86,19 @@ public class AuthService {
         String rolNombre = "USER";
         Rol rol = rolRepository.findById(usuario.getRolId()).orElse(null);
         if (rol != null) rolNombre = rol.getNombre();
+
+        // Actualizar último acceso
+        usuario.setUltimoAcceso(LocalDateTime.now());
+        usuarioRepository.save(usuario);
+
+        // Registrar auditoría de login
+        try {
+            auditoriaService.registrar("LOGIN",
+                    "Inicio de sesión de " + usuario.getNombre() + " " + usuario.getApellido(),
+                    tenant.getId(), usuario.getId(), httpRequest);
+        } catch (Exception e) {
+            // No fallar el login si la auditoría falla
+        }
 
         String accessToken = jwtUtil.generateAccessToken(usuario.getId(), tenant.getId(), rolNombre);
         String refreshToken = jwtUtil.generateRefreshToken(usuario.getId(), tenant.getId(), "tenant");
@@ -206,7 +224,18 @@ public class AuthService {
 
     // ── New endpoints ──
 
-    public void logout(String token) {
+    public void logout(String token, HttpServletRequest httpRequest) {
+        // Registrar logout en auditoría antes de invalidar el token
+        try {
+            Long userId = TenantContext.getCurrentUserId();
+            Long tenantId = TenantContext.getCurrentTenantId();
+            if (userId != null && tenantId != null) {
+                auditoriaService.registrar("LOGOUT", "Cierre de sesión", tenantId, userId, httpRequest);
+            }
+        } catch (Exception e) {
+            // No fallar el logout si la auditoría falla
+        }
+
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
