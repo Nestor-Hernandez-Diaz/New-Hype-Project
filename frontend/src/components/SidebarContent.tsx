@@ -193,6 +193,9 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
     if (pathname.includes('/auditoria')) {
       return 'auditoria';
     }
+    if (pathname.includes('/soporte')) {
+      return 'soporte';
+    }
     if (pathname.includes('/lista-entidades') || pathname.includes('/registrar-entidad')) {
       return 'entidades_comerciales';
     }
@@ -485,6 +488,20 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onItemClick }) => {
               <SubMenuItem $isActive={isActive('/auditoria')}>
                 <Link to="/auditoria" onClick={handleItemClick}>
                   <h3>Logs del Sistema</h3>
+                </Link>
+              </SubMenuItem>
+            </SubMenu>
+          </NavItem>
+
+          <NavItem $isActive={isActive('/soporte')}>
+            <a href="#" onClick={(e) => { e.preventDefault(); toggleMenu('soporte'); }}>
+              <i className="fas fa-headset"></i>
+              <span>Soporte</span>
+            </a>
+            <SubMenu $isOpen={openMenus.soporte}>
+              <SubMenuItem $isActive={isActive('/soporte/tickets')}>
+                <Link to="/soporte/tickets" onClick={handleItemClick}>
+                  <h3>Mis Tickets</h3>
                 </Link>
               </SubMenuItem>
             </SubMenu>

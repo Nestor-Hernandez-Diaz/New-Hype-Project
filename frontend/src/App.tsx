@@ -69,6 +69,10 @@ const ReportesCompras = lazy(() => import('./modules/reports/pages/ReporteCompra
 const ReportesInventario = lazy(() => import('./modules/reports/pages/ReporteInventario') as Promise<{ default: React.ComponentType<any> }>);
 const ReportesCaja = lazy(() => import('./modules/reports/pages/ReporteCaja') as Promise<{ default: React.ComponentType<any> }>);
 
+// Módulo de Soporte
+const ListaTickets = lazy(() => import('./modules/soporte/pages/ListaTickets'));
+const DetalleTicket = lazy(() => import('./modules/soporte/pages/DetalleTicket'));
+
 // ============================================================================
 // 🛍️ STOREFRONT MODULE (E-commerce Público - Cliente B2C)
 // ============================================================================
@@ -223,6 +227,8 @@ function AdminRoutes() {
                     <Route path="/reportes/compras" element={<ProtectedRoute requiredPermission="reports.read"><ReportesCompras /></ProtectedRoute>} />
                     <Route path="/reportes/inventario" element={<ProtectedRoute requiredPermission="reports.read"><ReportesInventario /></ProtectedRoute>} />
                     <Route path="/reportes/caja" element={<ProtectedRoute requiredPermission="reports.read"><ReportesCaja /></ProtectedRoute>} />
+                    <Route path="/soporte/tickets" element={<ProtectedRoute><ListaTickets /></ProtectedRoute>} />
+                    <Route path="/soporte/tickets/:id" element={<ProtectedRoute><DetalleTicket /></ProtectedRoute>} />
                   </Routes>
                 </PurchasesProvider>
               </ConfiguracionProvider>
