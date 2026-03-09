@@ -347,18 +347,21 @@ const ListaUsuarios: React.FC = () => {
 
   const handleCreateUser = async (userData: any) => {
     try {
-      if (!userData.rolId) {
+      // NuevoUsuarioModal envía: { username, email, firstName, lastName, password, isActive, roleId }
+      // addUser (CrearUsuarioDTO) espera: { usuario, email, password, nombres, apellidos, activo, rolId }
+      const rolId = userData.rolId || userData.roleId;
+      if (!rolId) {
         throw new Error('Debe seleccionar un rol para el usuario');
       }
 
       await addUser({
-        usuario: userData.usuario,
+        usuario: userData.usuario || userData.username,
         email: userData.email,
         password: userData.password,
-        nombres: userData.nombres,
-        apellidos: userData.apellidos,
-        activo: userData.activo !== undefined ? userData.activo : true,
-        rolId: userData.rolId
+        nombres: userData.nombres || userData.firstName,
+        apellidos: userData.apellidos || userData.lastName,
+        activo: userData.activo !== undefined ? userData.activo : (userData.isActive !== undefined ? userData.isActive : true),
+        rolId
       });
 
       setIsNuevoUsuarioModalOpen(false);
