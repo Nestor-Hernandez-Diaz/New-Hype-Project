@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../hooks/useAuth';
-import { apiObtenerPedido } from '../services/storefrontApi';
+import { apiObtenerPedido , getBasePath } from '../services/storefrontApi';
 import type { PedidoApiResponse } from '../services/storefrontApi';
 
 interface PedidoLocal {
@@ -50,7 +50,7 @@ export default function Returns() {
   useEffect(() => {
     if (authCargando) return;
     if (!estaAutenticado) {
-      navigate('/storefront/cuenta/login');
+      navigate(`${getBasePath()}/cuenta/login`);
       return;
     }
 
@@ -59,7 +59,7 @@ export default function Returns() {
         setLoading(true);
         const id = Number(pedidoId);
         if (!id || isNaN(id)) {
-          navigate('/storefront/cuenta/pedidos');
+          navigate(`${getBasePath()}/cuenta/pedidos`);
           return;
         }
 
@@ -86,7 +86,7 @@ export default function Returns() {
         }));
       } catch (error) {
         console.error('Error al cargar pedido:', error);
-        navigate('/storefront/cuenta/pedidos');
+        navigate(`${getBasePath()}/cuenta/pedidos`);
       } finally {
         setLoading(false);
       }
@@ -164,13 +164,13 @@ export default function Returns() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                to="/storefront/cuenta/pedidos"
+                to={`${getBasePath()}/cuenta/pedidos`}
                 className="px-8 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-gray-800 transition"
               >
                 Ver Mis Pedidos
               </Link>
               <Link
-                to="/storefront"
+                to={getBasePath()}
                 className="px-8 py-3 border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition"
               >
                 Volver al Inicio
@@ -187,7 +187,7 @@ export default function Returns() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-2xl font-bold mb-4">Pedido no encontrado</p>
-          <Link to="/storefront/cuenta/pedidos" className="text-blue-600 hover:underline">
+          <Link to={`${getBasePath()}/cuenta/pedidos`} className="text-blue-600 hover:underline">
             Volver a Mis Pedidos
           </Link>
         </div>
@@ -216,13 +216,13 @@ export default function Returns() {
             </ul>
             <div className="flex gap-4 justify-center">
               <Link
-                to="/storefront/contacto"
+                to={`${getBasePath()}/contacto`}
                 className="px-8 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-gray-800 transition"
               >
                 Contactar Soporte
               </Link>
               <Link
-                to="/storefront/cuenta/pedidos"
+                to={`${getBasePath()}/cuenta/pedidos`}
                 className="px-8 py-3 border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition"
               >
                 Mis Pedidos
@@ -337,7 +337,7 @@ export default function Returns() {
           <div className="flex flex-col sm:flex-row gap-4">
             <button
               type="button"
-              onClick={() => navigate('/storefront/cuenta/pedidos')}
+              onClick={() => navigate(`${getBasePath()}/cuenta/pedidos`)}
               className="flex-1 px-6 py-3 border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition"
             >
               Cancelar

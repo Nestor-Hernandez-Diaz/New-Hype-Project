@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Package, Truck, CreditCard, MapPin, Phone, Mail } from 'lucide-react';
-import { apiObtenerPedido, type PedidoApiResponse } from '../services/storefrontApi';
+import { apiObtenerPedido, type PedidoApiResponse , getBasePath } from '../services/storefrontApi';
 
 interface PedidoConfirmacion {
   id: string | number;
@@ -102,11 +102,11 @@ export default function OrderConfirmation() {
           const data = await apiObtenerPedido(numericId);
           setPedido(mapApiResponseToConfirmacion(data));
         } else {
-          navigate('/storefront');
+          navigate(getBasePath());
         }
       } catch (error) {
         console.error('Error al cargar pedido:', error);
-        navigate('/storefront');
+        navigate(getBasePath());
       } finally {
         setLoading(false);
       }
@@ -131,7 +131,7 @@ export default function OrderConfirmation() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-2xl font-bold mb-4">Pedido no encontrado</p>
-          <Link to="/storefront" className="text-blue-600 hover:underline">
+          <Link to={getBasePath()} className="text-blue-600 hover:underline">
             Volver al inicio
           </Link>
         </div>
@@ -300,13 +300,13 @@ export default function OrderConfirmation() {
         {/* Acciones */}
         <div className="flex flex-col sm:flex-row gap-4">
           <Link
-            to="/storefront"
+            to={getBasePath()}
             className="flex-1 text-center px-6 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-gray-800 transition"
           >
             Seguir Comprando
           </Link>
           <Link
-            to="/storefront/cuenta/pedidos"
+            to={`${getBasePath()}/cuenta/pedidos`}
             className="flex-1 text-center px-6 py-3 border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition"
           >
             Ver Mis Pedidos

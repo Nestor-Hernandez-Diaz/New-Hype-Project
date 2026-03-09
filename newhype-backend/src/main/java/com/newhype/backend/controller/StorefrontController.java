@@ -26,6 +26,16 @@ public class StorefrontController {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  0. GET /storefront/resolver/{subdominio} — Resolver tenant público
+    // ═══════════════════════════════════════════════════════════════
+    @GetMapping("/resolver/{subdominio}")
+    @Operation(summary = "Resolver tenant por subdominio (no requiere auth)")
+    public ResponseEntity<ApiResponse<TenantPublicResponse>> resolverTenant(
+            @PathVariable String subdominio) {
+        return ResponseEntity.ok(ApiResponse.ok(storefrontService.resolverTenantPorSubdominio(subdominio)));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  1. POST /storefront/auth/register — Registro cliente B2C
     // ═══════════════════════════════════════════════════════════════
     @PostMapping("/auth/register")

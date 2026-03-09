@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import LoginForm from '../components/auth/LoginForm';
 import { useAuth } from '../hooks/useAuth';
+import { getBasePath } from '../services/storefrontFetch';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export default function Login() {
     try {
       const success = await login(email, password);
       if (success) {
-        navigate('/storefront/cuenta/perfil');
+        navigate(`${getBasePath()}/cuenta/perfil`);
       } else {
         setError('Credenciales incorrectas. Por favor intenta de nuevo.');
       }
@@ -43,8 +44,8 @@ export default function Login() {
           onSubmit={handleSubmit}
           loading={loading}
           error={error}
-          onForgotPassword={() => navigate('/storefront/cuenta/recuperar')}
-          onRegister={() => navigate('/storefront/cuenta/registro')}
+          onForgotPassword={() => navigate(`${getBasePath()}/cuenta/recuperar`)}
+          onRegister={() => navigate(`${getBasePath()}/cuenta/registro`)}
         />
 
         {/* Divider */}
@@ -59,7 +60,7 @@ export default function Login() {
 
         {/* Back to Store */}
         <div className="text-center">
-          <Link to="/storefront" className="text-sm text-gray-600 hover:text-black">
+          <Link to={getBasePath()} className="text-sm text-gray-600 hover:text-black">
             ← Volver a la tienda
           </Link>
         </div>

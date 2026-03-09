@@ -4,6 +4,7 @@ import EditarPerfilModal from '../components/common/EditarPerfilModal';
 import CambiarPasswordModal from '../components/common/CambiarPasswordModal';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../hooks/useAuth';
+import { getBasePath } from '../services/storefrontFetch';
 
 interface UsuarioCliente {
   nombre: string;
@@ -40,7 +41,7 @@ export default function Profile() {
     if (authCargando) return;
 
     if (!estaAutenticado) {
-      navigate('/storefront/cuenta/login');
+      navigate(`${getBasePath()}/cuenta/login`);
       return;
     }
 
@@ -96,7 +97,7 @@ export default function Profile() {
     localStorage.removeItem('nh_cliente_token');
     localStorage.removeItem('nh_cliente_email');
     localStorage.removeItem('nh_cliente_nombre');
-    navigate('/storefront');
+    navigate(getBasePath());
   };
 
   // Guardar cambios desde modal
@@ -164,19 +165,19 @@ export default function Profile() {
           <div className="lg:col-span-1">
             <div className="bg-white p-6 shadow-md space-y-2">
               <Link
-                to="/storefront/cuenta/perfil"
+                to={`${getBasePath()}/cuenta/perfil`}
                 className="block py-3 px-4 bg-black text-white font-medium"
               >
                 Mi Perfil
               </Link>
               <Link
-                to="/storefront/cuenta/pedidos"
+                to={`${getBasePath()}/cuenta/pedidos`}
                 className="block py-3 px-4 hover:bg-gray-100"
               >
                 Mis Pedidos
               </Link>
               <Link
-                to="/storefront/favoritos"
+                to={`${getBasePath()}/favoritos`}
                 className="block py-3 px-4 hover:bg-gray-100"
               >
                 Favoritos

@@ -7,6 +7,7 @@
 import { ShoppingBag, X, Minus, Plus, Trash2 } from 'lucide-react';
 import { useStorefront } from '../../context/StorefrontContext';
 import { useNavigate } from 'react-router-dom';
+import { getBasePath } from '../../services/storefrontFetch';
 
 export default function CartSidebar() {
   const { state, dispatch, actualizarCantidadCarrito, eliminarDelCarrito, obtenerResumenCarrito } = useStorefront();
@@ -17,7 +18,7 @@ export default function CartSidebar() {
   
   const handleCheckout = () => {
     dispatch({ type: 'CERRAR_CARRITO' });
-    navigate('/storefront/checkout');
+    navigate(`${getBasePath()}/checkout`);
   };
   
   if (!carritoAbierto) return null;
@@ -60,7 +61,7 @@ export default function CartSidebar() {
               <button
                 onClick={() => {
                   dispatch({ type: 'CERRAR_CARRITO' });
-                  navigate('/storefront/catalogo?filtro=nuevo');
+                  navigate(`${getBasePath()}/catalogo?filtro=nuevo`);
                 }}
                 className="px-6 py-2.5 border-2 border-black text-black font-semibold hover:bg-black hover:text-white transition-colors duration-300 rounded-md"
               >

@@ -8,6 +8,7 @@
 import { X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Genero } from '@monorepo/shared-types';
+import { getBasePath } from '../../services/storefrontFetch';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -52,7 +53,7 @@ export default function MobileMenu({ isOpen, onClose, generos = [] }: MobileMenu
 
           {/* Enlaces */}
           <div className="flex flex-col gap-4">
-            <MobileLink onClick={() => handleNavigate('/storefront/catalogo')}>
+            <MobileLink onClick={() => handleNavigate(`${getBasePath()}/catalogo`)}>
               Catalogo
             </MobileLink>
             {generos.map((genero) => (
@@ -63,11 +64,11 @@ export default function MobileMenu({ isOpen, onClose, generos = [] }: MobileMenu
                 {genero.descripcion}
               </MobileLink>
             ))}
-            <MobileLink onClick={() => handleNavigate('/storefront/catalogo?liquidacion=true')}>
+            <MobileLink onClick={() => handleNavigate(`${getBasePath()}/catalogo?liquidacion=true`)}>
               Sale
             </MobileLink>
             <div className="border-t-2 border-gray-200 my-4" />
-            <MobileLink onClick={() => handleNavigate('/storefront/cuenta/perfil')}>
+            <MobileLink onClick={() => handleNavigate(`${getBasePath()}/cuenta/perfil`)}>
               Mi Cuenta
             </MobileLink>
           </div>

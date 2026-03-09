@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ProductoStorefront } from '@monorepo/shared-types';
-import { apiObtenerProductos } from '../../services/storefrontApi';
+import { apiObtenerProductos , getBasePath } from '../../services/storefrontApi';
 import ProductCard from './ProductCard';
 
 interface RelatedProductsProps {
@@ -160,7 +160,7 @@ export default function RelatedProducts({
       {/* Botón para ver más */}
       <div className="mt-8 text-center">
         <button
-          onClick={() => navigate('/storefront/catalogo')}
+          onClick={() => navigate(`${getBasePath()}/catalogo`)}
           className="
             px-8 py-3 border-2 border-black rounded-full
             font-medium hover:bg-black hover:text-white

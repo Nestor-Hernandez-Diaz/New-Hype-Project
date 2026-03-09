@@ -6,7 +6,18 @@
  */
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1';
-const TENANT_ID = '1';
+
+// ---- Tenant config (set dynamically by TenantResolver) ----
+
+let _tenantId = '';
+let _basePath = '/tienda';
+let _tenantNombre = '';
+
+export function setTenantConfig(tenantId: string, subdominio: string, nombre: string) {
+  _tenantId = tenantId;
+  _basePath = `/tienda/${subdominio}`;
+  _tenantNombre = nombre;
+}
 
 // ---- Token helpers ----
 
@@ -25,7 +36,15 @@ export function clearSfToken(): void {
 }
 
 export function getTenantId(): string {
-  return TENANT_ID;
+  return _tenantId;
+}
+
+export function getBasePath(): string {
+  return _basePath;
+}
+
+export function getTenantNombre(): string {
+  return _tenantNombre;
 }
 
 // ---- Backend response wrappers ----
@@ -100,7 +119,7 @@ export async function storefrontAuthFetch<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const authHeaders: Record<string, string> = {
-    'X-TenantId': TENANT_ID,
+    'X-TenantId': getTenantId(),
     ...((options.headers as Record<string, string>) || {}),
   };
 

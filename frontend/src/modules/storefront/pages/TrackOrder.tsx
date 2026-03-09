@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Search, Truck, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { apiObtenerMisPedidos } from '../services/storefrontApi';
+import { apiObtenerMisPedidos , getBasePath } from '../services/storefrontApi';
 import type { PedidoApiResponse } from '../services/storefrontApi';
 
 interface PedidoRastreo {
@@ -288,7 +288,7 @@ export default function TrackOrder() {
               </p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => navigate('/storefront/contacto')}
+                  onClick={() => navigate(`${getBasePath()}/contacto`)}
                   className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition"
                 >
                   Contactar Soporte

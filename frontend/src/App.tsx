@@ -128,8 +128,8 @@ function App() {
                             <AppContent />
                             <Suspense fallback={<LoadingSpinner />}>
                               <Routes>
-                                {/* Root - Redirige al storefront (vista cliente) */}
-                                <Route path="/" element={<Navigate to="/storefront" replace />} />
+                                {/* Root - Redirige al login del tenant admin */}
+                                <Route path="/" element={<Navigate to="/login" replace />} />
 
                                 {/* ============================================ */}
                                 {/* 🏢 SUPERADMIN - PLATFORM ROUTES            */}
@@ -153,7 +153,7 @@ function App() {
                                 {/* ============================================ */}
                                 {/* 🛍️ STOREFRONT - CLIENTE B2C ROUTES        */}
                                 {/* ============================================ */}
-                                <Route path="/storefront" element={<StorefrontLayout />}>
+                                <Route path="/tienda/:subdominio" element={<StorefrontLayout />}>
                                   <Route index element={<StorefrontHome />} />
                                   <Route path="catalogo" element={<StorefrontCatalog />} />
                                   <Route path="producto/:slug" element={<StorefrontProductDetail />} />

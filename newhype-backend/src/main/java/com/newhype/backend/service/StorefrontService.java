@@ -3,6 +3,7 @@ package com.newhype.backend.service;
 import com.newhype.backend.dto.auth.AuthResponse;
 import com.newhype.backend.dto.auth.UserInfoResponse;
 import com.newhype.backend.dto.storefront.*;
+import com.newhype.backend.entity.Tenant;
 import com.newhype.backend.entity.*;
 import com.newhype.backend.exception.ResourceNotFoundException;
 import com.newhype.backend.repository.*;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 @Service
 public class StorefrontService {
 
+    private final TenantRepository tenantRepository;
     private final ClienteTiendaRepository clienteTiendaRepository;
     private final ProductoRepository productoRepository;
     private final StockAlmacenRepository stockAlmacenRepository;
@@ -50,7 +52,8 @@ public class StorefrontService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public StorefrontService(ClienteTiendaRepository clienteTiendaRepository,
+    public StorefrontService(TenantRepository tenantRepository,
+                             ClienteTiendaRepository clienteTiendaRepository,
                              ProductoRepository productoRepository,
                              StockAlmacenRepository stockAlmacenRepository,
                              CategoriaRepository categoriaRepository,
@@ -75,6 +78,7 @@ public class StorefrontService {
                              DistritoRepository distritoRepository,
                              PasswordEncoder passwordEncoder,
                              JwtUtil jwtUtil) {
+        this.tenantRepository = tenantRepository;
         this.clienteTiendaRepository = clienteTiendaRepository;
         this.productoRepository = productoRepository;
         this.stockAlmacenRepository = stockAlmacenRepository;
@@ -100,6 +104,26 @@ public class StorefrontService {
         this.distritoRepository = distritoRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  0. GET /storefront/resolver/{subdominio} — Resolver tenant
+    // ═══════════════════════════════════════════════════════════════
+    @Transactional(readOnly = true)
+    public TenantPublicResponse resolverTenantPorSubdominio(String subdominio) {
+        Tenant tenant = tenantRepository.findBySubdominio(subdominio)
+                .orElseThrow(() -> new ResourceNotFoundException("Tienda no encontrada: " + subdominio));
+
+        if (tenant.getEstado() != Tenant.EstadoTenant.ACTIVA) {
+            throw new IllegalStateException("Esta tienda no está disponible actualmente");
+        }
+
+        return TenantPublicResponse.builder()
+                .id(tenant.getId())
+                .nombre(tenant.getNombre())
+                .subdominio(tenant.getSubdominio())
+                .estado(tenant.getEstado().name())
+                .build();
     }
 
     // ═══════════════════════════════════════════════════════════════

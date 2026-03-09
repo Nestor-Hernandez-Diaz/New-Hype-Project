@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { Heart, Trash2, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
-import { apiObtenerProductosPorIds } from '../services/storefrontApi';
+import { apiObtenerProductosPorIds , getBasePath } from '../services/storefrontApi';
 import ProductCard from '../components/product/ProductCard';
 import type { ProductoStorefront } from '@monorepo/shared-types';
 
@@ -97,7 +97,7 @@ export default function Favorites() {
             <h2 className="text-2xl font-bold mb-2">No hay favoritos aún</h2>
             <p className="text-gray-600 mb-6">Marca tus productos favoritos para verlos aquí</p>
             <button
-              onClick={() => navigate('/storefront')}
+              onClick={() => navigate(getBasePath())}
               className="inline-block px-8 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-gray-800 transition"
             >
               Ver Productos

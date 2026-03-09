@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import { useAuth } from '../hooks/useAuth';
-import { apiCrearPedido, apiObtenerMetodosPago, apiObtenerEmpresa, apiObtenerAlmacenes } from '../services/storefrontApi';
+import { apiCrearPedido, apiObtenerMetodosPago, apiObtenerEmpresa, apiObtenerAlmacenes , getBasePath } from '../services/storefrontApi';
 import type { MetodoPagoStorefrontData, EmpresaStorefrontData, AlmacenStorefrontData } from '../services/storefrontApi';
 import ProcessingOverlay from '../components/common/ProcessingOverlay';
 import StepIndicator from '../components/checkout/StepIndicator';
@@ -83,11 +83,11 @@ export default function Checkout() {
     if (authCargando) return;
     if (!estaAutenticado) {
       showToast('Inicia sesión para completar tu compra', 'error');
-      navigate('/storefront/cuenta/login');
+      navigate(`${getBasePath()}/cuenta/login`);
       return;
     }
     if (state.carrito.length === 0 && !pedidoCompletado) {
-      navigate('/storefront');
+      navigate(getBasePath());
     }
   }, [state.carrito, navigate, pedidoCompletado, estaAutenticado, authCargando]);
 
@@ -290,7 +290,7 @@ export default function Checkout() {
       setMostrarProcessing(false);
 
       // Redirigir a confirmación con el ID real del backend
-      navigate(`/storefront/confirmacion/${pedidoBackend.id}`);
+      navigate(`${getBasePath()}/confirmacion/${pedidoBackend.id}`);
     } catch (error: any) {
       setProcesando(false);
       setMostrarProcessing(false);
@@ -305,7 +305,7 @@ export default function Checkout() {
         {/* Breadcrumb */}
         <nav className="mb-8 text-sm">
           <ol className="flex items-center space-x-2 text-gray-500">
-            <li><button onClick={() => navigate('/storefront')} className="hover:text-gray-900">Inicio</button></li>
+            <li><button onClick={() => navigate(getBasePath())} className="hover:text-gray-900">Inicio</button></li>
             <li>/</li>
             <li className="text-gray-900 font-medium">Checkout</li>
           </ol>

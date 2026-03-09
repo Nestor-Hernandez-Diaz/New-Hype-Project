@@ -43,6 +43,7 @@ public class SecurityConfig {
                     "/api/v1/platform/auth/login",
                     "/api/v1/storefront/auth/login",
                     "/api/v1/storefront/auth/register",
+                    "/api/v1/storefront/resolver/**",
                     "/api/v1/storefront/productos",
                     "/api/v1/storefront/productos/**",
                     "/api/v1/storefront/categorias",

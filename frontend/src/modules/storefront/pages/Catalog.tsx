@@ -10,7 +10,7 @@ import { useStorefront } from '../context/StorefrontContext';
 import ProductGrid from '../components/product/ProductGrid';
 import FilterChip from '../components/filters/FilterChip';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
-import { apiObtenerCategorias, apiObtenerCatalogos } from '../services/storefrontApi';
+import { apiObtenerCategorias, apiObtenerCatalogos , getBasePath } from '../services/storefrontApi';
 import type { FiltrosProductos, CategoriaStorefront, Genero } from '@monorepo/shared-types';
 import { SlidersHorizontal } from 'lucide-react';
 
@@ -105,11 +105,11 @@ export default function Catalog() {
     if (genero) {
       const generoId = parseInt(genero);
       return [
-        { label: 'Todos', key: 'todos', url: `/storefront/catalogo?genero=${generoId}` },
+        { label: 'Todos', key: 'todos', url: `${getBasePath()}/catalogo?genero=${generoId}` },
         ...categorias.map(cat => ({
           label: cat.nombre,
           key: `cat:${cat.slug}`,
-          url: `/storefront/catalogo?genero=${generoId}&categoria=${cat.slug}`
+          url: `${getBasePath()}/catalogo?genero=${generoId}&categoria=${cat.slug}`
         }))
       ];
     }
@@ -117,11 +117,11 @@ export default function Catalog() {
     // Filtros para LIQUIDACION - chips de generos dinamicos
     if (liquidacion === 'true') {
       return [
-        { label: 'Todos', key: 'todos', url: '/storefront/catalogo?liquidacion=true' },
+        { label: 'Todos', key: 'todos', url: `${getBasePath()}/catalogo?liquidacion=true` },
         ...generos.map(g => ({
           label: g.descripcion,
           key: `gen:${g.id}`,
-          url: `/storefront/catalogo?liquidacion=true&genero=${g.id}`
+          url: `${getBasePath()}/catalogo?liquidacion=true&genero=${g.id}`
         }))
       ];
     }
@@ -129,11 +129,11 @@ export default function Catalog() {
     // Sin filtro especifico: mostrar generos como chips
     if (!searchParams.get('busqueda') && !searchParams.get('categoria')) {
       return [
-        { label: 'Todos', key: 'todos', url: '/storefront/catalogo' },
+        { label: 'Todos', key: 'todos', url: `${getBasePath()}/catalogo` },
         ...generos.map(g => ({
           label: g.descripcion,
           key: `gen:${g.id}`,
-          url: `/storefront/catalogo?genero=${g.id}`
+          url: `${getBasePath()}/catalogo?genero=${g.id}`
         }))
       ];
     }
@@ -150,7 +150,7 @@ export default function Catalog() {
     } else {
       params.delete('orden');
     }
-    navigate(`/storefront/catalogo?${params.toString()}`);
+    navigate(`${getBasePath()}/catalogo?${params.toString()}`);
   };
 
   return (

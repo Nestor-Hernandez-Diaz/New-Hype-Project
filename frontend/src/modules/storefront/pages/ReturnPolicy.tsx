@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Clock, Package, MapPin, Phone, Mail, AlertTriangle, CheckCircle2, Store } from 'lucide-react';
-import { apiObtenerEmpresa, type EmpresaStorefrontData } from '../services/storefrontApi';
+import { apiObtenerEmpresa, type EmpresaStorefrontData , getBasePath } from '../services/storefrontApi';
 
 export default function ReturnPolicy() {
   const [empresa, setEmpresa] = useState<EmpresaStorefrontData | null>(null);
@@ -295,13 +295,13 @@ export default function ReturnPolicy() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                to="/storefront/contacto"
+                to={`${getBasePath()}/contacto`}
                 className="px-8 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-gray-800 transition"
               >
                 Contactanos
               </Link>
               <Link
-                to="/storefront/faq"
+                to={`${getBasePath()}/faq`}
                 className="px-8 py-3 border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition"
               >
                 Preguntas Frecuentes

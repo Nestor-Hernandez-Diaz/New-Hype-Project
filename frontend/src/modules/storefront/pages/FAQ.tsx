@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Package, Truck, CreditCard, RefreshCw, ShoppingBag, User, Search } from 'lucide-react';
+import { getBasePath } from '../services/storefrontFetch';
 
 interface FAQItem {
   pregunta: string;
@@ -272,7 +273,7 @@ export default function FAQ() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => navigate('/storefront/contacto')}
+              onClick={() => navigate(`${getBasePath()}/contacto`)}
               className="inline-block px-8 py-3 bg-white text-gray-900 rounded-lg font-bold hover:bg-gray-100 transition"
             >
               Enviar Mensaje

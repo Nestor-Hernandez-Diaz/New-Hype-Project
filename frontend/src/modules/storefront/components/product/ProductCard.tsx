@@ -9,7 +9,7 @@ import { Heart, ShoppingBag } from 'lucide-react';
 import type { ProductoStorefront } from '@monorepo/shared-types';
 import { useStorefront } from '../../context/StorefrontContext';
 import { useNavigate } from 'react-router-dom';
-import { calcularPrecioLiquidacion, esProductoNuevo, obtenerColor, obtenerTalla } from '../../services/storefrontApi';
+import { calcularPrecioLiquidacion, esProductoNuevo, obtenerColor, obtenerTalla , getBasePath } from '../../services/storefrontApi';
 import { useState } from 'react';
 
 interface ProductCardProps {
@@ -75,7 +75,7 @@ export default function ProductCard({ producto }: ProductCardProps) {
   
   return (
     <div
-      onClick={() => navigate(`/storefront/producto/${producto.slug}`)}
+      onClick={() => navigate(`${getBasePath()}/producto/${producto.slug}`)}
       className="group cursor-pointer animate-fade-in-up"
     >
       {/* Contenedor de imagen */}

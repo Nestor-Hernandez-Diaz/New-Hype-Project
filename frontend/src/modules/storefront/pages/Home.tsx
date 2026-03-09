@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import ProductGrid from '../components/product/ProductGrid';
-import { esProductoNuevo } from '../services/storefrontApi';
+import { esProductoNuevo , getBasePath } from '../services/storefrontApi';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import { Truck, RefreshCw, Lock, MessageCircle } from 'lucide-react';
 
@@ -38,7 +38,7 @@ export default function Home() {
       <section className="relative h-[600px] lg:h-[700px] flex">
         {/* Lado Izquierdo - Mujer */}
         <div
-          onClick={() => navigate('/storefront/catalogo?genero=1')}
+          onClick={() => navigate(`${getBasePath()}/catalogo?genero=1`)}
           className="relative w-1/2 bg-cover bg-center cursor-pointer group overflow-hidden"
           style={{
             backgroundImage: "url('https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=1400&fit=crop')"
@@ -58,7 +58,7 @@ export default function Home() {
         
         {/* Lado Derecho - Hombre */}
         <div
-          onClick={() => navigate('/storefront/catalogo?genero=2')}
+          onClick={() => navigate(`${getBasePath()}/catalogo?genero=2`)}
           className="relative w-1/2 bg-cover bg-center cursor-pointer group overflow-hidden"
           style={{
             backgroundImage: "url('https://images.unsplash.com/photo-1488161628813-04466f0cc7d4?w=1200&h=1400&fit=crop')"
@@ -106,25 +106,25 @@ export default function Home() {
             imagen="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&h=800&fit=crop"
             nombre="Mujer"
             cantidad="120+ productos"
-            onClick={() => navigate('/storefront/catalogo?genero=1')}
+            onClick={() => navigate(`${getBasePath()}/catalogo?genero=1`)}
           />
           <CategoryCard
             imagen="https://images.unsplash.com/photo-1488161628813-04466f0cc7d4?w=600&h=800&fit=crop"
             nombre="Hombre"
             cantidad="95+ productos"
-            onClick={() => navigate('/storefront/catalogo?genero=2')}
+            onClick={() => navigate(`${getBasePath()}/catalogo?genero=2`)}
           />
           <CategoryCard
             imagen="https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=600&h=800&fit=crop"
             nombre="Accesorios"
             cantidad="60+ productos"
-            onClick={() => navigate('/storefront/catalogo?seccion=accesorios')}
+            onClick={() => navigate(`${getBasePath()}/catalogo?seccion=accesorios`)}
           />
           <CategoryCard
             imagen="https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&h=800&fit=crop"
             nombre="Calzado"
             cantidad="75+ productos"
-            onClick={() => navigate('/storefront/catalogo?seccion=calzado')}
+            onClick={() => navigate(`${getBasePath()}/catalogo?seccion=calzado`)}
           />
         </div>
       </section>
@@ -151,7 +151,7 @@ export default function Home() {
             <div className="font-bebas text-6xl lg:text-7xl tracking-wider mb-4">HASTA 50% OFF</div>
             <p className="text-xl mb-8">En prendas seleccionadas de temporada</p>
             <button
-              onClick={() => navigate('/storefront/catalogo?liquidacion=true')}
+              onClick={() => navigate(`${getBasePath()}/catalogo?liquidacion=true`)}
               className="px-8 py-3 bg-[#c8ff00] text-black font-bold uppercase tracking-wider hover:bg-[#a8d600] transition-colors"
             >
               Ver Liquidación
@@ -172,7 +172,7 @@ export default function Home() {
           <ProductGrid productos={productosLiquidacion} />
           <div className="text-center mt-12">
             <button
-              onClick={() => navigate('/storefront/catalogo?liquidacion=true')}
+              onClick={() => navigate(`${getBasePath()}/catalogo?liquidacion=true`)}
               className="px-8 py-3 border-2 border-black font-bold uppercase tracking-wider hover:bg-black hover:text-white transition-all duration-300"
             >
               Ver Toda la Liquidación

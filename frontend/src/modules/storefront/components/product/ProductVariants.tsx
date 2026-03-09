@@ -7,7 +7,7 @@
 
 import { Check, Minus, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { obtenerTalla, obtenerColor } from '../../services/storefrontApi';
+import { obtenerTalla, obtenerColor , getBasePath } from '../../services/storefrontApi';
 
 interface ProductVariantsProps {
   /**
@@ -88,7 +88,7 @@ export default function ProductVariants({
         <div>
           <div className="flex items-center justify-between mb-3">
             <label className="font-medium text-sm">Talla</label>
-            <Link to="/storefront/guia-tallas" className="text-xs text-gray-500 hover:text-black underline">
+            <Link to={`${getBasePath()}/guia-tallas`} className="text-xs text-gray-500 hover:text-black underline">
               Guia de tallas
             </Link>
           </div>

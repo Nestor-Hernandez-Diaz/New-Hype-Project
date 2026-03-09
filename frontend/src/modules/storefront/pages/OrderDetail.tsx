@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, CheckCircle2, Truck, XCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { apiObtenerPedido, apiCancelarPedido, type PedidoApiResponse } from '../services/storefrontApi';
+import { apiObtenerPedido, apiCancelarPedido, type PedidoApiResponse , getBasePath } from '../services/storefrontApi';
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -16,7 +16,7 @@ export default function OrderDetail() {
   useEffect(() => {
     if (authCargando) return;
     if (!estaAutenticado) {
-      navigate('/storefront/cuenta/login');
+      navigate(`${getBasePath()}/cuenta/login`);
       return;
     }
 
@@ -107,7 +107,7 @@ export default function OrderDetail() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-2xl font-bold mb-4">{error || 'Pedido no encontrado'}</p>
-          <Link to="/storefront/cuenta/pedidos" className="text-blue-600 hover:underline">
+          <Link to={`${getBasePath()}/cuenta/pedidos`} className="text-blue-600 hover:underline">
             Volver a Mis Pedidos
           </Link>
         </div>
@@ -121,7 +121,7 @@ export default function OrderDetail() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/storefront/cuenta/pedidos')}
+            onClick={() => navigate(`${getBasePath()}/cuenta/pedidos`)}
             className="flex items-center text-gray-600 hover:text-black mb-4"
           >
             <ArrowLeft size={20} className="mr-2" />
@@ -151,17 +151,17 @@ export default function OrderDetail() {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white p-6 shadow-md space-y-2">
-              <Link to="/storefront/cuenta/perfil" className="block py-3 px-4 hover:bg-gray-100">
+              <Link to={`${getBasePath()}/cuenta/perfil`} className="block py-3 px-4 hover:bg-gray-100">
                 Mi Perfil
               </Link>
-              <Link to="/storefront/cuenta/pedidos" className="block py-3 px-4 bg-black text-white font-medium">
+              <Link to={`${getBasePath()}/cuenta/pedidos`} className="block py-3 px-4 bg-black text-white font-medium">
                 Mis Pedidos
               </Link>
-              <Link to="/storefront/favoritos" className="block py-3 px-4 hover:bg-gray-100">
+              <Link to={`${getBasePath()}/favoritos`} className="block py-3 px-4 hover:bg-gray-100">
                 Favoritos
               </Link>
               <button
-                onClick={() => { authLogout(); navigate('/storefront'); }}
+                onClick={() => { authLogout(); navigate(getBasePath()); }}
                 className="w-full text-left py-3 px-4 hover:bg-gray-100 text-red-600"
               >
                 Cerrar Sesión

@@ -8,6 +8,7 @@
 import { Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getBasePath } from '../../services/storefrontFetch';
 
 interface SearchBarProps {
   /**
@@ -27,7 +28,7 @@ export default function SearchBar({ isOpen, onClose }: SearchBarProps) {
   
   const handleBuscar = () => {
     if (!busquedaTexto.trim()) return;
-    navigate(`/storefront/catalogo?busqueda=${encodeURIComponent(busquedaTexto)}`);
+    navigate(`${getBasePath()}/catalogo?busqueda=${encodeURIComponent(busquedaTexto)}`);
     setBusquedaTexto('');
     onClose();
   };

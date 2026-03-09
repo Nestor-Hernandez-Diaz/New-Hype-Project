@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { Search, Heart, ShoppingBag, User, Menu, ChevronDown } from 'lucide-react';
 import { useStorefront } from '../../context/StorefrontContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { apiObtenerCatalogos, apiObtenerCategorias } from '../../services/storefrontApi';
+import { apiObtenerCatalogos, apiObtenerCategorias , getBasePath } from '../../services/storefrontApi';
 import type { Genero, CategoriaStorefront } from '@monorepo/shared-types';
 import MobileMenu from './MobileMenu';
 import SearchBar from './SearchBar';
@@ -83,7 +83,7 @@ export default function Navbar() {
         <div className="max-w-[1440px] mx-auto px-8 h-full flex items-center justify-between">
           {/* Logo */}
           <button
-            onClick={() => navigate('/storefront')}
+            onClick={() => navigate(getBasePath())}
             className="flex items-baseline gap-1 font-bebas text-[32px] leading-none tracking-[2px] hover:opacity-80 transition-opacity"
           >
             <span className="text-black">NEW</span>
@@ -92,7 +92,7 @@ export default function Navbar() {
 
           {/* Enlaces de Navegacion - Desktop */}
           <ul className="hidden md:flex items-center gap-1 list-none">
-            <NavLink onClick={() => navigate('/storefront/catalogo')}>Catalogo</NavLink>
+            <NavLink onClick={() => navigate(`${getBasePath()}/catalogo`)}>Catalogo</NavLink>
 
             {/* Generos dinamicos desde BD */}
             {generos.map((genero) => {
@@ -108,7 +108,7 @@ export default function Navbar() {
                   isOpen={dropdownAbierto === generoKey}
                   onToggle={() => setDropdownAbierto(dropdownAbierto === generoKey ? null : generoKey)}
                 >
-                  <DropdownLink onClick={() => { navigate(`/storefront/catalogo?genero=${genero.id}`); setDropdownAbierto(null); }}>
+                  <DropdownLink onClick={() => { navigate(`${getBasePath()}/catalogo?genero=${genero.id}`); setDropdownAbierto(null); }}>
                     Toda la ropa
                   </DropdownLink>
                   <DropdownDivider />
@@ -116,7 +116,7 @@ export default function Navbar() {
                     <DropdownLink
                       key={cat.id}
                       onClick={() => {
-                        navigate(`/storefront/catalogo?genero=${genero.id}&categoria=${cat.slug}`);
+                        navigate(`${getBasePath()}/catalogo?genero=${genero.id}&categoria=${cat.slug}`);
                         setDropdownAbierto(null);
                       }}
                     >
@@ -128,7 +128,7 @@ export default function Navbar() {
             })}
 
             <NavLink
-              onClick={() => navigate('/storefront/catalogo?liquidacion=true')}
+              onClick={() => navigate(`${getBasePath()}/catalogo?liquidacion=true`)}
               className="text-red-600 font-bold"
             >
               Sale
@@ -156,7 +156,7 @@ export default function Navbar() {
 
             {/* Usuario */}
             <button
-              onClick={() => navigate('/storefront/cuenta/perfil')}
+              onClick={() => navigate(`${getBasePath()}/cuenta/perfil`)}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               aria-label="Mi cuenta"
             >
@@ -165,7 +165,7 @@ export default function Navbar() {
 
             {/* Favoritos */}
             <button
-              onClick={() => navigate('/storefront/favoritos')}
+              onClick={() => navigate(`${getBasePath()}/favoritos`)}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors relative"
               aria-label="Favoritos"
             >

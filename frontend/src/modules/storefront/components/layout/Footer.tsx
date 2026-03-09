@@ -9,7 +9,7 @@ import { Instagram, Facebook } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useToast } from '../../context/ToastContext';
-import { apiObtenerCatalogos } from '../../services/storefrontApi';
+import { apiObtenerCatalogos , getBasePath } from '../../services/storefrontApi';
 import type { Genero } from '@monorepo/shared-types';
 
 export default function Footer() {
@@ -87,16 +87,16 @@ export default function Footer() {
               <h4 className="font-bold text-base mb-4">Tienda</h4>
               <div className="flex flex-col gap-3">
                 {generos.map(g => (
-                  <FooterLink key={g.id} onClick={() => navigate(`/storefront/catalogo?genero=${g.id}`)}>
+                  <FooterLink key={g.id} onClick={() => navigate(`${getBasePath()}/catalogo?genero=${g.id}`)}>
                     {g.descripcion}
                   </FooterLink>
                 ))}
                 {generos.length === 0 && (
-                  <FooterLink onClick={() => navigate('/storefront/catalogo')}>Catalogo</FooterLink>
+                  <FooterLink onClick={() => navigate(`${getBasePath()}/catalogo`)}>Catalogo</FooterLink>
                 )}
-                <FooterLink onClick={() => navigate('/storefront/catalogo?seccion=accesorios')}>Accesorios</FooterLink>
-                <FooterLink onClick={() => navigate('/storefront/catalogo?seccion=calzado')}>Calzado</FooterLink>
-                <FooterLink onClick={() => navigate('/storefront/catalogo?liquidacion=true')}>Sale</FooterLink>
+                <FooterLink onClick={() => navigate(`${getBasePath()}/catalogo?seccion=accesorios`)}>Accesorios</FooterLink>
+                <FooterLink onClick={() => navigate(`${getBasePath()}/catalogo?seccion=calzado`)}>Calzado</FooterLink>
+                <FooterLink onClick={() => navigate(`${getBasePath()}/catalogo?liquidacion=true`)}>Sale</FooterLink>
               </div>
             </div>
 
@@ -104,11 +104,11 @@ export default function Footer() {
             <div>
               <h4 className="font-bold text-base mb-4">Ayuda</h4>
               <div className="flex flex-col gap-3">
-                <FooterLink onClick={() => navigate('/storefront/seguir-pedido')}>Seguir mi pedido</FooterLink>
-                <FooterLink onClick={() => navigate('/storefront/devoluciones')}>Devoluciones</FooterLink>
-                <FooterLink onClick={() => navigate('/storefront/guia-tallas')}>Guia de tallas</FooterLink>
-                <FooterLink onClick={() => navigate('/storefront/faq')}>Preguntas frecuentes</FooterLink>
-                <FooterLink onClick={() => navigate('/storefront/contacto')}>Contacto</FooterLink>
+                <FooterLink onClick={() => navigate(`${getBasePath()}/seguir-pedido`)}>Seguir mi pedido</FooterLink>
+                <FooterLink onClick={() => navigate(`${getBasePath()}/devoluciones`)}>Devoluciones</FooterLink>
+                <FooterLink onClick={() => navigate(`${getBasePath()}/guia-tallas`)}>Guia de tallas</FooterLink>
+                <FooterLink onClick={() => navigate(`${getBasePath()}/faq`)}>Preguntas frecuentes</FooterLink>
+                <FooterLink onClick={() => navigate(`${getBasePath()}/contacto`)}>Contacto</FooterLink>
               </div>
             </div>
 

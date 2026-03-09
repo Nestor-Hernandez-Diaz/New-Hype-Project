@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import RegisterForm from '../components/auth/RegisterForm';
 import type { RegisterData } from '../components/auth/RegisterForm';
 import { useAuth } from '../hooks/useAuth';
+import { getBasePath } from '../services/storefrontFetch';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export default function Register() {
       });
 
       if (success) {
-        navigate('/storefront/cuenta/perfil');
+        navigate(`${getBasePath()}/cuenta/perfil`);
       } else {
         setError('Error al crear la cuenta. Por favor intenta de nuevo.');
       }
@@ -51,12 +52,12 @@ export default function Register() {
           onSubmit={handleSubmit}
           loading={loading}
           error={error}
-          onLogin={() => navigate('/storefront/cuenta/login')}
+          onLogin={() => navigate(`${getBasePath()}/cuenta/login`)}
         />
 
         {/* Back to Store */}
         <div className="mt-6 text-center">
-          <Link to="/storefront" className="text-sm text-gray-600 hover:text-black">
+          <Link to={getBasePath()} className="text-sm text-gray-600 hover:text-black">
             ← Volver a la tienda
           </Link>
         </div>

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { EstadoPedido } from '@monorepo/shared-types';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { apiObtenerMisPedidos, type PedidoApiResponse } from '../services/storefrontApi';
+import { apiObtenerMisPedidos, type PedidoApiResponse , getBasePath } from '../services/storefrontApi';
 
 interface Pedido {
   id: number | string;
@@ -28,7 +28,7 @@ export default function Orders() {
     if (authCargando) return;
 
     if (!estaAutenticado) {
-      navigate('/storefront/cuenta/login');
+      navigate(`${getBasePath()}/cuenta/login`);
       return;
     }
 
@@ -59,7 +59,7 @@ export default function Orders() {
 
   const handleLogout = () => {
     authLogout();
-    navigate('/storefront');
+    navigate(getBasePath());
   };
 
   const getEstadoBadgeClass = (estado: EstadoPedido) => {
@@ -133,19 +133,19 @@ export default function Orders() {
           <div className="lg:col-span-1">
             <div className="bg-white p-6 shadow-md space-y-2">
               <Link
-                to="/storefront/cuenta/perfil"
+                to={`${getBasePath()}/cuenta/perfil`}
                 className="block py-3 px-4 hover:bg-gray-100"
               >
                 Mi Perfil
               </Link>
               <Link
-                to="/storefront/cuenta/pedidos"
+                to={`${getBasePath()}/cuenta/pedidos`}
                 className="block py-3 px-4 bg-black text-white font-medium"
               >
                 Mis Pedidos
               </Link>
               <Link
-                to="/storefront/favoritos"
+                to={`${getBasePath()}/favoritos`}
                 className="block py-3 px-4 hover:bg-gray-100"
               >
                 Favoritos
@@ -264,7 +264,7 @@ export default function Orders() {
                   </button>
                 )}
                 <Link
-                  to="/storefront/catalogo"
+                  to={`${getBasePath()}/catalogo`}
                   className="inline-block bg-black text-white px-8 py-3 font-bebas text-lg hover:bg-gray-800"
                 >
                   EXPLORAR PRODUCTOS
@@ -302,7 +302,7 @@ export default function Orders() {
                         <p className="text-xl font-bebas">S/ {pedido.total.toFixed(2)}</p>
                       </div>
                       <Link
-                        to={`/storefront/cuenta/pedidos/${pedido.id}`}
+                        to={`${getBasePath()}/cuenta/pedidos/${pedido.id}`}
                         className="bg-black text-white px-6 py-2 text-sm font-bebas hover:bg-gray-800"
                       >
                         VER DETALLES

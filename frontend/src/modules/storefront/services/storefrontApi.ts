@@ -22,9 +22,12 @@ import type {
 import {
   storefrontFetch,
   getTenantId,
+  getBasePath,
   type BackendApiResponse,
   type SpringPageable,
-} from './storefrontFetch';
+, getBasePath } from './storefrontFetch';
+
+export { getBasePath } from './storefrontFetch';
 
 import {
   mapProducto,
@@ -567,4 +570,25 @@ export async function apiObtenerAlmacenes(): Promise<AlmacenStorefrontData[]> {
     `/storefront/almacenes?tenantId=${tenantId}`
   );
   return res.data || [];
+}
+
+// ============================================================================
+// TENANT RESOLVER API (Public endpoint, no auth required)
+// ============================================================================
+
+export interface TenantPublicData {
+  id: number;
+  nombre: string;
+  subdominio: string;
+  estado: string;
+}
+
+/**
+ * GET /storefront/resolver/{subdominio} — Resolve tenant by subdomain slug
+ */
+export async function apiResolverTenant(subdominio: string): Promise<TenantPublicData> {
+  const res = await storefrontFetch<BackendApiResponse<TenantPublicData>>(
+    `/storefront/resolver/${encodeURIComponent(subdominio)}`
+  );
+  return res.data;
 }

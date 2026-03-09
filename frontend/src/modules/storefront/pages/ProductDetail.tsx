@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import { useToast } from '../context/ToastContext';
 import type { ProductoStorefront, ItemCarrito } from '@monorepo/shared-types';
-import { apiObtenerProductoPorSlug, obtenerTalla, obtenerColor } from '../services/storefrontApi';
+import { apiObtenerProductoPorSlug, obtenerTalla, obtenerColor , getBasePath } from '../services/storefrontApi';
 import ProductGallery from '../components/product/ProductGallery';
 import ProductVariants from '../components/product/ProductVariants';
 import RelatedProducts from '../components/product/RelatedProducts';
@@ -134,7 +134,7 @@ export default function ProductDetail() {
           description="Lo sentimos, no pudimos encontrar este producto."
           action={{
             label: 'Ver catálogo',
-            onClick: () => navigate('/storefront/catalogo')
+            onClick: () => navigate(`${getBasePath()}/catalogo`)
           }}
         />
       </div>
@@ -157,11 +157,11 @@ export default function ProductDetail() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-6">
-        <button onClick={() => navigate('/storefront')} className="hover:text-black">
+        <button onClick={() => navigate(getBasePath())} className="hover:text-black">
           Inicio
         </button>
         <span className="mx-2">/</span>
-        <button onClick={() => navigate('/storefront/catalogo')} className="hover:text-black">
+        <button onClick={() => navigate(`${getBasePath()}/catalogo`)} className="hover:text-black">
           Catálogo
         </button>
         <span className="mx-2">/</span>
