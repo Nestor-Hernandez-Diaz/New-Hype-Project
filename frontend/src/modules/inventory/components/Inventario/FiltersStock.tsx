@@ -259,18 +259,6 @@ const FiltersStock: React.FC<FiltersStockProps> = ({ onFilterChange, loading = f
         >
           {loading ? 'Buscando...' : 'Buscar'}
         </SharedButton>
-        {onExport && (
-          <SharedButton 
-            type="button" 
-            $variant="primary" 
-            onClick={onExport}
-            disabled={exportando || loading}
-            style={{ background: '#28a745' }}
-            data-testid="stock-filter-export"
-          >
-            {exportando ? 'Exportando...' : 'Exportar a Excel'}
-          </SharedButton>
-        )}
       </ButtonGroup>
     </FiltersContainer>
   );

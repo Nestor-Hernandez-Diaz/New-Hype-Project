@@ -423,23 +423,11 @@ const FiltersKardex: React.FC<FiltersKardexProps> = ({ onFilterChange, loading =
           type="button" 
           $variant="primary" 
           onClick={handleSearch}
-          disabled={loading || !filters.warehouseId}
+          disabled={loading}
           data-testid="kardex-filter-search-button"
         >
           {loading ? 'Buscando...' : 'Buscar'}
         </SharedButton>
-        {onExport && (
-          <SharedButton 
-            type="button" 
-            $variant="primary" 
-            onClick={onExport}
-            disabled={exportando || loading}
-            style={{ background: '#28a745' }}
-            data-testid="kardex-filter-export"
-          >
-            {exportando ? 'Exportando...' : 'Exportar a Excel'}
-          </SharedButton>
-        )}
       </ButtonGroup>
     </FiltersContainer>
   );

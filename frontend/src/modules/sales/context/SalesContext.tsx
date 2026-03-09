@@ -1026,9 +1026,9 @@ ${sale.montoRecibido ? `<div style="font-size:10px;margin-bottom:10px"><strong>M
   .header-left { flex: 1; }
   .header-left h1 { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
   .header-left p { font-size: 10px; line-height: 1.5; }
-  .doc-box { border: 2px solid #1a5276; padding: 10px 15px; text-align: center; min-width: 200px; background: #eaf2f8; }
-  .doc-box .doc-type { font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #1a5276; }
-  .doc-box .doc-num { font-size: 14px; font-weight: bold; color: #1a5276; }
+  .doc-box { border: 2px solid #000; padding: 10px 15px; text-align: center; min-width: 200px; }
+  .doc-box .doc-type { font-size: 12px; font-weight: bold; margin-bottom: 6px; }
+  .doc-box .doc-num { font-size: 14px; font-weight: bold; }
   .doc-box .doc-ruc { font-size: 11px; margin-bottom: 4px; }
   .client-section { border: 1px solid #000; padding: 8px 10px; margin-bottom: 10px; }
   .client-row { display: flex; margin-bottom: 3px; font-size: 10px; }
@@ -1047,7 +1047,7 @@ ${sale.montoRecibido ? `<div style="font-size:10px;margin-bottom:10px"><strong>M
   .totals-table .total-final { font-weight: bold; font-size: 12px; }
   .footer { text-align: center; border-top: 1px solid #000; padding-top: 8px; margin-top: 10px; font-size: 9px; }
   .footer p { margin-bottom: 2px; }
-  .validity-box { border: 2px solid #d4ac0d; background: #fef9e7; padding: 8px 12px; margin-bottom: 10px; font-size: 10px; }
+  .validity-box { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 10px; }
   .btn-print { display: block; margin: 20px auto; padding: 10px 30px; background: #333; color: white; border: none; cursor: pointer; font-size: 13px; }
 </style>
 </head><body>
@@ -1226,13 +1226,13 @@ ${quoteData.observaciones ? `<div style="border:1px solid #000;padding:6px 10px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; max-width: 210mm; margin: 0 auto; padding: 15px; }
-  .header-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #c0392b; padding-bottom: 10px; margin-bottom: 10px; }
+  .header-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
   .header-left { flex: 1; }
   .header-left h1 { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
   .header-left p { font-size: 10px; line-height: 1.5; }
-  .doc-box { border: 2px solid #c0392b; padding: 10px 15px; text-align: center; min-width: 200px; background: #fdedec; }
-  .doc-box .doc-type { font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #c0392b; }
-  .doc-box .doc-num { font-size: 14px; font-weight: bold; color: #c0392b; }
+  .doc-box { border: 2px solid #000; padding: 10px 15px; text-align: center; min-width: 200px; }
+  .doc-box .doc-type { font-size: 12px; font-weight: bold; margin-bottom: 6px; }
+  .doc-box .doc-num { font-size: 14px; font-weight: bold; }
   .doc-box .doc-ruc { font-size: 11px; margin-bottom: 4px; }
   .client-section { border: 1px solid #000; padding: 8px 10px; margin-bottom: 10px; }
   .client-row { display: flex; margin-bottom: 3px; font-size: 10px; }
@@ -1249,7 +1249,7 @@ ${quoteData.observaciones ? `<div style="border:1px solid #000;padding:6px 10px;
   .totals-table { min-width: 250px; }
   .totals-table td { border: 1px solid #000; padding: 4px 8px; font-size: 10px; }
   .totals-table .total-final { font-weight: bold; font-size: 12px; }
-  .ref-box { border: 2px solid #e74c3c; background: #fdf2f2; padding: 8px 12px; margin-bottom: 10px; font-size: 10px; }
+  .ref-box { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 10px; }
   .footer { text-align: center; border-top: 1px solid #000; padding-top: 8px; margin-top: 10px; font-size: 9px; }
   .footer p { margin-bottom: 2px; }
   .btn-print { display: block; margin: 20px auto; padding: 10px 30px; background: #333; color: white; border: none; cursor: pointer; font-size: 13px; }

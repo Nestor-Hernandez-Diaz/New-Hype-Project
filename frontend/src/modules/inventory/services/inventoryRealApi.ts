@@ -234,14 +234,6 @@ export const inventoryApi = {
    * The backend nests the pagination object inside `data` (not at root).
    */
   async getKardex(filters: KardexFilters): Promise<KardexResponse> {
-    // Backend requires productoId - return empty if not provided
-    if (!filters.productId) {
-      return {
-        data: [],
-        pagination: { total: 0, page: filters.page || 1, limit: filters.pageSize || 20, pages: 0 },
-      };
-    }
-
     const frontendPage = filters.page || 1;
     const frontendLimit = filters.pageSize || 20;
     const { page, size } = toBackendPage(frontendPage, frontendLimit);

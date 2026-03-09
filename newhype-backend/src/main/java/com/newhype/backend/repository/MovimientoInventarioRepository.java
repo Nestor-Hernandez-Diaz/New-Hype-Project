@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface MovimientoInventarioRepository extends JpaRepository<MovimientoInventario, Long> {
 
+    // Queries WITH productoId
     Page<MovimientoInventario> findByTenantIdAndProductoIdOrderByCreatedAtDesc(
             Long tenantId, Long productoId, Pageable pageable);
 
@@ -21,6 +22,19 @@ public interface MovimientoInventarioRepository extends JpaRepository<Movimiento
 
     Page<MovimientoInventario> findByTenantIdAndProductoIdAndAlmacenIdAndTipoInOrderByCreatedAtDesc(
             Long tenantId, Long productoId, Long almacenId, List<TipoMovimiento> tipos, Pageable pageable);
+
+    // Queries WITHOUT productoId (all movements)
+    Page<MovimientoInventario> findByTenantIdOrderByCreatedAtDesc(
+            Long tenantId, Pageable pageable);
+
+    Page<MovimientoInventario> findByTenantIdAndAlmacenIdOrderByCreatedAtDesc(
+            Long tenantId, Long almacenId, Pageable pageable);
+
+    Page<MovimientoInventario> findByTenantIdAndTipoInOrderByCreatedAtDesc(
+            Long tenantId, List<TipoMovimiento> tipos, Pageable pageable);
+
+    Page<MovimientoInventario> findByTenantIdAndAlmacenIdAndTipoInOrderByCreatedAtDesc(
+            Long tenantId, Long almacenId, List<TipoMovimiento> tipos, Pageable pageable);
 
     long countByTenantIdAndAlmacenId(Long tenantId, Long almacenId);
 }

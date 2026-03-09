@@ -817,9 +817,6 @@ const ListaVentas: React.FC = () => {
             <SharedButton $variant="primary" onClick={() => {}}>
               Buscar
             </SharedButton>
-            <SharedButton $variant="primary" style={{ background: '#28a745' }}>
-              Exportar a Excel
-            </SharedButton>
           </ButtonGroup>
         </FiltersContainer>
 

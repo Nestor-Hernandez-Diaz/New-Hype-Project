@@ -37,9 +37,9 @@ public class StockController {
     }
 
     @GetMapping("/kardex")
-    @Operation(summary = "Consultar kardex (movimientos) de un producto")
+    @Operation(summary = "Consultar kardex (movimientos de inventario)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getKardex(
-            @RequestParam Long productoId,
+            @RequestParam(required = false) Long productoId,
             @RequestParam(required = false) Long almacenId,
             @RequestParam(required = false) String tipo,
             @RequestParam(defaultValue = "0") int page,

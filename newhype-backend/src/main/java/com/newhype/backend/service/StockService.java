@@ -82,21 +82,43 @@ public class StockService {
         }
 
         Page<MovimientoInventario> movimientos;
-        if (tipoFilter != null) {
-            if (almacenId != null) {
-                movimientos = movimientoInventarioRepository
-                        .findByTenantIdAndProductoIdAndAlmacenIdAndTipoInOrderByCreatedAtDesc(tenantId, productoId, almacenId, tipoFilter, pageable);
+        if (productoId != null) {
+            // Filtrar por producto específico
+            if (tipoFilter != null) {
+                if (almacenId != null) {
+                    movimientos = movimientoInventarioRepository
+                            .findByTenantIdAndProductoIdAndAlmacenIdAndTipoInOrderByCreatedAtDesc(tenantId, productoId, almacenId, tipoFilter, pageable);
+                } else {
+                    movimientos = movimientoInventarioRepository
+                            .findByTenantIdAndProductoIdAndTipoInOrderByCreatedAtDesc(tenantId, productoId, tipoFilter, pageable);
+                }
             } else {
-                movimientos = movimientoInventarioRepository
-                        .findByTenantIdAndProductoIdAndTipoInOrderByCreatedAtDesc(tenantId, productoId, tipoFilter, pageable);
+                if (almacenId != null) {
+                    movimientos = movimientoInventarioRepository
+                            .findByTenantIdAndProductoIdAndAlmacenIdOrderByCreatedAtDesc(tenantId, productoId, almacenId, pageable);
+                } else {
+                    movimientos = movimientoInventarioRepository
+                            .findByTenantIdAndProductoIdOrderByCreatedAtDesc(tenantId, productoId, pageable);
+                }
             }
         } else {
-            if (almacenId != null) {
-                movimientos = movimientoInventarioRepository
-                        .findByTenantIdAndProductoIdAndAlmacenIdOrderByCreatedAtDesc(tenantId, productoId, almacenId, pageable);
+            // Sin filtro de producto: todos los movimientos
+            if (tipoFilter != null) {
+                if (almacenId != null) {
+                    movimientos = movimientoInventarioRepository
+                            .findByTenantIdAndAlmacenIdAndTipoInOrderByCreatedAtDesc(tenantId, almacenId, tipoFilter, pageable);
+                } else {
+                    movimientos = movimientoInventarioRepository
+                            .findByTenantIdAndTipoInOrderByCreatedAtDesc(tenantId, tipoFilter, pageable);
+                }
             } else {
-                movimientos = movimientoInventarioRepository
-                        .findByTenantIdAndProductoIdOrderByCreatedAtDesc(tenantId, productoId, pageable);
+                if (almacenId != null) {
+                    movimientos = movimientoInventarioRepository
+                            .findByTenantIdAndAlmacenIdOrderByCreatedAtDesc(tenantId, almacenId, pageable);
+                } else {
+                    movimientos = movimientoInventarioRepository
+                            .findByTenantIdOrderByCreatedAtDesc(tenantId, pageable);
+                }
             }
         }
 
@@ -199,6 +221,12 @@ public class StockService {
     }
 
     private StockResponse toResponse(StockAlmacen s) {
+        // Usar stockMinimo del producto como fallback si stock_almacen no tiene valor propio
+        Integer stockMin = s.getStockMinimo();
+        if ((stockMin == null || stockMin == 0) && s.getProducto() != null && s.getProducto().getStockMinimo() != null) {
+            stockMin = s.getProducto().getStockMinimo();
+        }
+
         return StockResponse.builder()
                 .id(s.getId())
                 .productoId(s.getProductoId())
@@ -207,9 +235,9 @@ public class StockService {
                 .almacenId(s.getAlmacenId())
                 .almacenNombre(s.getAlmacen() != null ? s.getAlmacen().getNombre() : null)
                 .cantidad(s.getCantidad())
-                .stockMinimo(s.getStockMinimo())
-                .stockBajo(s.getCantidad() != null && s.getStockMinimo() != null
-                        && s.getCantidad() <= s.getStockMinimo())
+                .stockMinimo(stockMin)
+                .stockBajo(s.getCantidad() != null && stockMin != null
+                        && stockMin > 0 && s.getCantidad() <= stockMin)
                 .build();
     }
 
