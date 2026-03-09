@@ -8,7 +8,7 @@ export interface StockItem {
   cantidad: number;
   stockMinimo: number | null;
   estado: 'NORMAL' | 'BAJO' | 'CRITICO';
-  updatedAt: string;
+  // ❌ REMOVIDO: updatedAt (backend no lo devuelve, era fake)
 }
 
 export interface MovimientoKardex {
@@ -18,7 +18,7 @@ export interface MovimientoKardex {
   codigo: string;
   nombre: string;
   almacen: string;
-  tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE';
+  tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE_INGRESO' | 'AJUSTE_EGRESO'; // ⭐ ACTUALIZADO (Sprint Inventario)
   cantidad: number;
   stockAntes: number;
   stockDespues: number;
@@ -49,7 +49,7 @@ export interface StockFilters {
 export interface KardexFilters {
   warehouseId: string;
   productId?: string;
-  tipoMovimiento?: 'ENTRADA' | 'SALIDA' | 'AJUSTE';
+  tipoMovimiento?: 'ENTRADA' | 'SALIDA' | 'AJUSTE' | 'AJUSTE_INGRESO' | 'AJUSTE_EGRESO'; // ⭐ ACTUALIZADO (Sprint Inventario)
   fechaDesde?: string;
   fechaHasta?: string;
   page?: number;

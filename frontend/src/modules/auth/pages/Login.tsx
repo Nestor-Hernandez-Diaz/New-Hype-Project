@@ -338,11 +338,11 @@ const Login: React.FC = () => {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
+            <label htmlFor="password-input">Contraseña</label>
             <PasswordInputWrapper>
               <input
                 type={showPassword ? "text" : "password"}
-                id="password"
+                id="password-input"
                 placeholder="Ingresa tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -353,6 +353,7 @@ const Login: React.FC = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                tabIndex={-1}
               >
                 <i className={showPassword ? "fas fa-eye-slash" : "fas fa-eye"}></i>
               </TogglePasswordButton>

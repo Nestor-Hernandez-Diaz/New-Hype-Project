@@ -31,7 +31,8 @@ function mapAlmacenResponse(raw: any): Almacen {
     nombre: raw.nombre,
     ubicacion: raw.ubicacion || null,
     capacidad: raw.capacidad ?? null,
-    activo: raw.estado ?? raw.activo ?? true,
+    // ⭐ SPRINT INVENTARIO: Backend devuelve "estado", frontend usa "activo"
+    activo: raw.estado !== undefined ? raw.estado : (raw.activo ?? true),
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     _count: raw._count || undefined,
@@ -113,9 +114,10 @@ class AlmacenesApiService {
    * Cambiar estado de un almacén (activar/desactivar)
    * PATCH /almacenes/:id/estado
    */
-  async toggleAlmacenEstado(id: string): Promise<void> {
+  async toggleAlmacenEstado(id: string): Promise<Almacen> {  // ⭐ CAMBIO: ahora retorna Almacen
     try {
-      await apiService.patch(`/almacenes/${id}/estado`);
+      const response: ApiResponse<Almacen> = await apiService.patch(`/almacenes/${id}/estado`);  // ⭐ CAMBIO: captura respuesta
+      return mapAlmacenResponse(response.data);  // ⭐ CAMBIO: mapea y retorna datos
     } catch (error: any) {
       console.error('Error toggling almacén estado:', error);
       throw new Error(error.message || 'Error al cambiar estado del almacén');
@@ -125,14 +127,14 @@ class AlmacenesApiService {
   /**
    * Desactivar un almacén (alias para compatibilidad)
    */
-  async deleteAlmacen(id: string): Promise<void> {
+  async deleteAlmacen(id: string): Promise<Almacen> {  // ⭐ CAMBIO: retorna Almacen
     return this.toggleAlmacenEstado(id);
   }
 
   /**
    * Activar un almacén (alias para compatibilidad)
    */
-  async activateAlmacen(id: string): Promise<void> {
+  async activateAlmacen(id: string): Promise<Almacen> {  // ⭐ CAMBIO: retorna Almacen
     return this.toggleAlmacenEstado(id);
   }
 }

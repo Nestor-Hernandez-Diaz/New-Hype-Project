@@ -3,11 +3,17 @@ package com.newhype.backend.service;
 import com.newhype.backend.dto.inventario.AjusteInventarioRequest;
 import com.newhype.backend.dto.stock.KardexResponse;
 import com.newhype.backend.dto.stock.StockResponse;
+import com.newhype.backend.entity.Almacen;
 import com.newhype.backend.entity.MovimientoInventario;
 import com.newhype.backend.entity.MovimientoInventario.TipoMovimiento;
+import com.newhype.backend.entity.Producto;
 import com.newhype.backend.entity.StockAlmacen;
+import com.newhype.backend.entity.Usuario;
+import com.newhype.backend.repository.AlmacenRepository;
 import com.newhype.backend.repository.MovimientoInventarioRepository;
+import com.newhype.backend.repository.ProductoRepository;
 import com.newhype.backend.repository.StockAlmacenRepository;
+import com.newhype.backend.repository.UsuarioRepository;
 import com.newhype.backend.security.TenantContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,11 +30,20 @@ public class StockService {
 
     private final StockAlmacenRepository stockAlmacenRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
+    private final ProductoRepository productoRepository;           // ⭐ NEW
+    private final AlmacenRepository almacenRepository;           // ⭐ NEW
+    private final UsuarioRepository usuarioRepository;           // ⭐ NEW
 
     public StockService(StockAlmacenRepository stockAlmacenRepository,
-                        MovimientoInventarioRepository movimientoInventarioRepository) {
+                        MovimientoInventarioRepository movimientoInventarioRepository,
+                        ProductoRepository productoRepository,      // ⭐ NEW
+                        AlmacenRepository almacenRepository,        // ⭐ NEW
+                        UsuarioRepository usuarioRepository) {      // ⭐ NEW
         this.stockAlmacenRepository = stockAlmacenRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
+        this.productoRepository = productoRepository;              // ⭐ NEW
+        this.almacenRepository = almacenRepository;                // ⭐ NEW
+        this.usuarioRepository = usuarioRepository;                // ⭐ NEW
     }
 
     @Transactional(readOnly = true)
@@ -199,6 +214,11 @@ public class StockService {
     }
 
     private KardexResponse toKardexResponse(MovimientoInventario m) {
+        // Enriquecer con datos del producto, almacén y usuario ⭐ SPRINT INVENTARIO
+        Producto producto = productoRepository.findById(m.getProductoId()).orElse(null);
+        Almacen almacen = almacenRepository.findById(m.getAlmacenId()).orElse(null);
+        Usuario usuario = usuarioRepository.findById(m.getUsuarioId()).orElse(null);
+
         return KardexResponse.builder()
                 .id(m.getId())
                 .tipo(m.getTipo().name())
@@ -207,8 +227,14 @@ public class StockService {
                 .stockDespues(m.getStockDespues())
                 .documentoReferencia(m.getDocumentoReferencia())
                 .almacenId(m.getAlmacenId())
+                .productoId(m.getProductoId())                    // ⭐ NEW
                 .usuarioId(m.getUsuarioId())
                 .createdAt(m.getCreatedAt())
+                // Campos enriquecidos ⭐
+                .productoNombre(producto != null ? producto.getNombre() : "N/A")
+                .productoSku(producto != null ? producto.getSku() : "N/A")
+                .almacenNombre(almacen != null ? almacen.getNombre() : "N/A")
+                .usuarioNombre(usuario != null ? usuario.getNombre() : "Sistema")
                 .build();
     }
 }

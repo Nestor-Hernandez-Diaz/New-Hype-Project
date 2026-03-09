@@ -379,7 +379,9 @@ const FiltersKardex: React.FC<FiltersKardexProps> = ({ onFilterChange, loading =
             <option value="">Todos los tipos</option>
             <option value="ENTRADA">Entrada</option>
             <option value="SALIDA">Salida</option>
-            <option value="AJUSTE">Ajuste</option>
+            <option value="AJUSTE">Ajuste (Legacy)</option>
+            <option value="AJUSTE_INGRESO">Ajuste Ingreso</option>    {/* ⭐ NEW - Sprint Inventario */}
+            <option value="AJUSTE_EGRESO">Ajuste Egreso</option>      {/* ⭐ NEW - Sprint Inventario */}
           </SharedSelect>
         </FormGroup>
 

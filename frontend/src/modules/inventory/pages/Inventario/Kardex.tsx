@@ -139,8 +139,8 @@ const Kardex: React.FC = () => {
   const stats = useMemo(() => {
     const entradas = movimientos.filter(m => m.tipo === 'ENTRADA');
     const salidas = movimientos.filter(m => m.tipo === 'SALIDA');
-    const ajustes = movimientos.filter(m => m.tipo === 'AJUSTE' || m.tipo === 'AJUSTE_INGRESO' || m.tipo === 'AJUSTE_EGRESO');
-    
+    const ajustes = movimientos.filter(m => m.tipo === 'AJUSTE_INGRESO' || m.tipo === 'AJUSTE_EGRESO');  // ⭐ ACTUALIZADO
+
     return {
       totalMovimientos: pagination.kardex?.total || movimientos.length,
       countEntradas: entradas.length,

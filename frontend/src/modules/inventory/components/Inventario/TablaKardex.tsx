@@ -53,22 +53,26 @@ const Tr = styled.tr`
 `;
 
 // Helper para obtener variant del StatusBadge según tipo de movimiento
-const getTipoVariant = (tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE'): 'success' | 'danger' | 'info' => {
+const getTipoVariant = (tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE' | 'AJUSTE_INGRESO' | 'AJUSTE_EGRESO'): 'success' | 'danger' | 'info' => {  // ⭐ ACTUALIZADO
   const variants: Record<string, 'success' | 'danger' | 'info'> = {
     ENTRADA: 'success',
     SALIDA: 'danger',
-    AJUSTE: 'info'
+    AJUSTE: 'info',
+    AJUSTE_INGRESO: 'success',     // ⭐ NEW - Sprint Inventario
+    AJUSTE_EGRESO: 'danger',       // ⭐ NEW - Sprint Inventario
   };
   return variants[tipo] || 'info';
 };
 
-const QuantityCell = styled.div<{ $type: 'ENTRADA' | 'SALIDA' | 'AJUSTE' }>`
+const QuantityCell = styled.div<{ $type: 'ENTRADA' | 'SALIDA' | 'AJUSTE' | 'AJUSTE_INGRESO' | 'AJUSTE_EGRESO' }>`  {/* ⭐ ACTUALIZADO */}
   font-weight: ${TYPOGRAPHY.fontWeight.medium};
   color: ${props => {
     switch (props.$type) {
       case 'ENTRADA': return COLOR_SCALES.success[500];
       case 'SALIDA': return COLOR_SCALES.danger[500];
       case 'AJUSTE': return COLOR_SCALES.info[500];
+      case 'AJUSTE_INGRESO': return COLOR_SCALES.success[500];   // ⭐ NEW - Sprint Inventario
+      case 'AJUSTE_EGRESO': return COLOR_SCALES.danger[500];    // ⭐ NEW - Sprint Inventario
       default: return COLORS.text.primary;
     }
   }};
@@ -247,17 +251,19 @@ const TablaKardex: React.FC<TablaKardexProps> = ({
   onPageChange,
   onPageSizeChange
 }) => {
-  const getMovementLabel = (type: 'ENTRADA' | 'SALIDA' | 'AJUSTE') => {
+  const getMovementLabel = (type: 'ENTRADA' | 'SALIDA' | 'AJUSTE' | 'AJUSTE_INGRESO' | 'AJUSTE_EGRESO') => {  // ⭐ ACTUALIZADO
     switch (type) {
       case 'ENTRADA': return 'ENTRADA';
       case 'SALIDA': return 'SALIDA';
       case 'AJUSTE': return 'AJUSTE';
+      case 'AJUSTE_INGRESO': return 'AJUSTE INGRESO';   // ⭐ NEW - Sprint Inventario
+      case 'AJUSTE_EGRESO': return 'AJUSTE EGRESO';    // ⭐ NEW - Sprint Inventario
       default: return type;
     }
   };
 
-  const formatQuantity = (cantidad: number, tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE') => {
-    if (tipo === 'AJUSTE') {
+  const formatQuantity = (cantidad: number, tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE' | 'AJUSTE_INGRESO' | 'AJUSTE_EGRESO') => {  // ⭐ ACTUALIZADO
+    if (tipo === 'AJUSTE' || tipo === 'AJUSTE_INGRESO' || tipo === 'AJUSTE_EGRESO') {  // ⭐ ACTUALIZADO
       // Para ajustes, mostrar el signo real de la cantidad
       return cantidad.toLocaleString();
     }

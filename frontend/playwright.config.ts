@@ -9,24 +9,16 @@ export default defineConfig({
   timeout: 60_000,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
   },
-  // Start backend API and frontend dev server for E2E
-  webServer: [
-    {
-      command: backendCommand,
-      url: 'http://localhost:3001/api/health',
-      reuseExistingServer: true,
-      timeout: 120_000,
-    },
-    {
-      command: 'npm run build && npm run preview',
-      url: 'http://localhost:4173',
-      reuseExistingServer: true,
-      timeout: 120_000,
-    },
-  ],
+  // Reusar el dev server o preview server existente
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: true,
+    timeout: 120_000,
+  },
   projects: [
     {
       name: 'chromium',

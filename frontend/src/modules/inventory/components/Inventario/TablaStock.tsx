@@ -216,7 +216,7 @@ const TablaStock: React.FC<TablaStockProps> = ({
             <SharedTh>Cantidad</SharedTh>
             <SharedTh>Stock Mín.</SharedTh>
             <SharedTh>Estado</SharedTh>
-            <SharedTh>Última Act.</SharedTh>
+            {/* ❌ REMOVIDO: Última Act. (updatedAt era fake, no viene del backend) */}
             {canUpdateInventory && <SharedTh>Acciones</SharedTh>}
           </tr>
         </SharedThead>
@@ -243,7 +243,7 @@ const TablaStock: React.FC<TablaStockProps> = ({
                   {getStatusLabel(item.estado)}
                 </StatusBadge>
               </SharedTd>
-              <SharedTd>{formatDate(item.updatedAt)}</SharedTd>
+              {/* ❌ REMOVIDO: Última Act. (línea vacía, era fake) */}
               {canUpdateInventory && (
                 <SharedTd>
                   <SharedButton

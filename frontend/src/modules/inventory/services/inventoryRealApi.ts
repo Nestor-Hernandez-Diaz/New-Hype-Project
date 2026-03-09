@@ -48,7 +48,12 @@ interface BackendKardexItem {
   stockDespues: number;
   documentoReferencia: string | null;
   almacenId: number;
+  productoId: number;          // ⭐ NEW (Sprint Inventario)
   usuarioId: number;
+  productoNombre: string | null;  // ⭐ NEW (Sprint Inventario)
+  productoSku: string | null;     // ⭐ NEW (Sprint Inventario)
+  almacenNombre: string | null;   // ⭐ NEW (Sprint Inventario)
+  usuarioNombre: string | null;   // ⭐ NEW (Sprint Inventario)
   createdAt: string;
 }
 
@@ -95,7 +100,7 @@ function mapBackendStockItem(b: BackendStockItem): StockItem {
     cantidad: b.cantidad ?? 0,
     stockMinimo: b.stockMinimo ?? null,
     estado: deriveEstadoStock(b.cantidad ?? 0, b.stockMinimo, b.stockBajo),
-    updatedAt: new Date().toISOString(),
+    // ❌ REMOVIDO: updatedAt era fake (siempre new Date()), no venía del backend
   };
 }
 
@@ -103,17 +108,16 @@ function mapBackendKardexItem(b: BackendKardexItem, filters: KardexFilters): Mov
   return {
     id: String(b.id),
     fecha: b.createdAt,
-    // productId comes from the filter since the backend kardex endpoint requires productoId
-    productId: filters.productId || '',
-    codigo: '',
-    nombre: '',
-    almacen: '',
+    productId: String(b.productoId),                    // ⭐ AHORA VIENE DEL BACKEND
+    codigo: b.productoSku || '',                        // ⭐ AHORA VIENE DEL BACKEND
+    nombre: b.productoNombre || '',                     // ⭐ AHORA VIENE DEL BACKEND
+    almacen: b.almacenNombre || '',                     // ⭐ AHORA VIENE DEL BACKEND
     tipo: b.tipo as MovimientoKardex['tipo'],
     cantidad: b.cantidad,
     stockAntes: b.stockAntes,
     stockDespues: b.stockDespues,
     motivo: b.documentoReferencia || '',
-    usuario: String(b.usuarioId),
+    usuario: b.usuarioNombre || `Usuario #${b.usuarioId}`, // ⭐ NOMBRE O ID FALLBACK
     documentoReferencia: b.documentoReferencia || undefined,
   };
 }

@@ -137,7 +137,7 @@ export function useAuth(): UseAuthReturn {
         {
           method: 'POST',
           body: JSON.stringify({
-            tenantId: '1',
+            tenantId: 1,
             email,
             password,
           }),
@@ -176,7 +176,7 @@ export function useAuth(): UseAuthReturn {
         {
           method: 'POST',
           body: JSON.stringify({
-            tenantId: '1',
+            tenantId: 1,
             email: datos.email,
             password: datos.password,
             nombre: datos.nombre,

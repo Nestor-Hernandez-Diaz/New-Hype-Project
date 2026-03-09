@@ -10,7 +10,7 @@ export interface ExportParams {
   warehouseId?: string;
   warehouseFromId?: string;
   warehouseToId?: string;
-  tipoMovimiento?: 'ENTRADA' | 'SALIDA' | 'AJUSTE';
+  tipoMovimiento?: 'ENTRADA' | 'SALIDA' | 'AJUSTE' | 'AJUSTE_INGRESO' | 'AJUSTE_EGRESO';  // ⭐ ACTUALIZADO (Sprint Inventario)
   tipoAlerta?: 'CRITICO' | 'BAJO';
   estado?: 'PENDIENTE' | 'RECIBIDO' | 'CANCELADO';
   fechaDesde?: string;
