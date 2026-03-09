@@ -117,275 +117,120 @@ function App() {
       <AppProvider>
         <NotificationProvider>
           <ModalProvider>
-            <ClientProvider>
-              <ProductProvider>
-                <SalesProvider>
-                  <QuotesProvider>
-                    <InventoryProvider>
-                      <ConfiguracionProvider>
-                        <PurchasesProvider>
-                          <Router>
-                            <AppContent />
-                            <Suspense fallback={<LoadingSpinner />}>
-                              <Routes>
-                                {/* Root - Redirige al login del tenant admin */}
-                                <Route path="/" element={<Navigate to="/login" replace />} />
+            <Router>
+              <AppContent />
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  {/* ============================================ */}
+                  {/* 🛍️ STOREFRONT - PÚBLICO (sin providers admin) */}
+                  {/* ============================================ */}
+                  <Route path="/tienda/:subdominio" element={<StorefrontLayout />}>
+                    <Route index element={<StorefrontHome />} />
+                    <Route path="catalogo" element={<StorefrontCatalog />} />
+                    <Route path="producto/:slug" element={<StorefrontProductDetail />} />
+                    <Route path="checkout" element={<StorefrontCheckout />} />
+                    <Route path="confirmacion/:pedidoId" element={<StorefrontOrderConfirmation />} />
+                    <Route path="favoritos" element={<StorefrontFavorites />} />
+                    <Route path="faq" element={<StorefrontFAQ />} />
+                    <Route path="guia-tallas" element={<StorefrontSizeGuide />} />
+                    <Route path="contacto" element={<StorefrontContact />} />
+                    <Route path="seguir-pedido" element={<StorefrontTrackOrder />} />
+                    <Route path="devolucion/:pedidoId" element={<StorefrontReturns />} />
+                    <Route path="devoluciones" element={<StorefrontReturnPolicy />} />
+                    <Route path="cuenta/login" element={<StorefrontLogin />} />
+                    <Route path="cuenta/registro" element={<StorefrontRegister />} />
+                    <Route path="cuenta/perfil" element={<StorefrontProfile />} />
+                    <Route path="cuenta/pedidos" element={<StorefrontOrders />} />
+                    <Route path="cuenta/pedidos/:id" element={<StorefrontOrderDetail />} />
+                  </Route>
 
-                                {/* ============================================ */}
-                                {/* 🏢 SUPERADMIN - PLATFORM ROUTES            */}
-                                {/* ============================================ */}
-                                <Route path="/platform">
-                                  <Route path="login" element={<PlatformLogin />} />
-                                  <Route element={<PlatformLayout />}>
-                                    <Route path="dashboard" element={<PlatformDashboard />} />
-                                    <Route path="tenants" element={<TenantsManagement />} />
-                                    <Route path="plans" element={<PlansManagement />} />
-                                  </Route>
-                                </Route>
+                  {/* ============================================ */}
+                  {/* 🏢 SUPERADMIN - PLATFORM ROUTES              */}
+                  {/* ============================================ */}
+                  <Route path="/platform">
+                    <Route path="login" element={<PlatformLogin />} />
+                    <Route element={<PlatformLayout />}>
+                      <Route path="dashboard" element={<PlatformDashboard />} />
+                      <Route path="tenants" element={<TenantsManagement />} />
+                      <Route path="plans" element={<PlansManagement />} />
+                    </Route>
+                  </Route>
 
-                                {/* ============================================ */}
-                                {/* 🏪 TENANT ADMIN - MANAGEMENT ROUTES        */}
-                                {/* ============================================ */}
-                                <Route path="/login" element={<TenantLogin />} />
-                                {/* 🎨 Template UI - Solo para desarrollo */}
-                                <Route path="/template-ui" element={<TemplateUI />} />
-                                
-                                {/* ============================================ */}
-                                {/* 🛍️ STOREFRONT - CLIENTE B2C ROUTES        */}
-                                {/* ============================================ */}
-                                <Route path="/tienda/:subdominio" element={<StorefrontLayout />}>
-                                  <Route index element={<StorefrontHome />} />
-                                  <Route path="catalogo" element={<StorefrontCatalog />} />
-                                  <Route path="producto/:slug" element={<StorefrontProductDetail />} />
-                                  <Route path="checkout" element={<StorefrontCheckout />} />
-                                  <Route path="confirmacion/:pedidoId" element={<StorefrontOrderConfirmation />} />
-                                  <Route path="favoritos" element={<StorefrontFavorites />} />
-                                  <Route path="faq" element={<StorefrontFAQ />} />
-                                  <Route path="guia-tallas" element={<StorefrontSizeGuide />} />
-                                  <Route path="contacto" element={<StorefrontContact />} />
-                                  <Route path="seguir-pedido" element={<StorefrontTrackOrder />} />
-                                  <Route path="devolucion/:pedidoId" element={<StorefrontReturns />} />
-                                  <Route path="devoluciones" element={<StorefrontReturnPolicy />} />
-                                  <Route path="cuenta/login" element={<StorefrontLogin />} />
-                                  <Route path="cuenta/registro" element={<StorefrontRegister />} />
-                                  <Route path="cuenta/perfil" element={<StorefrontProfile />} />
-                                  <Route path="cuenta/pedidos" element={<StorefrontOrders />} />
-                                  <Route path="cuenta/pedidos/:id" element={<StorefrontOrderDetail />} />
-                                </Route>
-
-                                <Route 
-                                  path="/dashboard" 
-                                  element={
-                                    <ProtectedRoute requiredPermission="dashboard.read">
-                                      <Dashboard />
-                                    </ProtectedRoute>
-                                  } 
-                                />
-                  <Route 
-                    path="/gestion-caja" 
-                    element={
-                      <ProtectedRoute requiredPermission="cash-sessions.create">
-                        <GestionCaja />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/historial-caja" 
-                    element={
-                      <ProtectedRoute requiredPermission="cash-sessions.read">
-                        <HistorialCaja />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/lista-entidades" 
-                    element={
-                      <ProtectedRoute requiredPermission="clients.read">
-                        <ListaEntidades />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route path="/lista-productos" element={
-                    <ProtectedRoute requiredPermission="products.read">
-                      <ListaProductos />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/editar-entidad/:id" element={
-                    <ProtectedRoute requiredPermission="clients.update">
-                      <EditarEntidad />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/registrar-entidad" element={
-                    <ProtectedRoute requiredPermission="clients.create">
-                      <RegistroEntidad />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/ventas/realizar" element={
-                      <ProtectedRoute requiredPermission="sales.create">
-                        <RealizarVenta />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/ventas/lista" element={
-                      <ProtectedRoute requiredPermission="sales.read">
-                        <ListaVentas />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/ventas/detalle/:id" element={
-                      <ProtectedRoute requiredPermission="sales.read">
-                        <DetalleVenta />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/ventas/cotizaciones" element={
-                      <ProtectedRoute requiredPermission="sales.create">
-                        <Cotizaciones />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/usuarios" element={
-                        <ProtectedRoute requiredPermission="users.read">
-                          <ListaUsuarios />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/usuarios/crear" element={
-                    <ProtectedRoute requiredPermission="users.create">
-                      <CrearUsuario />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/usuarios/editar/:id" element={
-                    <ProtectedRoute requiredPermission="users.update">
-                      <EditarUsuario />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/roles" element={
-                    <ProtectedRoute requiredPermission="users.read">
-                      <ListaRoles />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/perfil" element={
-                    <ProtectedRoute>
-                      <PerfilUsuario />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/auditoria" element={
-                    <ProtectedRoute requiredPermission="audit.read">
-                      <AuditoriaLogs />
-                    </ProtectedRoute>
-                  } />
-                  {/* Aquí se pueden agregar más rutas según se vayan migrando las páginas */}
-                  {/* Módulo de Compras - Redirección principal */}
-                  <Route path="/compras" element={<Navigate to="/compras/ordenes" replace />} />
-
-                  {/* Módulo de Compras - Órdenes */}
-                  <Route path="/compras/ordenes" element={
-                    <ProtectedRoute requiredPermission="purchases.read">
-                      <PurchaseOrdersPage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/compras/ordenes/:id" element={
-                    <ProtectedRoute requiredPermission="purchases.read">
-                      <PurchaseOrdersPage />
-                    </ProtectedRoute>
-                  } />
-
-                  {/* Módulo de Compras - Recepciones */}
-                  <Route path="/compras/recepciones" element={
-                    <ProtectedRoute requiredPermission="purchases.read">
-                      <PurchaseReceiptsPage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/compras/recepciones/crear" element={
-                    <ProtectedRoute requiredPermission="purchases.create">
-                      <PurchaseReceiptsPage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/compras/recepciones/:id" element={
-                    <ProtectedRoute requiredPermission="purchases.read">
-                      <PurchaseReceiptsPage />
-                    </ProtectedRoute>
-                  } />
-
-                  <Route path="/inventario/stock" element={
-                    <ProtectedRoute requiredPermission="inventory.read">
-                      <ListadoStock />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/inventario/kardex" element={
-                    <ProtectedRoute requiredPermission="inventory.read">
-                      <Kardex />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/inventario/almacenes" element={
-                    <ProtectedRoute requiredPermission="warehouses.read">
-                      <ListaAlmacenes />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/inventario/motivos" element={
-                    <ProtectedRoute requiredPermission="inventory.read">
-                      <ListaMotivosMovimiento />
-                    </ProtectedRoute>
-                  } />
-
-                  {/* Módulo de Configuración */}
-                  <Route path="/configuracion/mi-perfil" element={
-                    <ProtectedRoute>
-                      <ConfiguracionMiPerfil />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/configuracion/empresa" element={
-                    <ProtectedRoute requiredPermission="settings.update">
-                      <ConfiguracionEmpresa />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/configuracion/comprobantes" element={
-                    <ProtectedRoute requiredPermission="settings.update">
-                      <ConfiguracionComprobantes />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/configuracion/metodos-pago" element={
-                    <ProtectedRoute requiredPermission="settings.update">
-                      <ConfiguracionMetodosPago />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/configuracion/productos" element={
-                    <ProtectedRoute requiredPermission="settings.update">
-                      <ConfiguracionProductos />
-                    </ProtectedRoute>
-                  } />
-
-                  {/* Módulo de Reportes */}
-                  <Route path="/reportes/ventas" element={
-                    <ProtectedRoute requiredPermission="reports.read">
-                      <ReportesVentas />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/reportes/compras" element={
-                    <ProtectedRoute requiredPermission="reports.read">
-                      <ReportesCompras />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/reportes/inventario" element={
-                    <ProtectedRoute requiredPermission="reports.read">
-                      <ReportesInventario />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/reportes/caja" element={
-                    <ProtectedRoute requiredPermission="reports.read">
-                      <ReportesCaja />
-                    </ProtectedRoute>
-                  } />
+                  {/* ============================================ */}
+                  {/* 🏪 TENANT ADMIN (con providers admin)        */}
+                  {/* ============================================ */}
+                  <Route path="/*" element={<AdminRoutes />} />
                 </Routes>
-                            </Suspense>
-                          </Router>
-                        </PurchasesProvider>
-                      </ConfiguracionProvider>
-                    </InventoryProvider>
-                  </QuotesProvider>
-                </SalesProvider>
-              </ProductProvider>
-            </ClientProvider>
+              </Suspense>
+            </Router>
           </ModalProvider>
         </NotificationProvider>
       </AppProvider>
     </AuthProvider>
+  );
+}
+
+/**
+ * Admin routes wrapped in their own providers so they don't load
+ * when visiting public storefront pages.
+ */
+function AdminRoutes() {
+  return (
+    <ClientProvider>
+      <ProductProvider>
+        <SalesProvider>
+          <QuotesProvider>
+            <InventoryProvider>
+              <ConfiguracionProvider>
+                <PurchasesProvider>
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/login" replace />} />
+                    <Route path="/login" element={<TenantLogin />} />
+                    <Route path="/template-ui" element={<TemplateUI />} />
+                    <Route path="/dashboard" element={<ProtectedRoute requiredPermission="dashboard.read"><Dashboard /></ProtectedRoute>} />
+                    <Route path="/gestion-caja" element={<ProtectedRoute requiredPermission="cash-sessions.create"><GestionCaja /></ProtectedRoute>} />
+                    <Route path="/historial-caja" element={<ProtectedRoute requiredPermission="cash-sessions.read"><HistorialCaja /></ProtectedRoute>} />
+                    <Route path="/lista-entidades" element={<ProtectedRoute requiredPermission="clients.read"><ListaEntidades /></ProtectedRoute>} />
+                    <Route path="/lista-productos" element={<ProtectedRoute requiredPermission="products.read"><ListaProductos /></ProtectedRoute>} />
+                    <Route path="/editar-entidad/:id" element={<ProtectedRoute requiredPermission="clients.update"><EditarEntidad /></ProtectedRoute>} />
+                    <Route path="/registrar-entidad" element={<ProtectedRoute requiredPermission="clients.create"><RegistroEntidad /></ProtectedRoute>} />
+                    <Route path="/ventas/realizar" element={<ProtectedRoute requiredPermission="sales.create"><RealizarVenta /></ProtectedRoute>} />
+                    <Route path="/ventas/lista" element={<ProtectedRoute requiredPermission="sales.read"><ListaVentas /></ProtectedRoute>} />
+                    <Route path="/ventas/detalle/:id" element={<ProtectedRoute requiredPermission="sales.read"><DetalleVenta /></ProtectedRoute>} />
+                    <Route path="/ventas/cotizaciones" element={<ProtectedRoute requiredPermission="sales.create"><Cotizaciones /></ProtectedRoute>} />
+                    <Route path="/usuarios" element={<ProtectedRoute requiredPermission="users.read"><ListaUsuarios /></ProtectedRoute>} />
+                    <Route path="/usuarios/crear" element={<ProtectedRoute requiredPermission="users.create"><CrearUsuario /></ProtectedRoute>} />
+                    <Route path="/usuarios/editar/:id" element={<ProtectedRoute requiredPermission="users.update"><EditarUsuario /></ProtectedRoute>} />
+                    <Route path="/roles" element={<ProtectedRoute requiredPermission="users.read"><ListaRoles /></ProtectedRoute>} />
+                    <Route path="/perfil" element={<ProtectedRoute><PerfilUsuario /></ProtectedRoute>} />
+                    <Route path="/auditoria" element={<ProtectedRoute requiredPermission="audit.read"><AuditoriaLogs /></ProtectedRoute>} />
+                    <Route path="/compras" element={<Navigate to="/compras/ordenes" replace />} />
+                    <Route path="/compras/ordenes" element={<ProtectedRoute requiredPermission="purchases.read"><PurchaseOrdersPage /></ProtectedRoute>} />
+                    <Route path="/compras/ordenes/:id" element={<ProtectedRoute requiredPermission="purchases.read"><PurchaseOrdersPage /></ProtectedRoute>} />
+                    <Route path="/compras/recepciones" element={<ProtectedRoute requiredPermission="purchases.read"><PurchaseReceiptsPage /></ProtectedRoute>} />
+                    <Route path="/compras/recepciones/crear" element={<ProtectedRoute requiredPermission="purchases.create"><PurchaseReceiptsPage /></ProtectedRoute>} />
+                    <Route path="/compras/recepciones/:id" element={<ProtectedRoute requiredPermission="purchases.read"><PurchaseReceiptsPage /></ProtectedRoute>} />
+                    <Route path="/inventario/stock" element={<ProtectedRoute requiredPermission="inventory.read"><ListadoStock /></ProtectedRoute>} />
+                    <Route path="/inventario/kardex" element={<ProtectedRoute requiredPermission="inventory.read"><Kardex /></ProtectedRoute>} />
+                    <Route path="/inventario/almacenes" element={<ProtectedRoute requiredPermission="warehouses.read"><ListaAlmacenes /></ProtectedRoute>} />
+                    <Route path="/inventario/motivos" element={<ProtectedRoute requiredPermission="inventory.read"><ListaMotivosMovimiento /></ProtectedRoute>} />
+                    <Route path="/configuracion/mi-perfil" element={<ProtectedRoute><ConfiguracionMiPerfil /></ProtectedRoute>} />
+                    <Route path="/configuracion/empresa" element={<ProtectedRoute requiredPermission="settings.update"><ConfiguracionEmpresa /></ProtectedRoute>} />
+                    <Route path="/configuracion/comprobantes" element={<ProtectedRoute requiredPermission="settings.update"><ConfiguracionComprobantes /></ProtectedRoute>} />
+                    <Route path="/configuracion/metodos-pago" element={<ProtectedRoute requiredPermission="settings.update"><ConfiguracionMetodosPago /></ProtectedRoute>} />
+                    <Route path="/configuracion/productos" element={<ProtectedRoute requiredPermission="settings.update"><ConfiguracionProductos /></ProtectedRoute>} />
+                    <Route path="/reportes/ventas" element={<ProtectedRoute requiredPermission="reports.read"><ReportesVentas /></ProtectedRoute>} />
+                    <Route path="/reportes/compras" element={<ProtectedRoute requiredPermission="reports.read"><ReportesCompras /></ProtectedRoute>} />
+                    <Route path="/reportes/inventario" element={<ProtectedRoute requiredPermission="reports.read"><ReportesInventario /></ProtectedRoute>} />
+                    <Route path="/reportes/caja" element={<ProtectedRoute requiredPermission="reports.read"><ReportesCaja /></ProtectedRoute>} />
+                  </Routes>
+                </PurchasesProvider>
+              </ConfiguracionProvider>
+            </InventoryProvider>
+          </QuotesProvider>
+        </SalesProvider>
+      </ProductProvider>
+    </ClientProvider>
   );
 }
 

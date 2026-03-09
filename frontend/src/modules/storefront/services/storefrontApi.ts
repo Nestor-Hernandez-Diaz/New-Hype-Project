@@ -25,9 +25,9 @@ import {
   getBasePath,
   type BackendApiResponse,
   type SpringPageable,
-, getBasePath } from './storefrontFetch';
+} from './storefrontFetch';
 
-export { getBasePath } from './storefrontFetch';
+export { getBasePath };
 
 import {
   mapProducto,
