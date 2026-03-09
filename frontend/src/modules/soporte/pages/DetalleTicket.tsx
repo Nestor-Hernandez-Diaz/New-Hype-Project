@@ -250,22 +250,32 @@ const DetalleTicket: React.FC = () => {
   const [mensaje, setMensaje] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  const loadTicket = async () => {
+  const loadTicket = async (silent = false) => {
     if (!id) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const data = await soporteApi.obtenerTicket(Number(id));
       setTicket(data);
     } catch (error: any) {
-      console.error('Error cargando ticket:', error);
-      showError('Error al cargar el ticket');
+      if (!silent) {
+        console.error('Error cargando ticket:', error);
+        showError('Error al cargar el ticket');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadTicket();
+  }, [id]);
+
+  // Polling: recargar ticket cada 8s para ver mensajes nuevos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadTicket(true);
+    }, 8000);
+    return () => clearInterval(interval);
   }, [id]);
 
   useEffect(() => {

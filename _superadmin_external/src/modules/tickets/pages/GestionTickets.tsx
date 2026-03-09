@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../../../components/Layout';
-import { fetchTickets, fetchTicketById, actualizarTicket } from '../services/ticketsApiNew';
+import { fetchTickets, fetchTicketById, actualizarTicket, agregarRespuesta } from '../services/ticketsApiNew';
 import { COLORS, SHADOWS, SPACING, TYPOGRAPHY, RADIUS, TRANSITION } from '../../../styles/theme';
 import type { Ticket, TicketUpdatePayload } from '../../../types/api';
 import { useToast } from '../../../context/ToastContext';
@@ -152,9 +152,9 @@ const PrioridadDot = styled.span<{ $prioridad: string }>`
   display: inline-block;
   background: ${props => {
     switch (props.$prioridad) {
-      case 'urgente': return COLORS.error;
-      case 'alta': return COLORS.warning;
-      case 'media': return COLORS.info;
+      case 'CRITICA': return COLORS.error;
+      case 'ALTA': return COLORS.warning;
+      case 'MEDIA': return COLORS.info;
       default: return COLORS.textLighter;
     }
   }};
@@ -205,13 +205,13 @@ const StatusBadge = styled.span<{ $estado: string }>`
 
   ${({ $estado }) => {
     switch ($estado) {
-      case 'abierto':
+      case 'ABIERTO':
         return `background: ${COLORS.warningLight}; color: ${COLORS.warning};`;
-      case 'en_proceso':
+      case 'EN_PROCESO':
         return `background: ${COLORS.infoLight}; color: ${COLORS.info};`;
-      case 'resuelto':
+      case 'RESUELTO':
         return `background: ${COLORS.successLight}; color: ${COLORS.success};`;
-      case 'cerrado':
+      case 'CERRADO':
         return `background: ${COLORS.surfaceHover}; color: ${COLORS.textLighter};`;
       default:
         return `background: ${COLORS.border}; color: ${COLORS.textLight};`;
@@ -281,22 +281,6 @@ const FilterSelect = styled(Select)`
   min-width: 140px;
 `;
 
-const TextArea = styled.textarea`
-  width: 100%;
-  min-height: 80px;
-  padding: ${SPACING.sm} ${SPACING.md};
-  border: 1.5px solid ${COLORS.border};
-  border-radius: ${RADIUS.md};
-  color: ${COLORS.text};
-  resize: vertical;
-  transition: ${TRANSITION};
-
-  &:focus {
-    outline: none;
-    border-color: ${COLORS.primary};
-  }
-`;
-
 const SubmitButton = styled.button`
   border: none;
   border-radius: ${RADIUS.xl};
@@ -331,11 +315,125 @@ const EmptyDetail = styled.div`
   font-size: ${TYPOGRAPHY.fontSize.sm};
 `;
 
-const RespuestaPanel = styled.div`
-  border-left: 3px solid ${COLORS.primary};
+// ── Conversación (hilo de respuestas) ──
+
+const ConversacionPanel = styled.div`
+  border: 1px solid ${COLORS.border};
+  border-radius: ${RADIUS.md};
+  overflow: hidden;
+`;
+
+const ConversacionHeader = styled.div`
   padding: ${SPACING.md} ${SPACING.lg};
+  border-bottom: 1px solid ${COLORS.border};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
+  color: ${COLORS.text};
   background: ${COLORS.surfaceHover};
-  border-radius: 0 ${RADIUS.md} ${RADIUS.md} 0;
+`;
+
+const MensajesContainer = styled.div`
+  max-height: 320px;
+  overflow-y: auto;
+  padding: ${SPACING.md} ${SPACING.lg};
+  display: flex;
+  flex-direction: column;
+  gap: ${SPACING.md};
+`;
+
+const MensajeBurbuja = styled.div<{ $esPlatform: boolean }>`
+  max-width: 80%;
+  align-self: ${props => props.$esPlatform ? 'flex-end' : 'flex-start'};
+`;
+
+const MensajeContenido = styled.div<{ $esPlatform: boolean }>`
+  padding: ${SPACING.sm} ${SPACING.md};
+  border-radius: ${RADIUS.md};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  line-height: 1.5;
+  white-space: pre-wrap;
+  background: ${props => props.$esPlatform ? COLORS.primary : COLORS.surfaceHover};
+  color: ${props => props.$esPlatform ? '#fff' : COLORS.text};
+  border: ${props => props.$esPlatform ? 'none' : `1px solid ${COLORS.border}`};
+`;
+
+const MensajeMeta = styled.div<{ $esPlatform: boolean }>`
+  display: flex;
+  justify-content: ${props => props.$esPlatform ? 'flex-end' : 'flex-start'};
+  gap: ${SPACING.sm};
+  margin-top: 2px;
+  padding: 0 ${SPACING.xs};
+  font-size: 10px;
+  color: ${COLORS.textLighter};
+`;
+
+const AutorTag = styled.span<{ $tipo: string }>`
+  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
+  color: ${props => props.$tipo === 'PLATFORM' ? COLORS.info : COLORS.primary};
+`;
+
+const HiloInputArea = styled.div`
+  padding: ${SPACING.md} ${SPACING.lg};
+  border-top: 1px solid ${COLORS.border};
+  display: flex;
+  gap: ${SPACING.sm};
+  background: ${COLORS.surfaceHover};
+`;
+
+const HiloInput = styled.textarea`
+  flex: 1;
+  padding: ${SPACING.sm} ${SPACING.md};
+  border: 1.5px solid ${COLORS.border};
+  border-radius: ${RADIUS.md};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  color: ${COLORS.text};
+  resize: none;
+  min-height: 40px;
+  max-height: 100px;
+  font-family: inherit;
+  transition: ${TRANSITION};
+
+  &:focus {
+    outline: none;
+    border-color: ${COLORS.primary};
+  }
+
+  &:disabled {
+    background: ${COLORS.surfaceHover};
+    cursor: not-allowed;
+  }
+`;
+
+const SendButton = styled.button`
+  border: none;
+  border-radius: ${RADIUS.md};
+  padding: ${SPACING.sm} ${SPACING.md};
+  font-weight: ${TYPOGRAPHY.fontWeight.semibold};
+  cursor: pointer;
+  color: ${COLORS.surface};
+  background: ${COLORS.primary};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+  transition: ${TRANSITION};
+  white-space: nowrap;
+
+  &:hover { opacity: 0.85; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const EmptyConversacion = styled.div`
+  padding: ${SPACING.xl};
+  text-align: center;
+  color: ${COLORS.textLighter};
+  font-size: ${TYPOGRAPHY.fontSize.sm};
+`;
+
+const TicketCerradoMsg = styled.div`
+  padding: ${SPACING.md} ${SPACING.lg};
+  border-top: 1px solid ${COLORS.border};
+  text-align: center;
+  color: ${COLORS.textLighter};
+  font-size: ${TYPOGRAPHY.fontSize.xs};
+  background: ${COLORS.surfaceHover};
 `;
 
 // ============================================================================
@@ -368,10 +466,29 @@ const GestionTickets: React.FC = () => {
   // Form state
   const [nuevoEstado, setNuevoEstado] = useState('');
   const [nuevaPrioridad, setNuevaPrioridad] = useState('');
-  const [respuesta, setRespuesta] = useState('');
+  const [mensajeHilo, setMensajeHilo] = useState('');
+  const [enviandoMensaje, setEnviandoMensaje] = useState(false);
 
   useEffect(() => {
     loadTickets();
+  }, []);
+
+  // Polling: recargar ticket seleccionado cada 8s para ver mensajes nuevos
+  const selectedRef = useRef<Ticket | null>(null);
+  selectedRef.current = selected;
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const current = selectedRef.current;
+      if (!current) return;
+      try {
+        const detail = await fetchTicketById(current.id);
+        setSelected(detail);
+      } catch {
+        // silenciar errores de polling
+      }
+    }, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -408,7 +525,7 @@ const GestionTickets: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetchTickets();
-      const list = Array.isArray(res?.content) ? res.content : [];
+      const list = Array.isArray(res) ? res : [];
       setTickets(list);
       if (list.length > 0 && !selected) {
         const detail = await fetchTicketById(list[0].id);
@@ -427,7 +544,7 @@ const GestionTickets: React.FC = () => {
     setSelected(detail);
     setNuevoEstado('');
     setNuevaPrioridad('');
-    setRespuesta('');
+    setMensajeHilo('');
   };
 
   const handleSubmitUpdate = async () => {
@@ -435,22 +552,46 @@ const GestionTickets: React.FC = () => {
     const payload: TicketUpdatePayload = {};
     if (nuevoEstado) payload.estado = nuevoEstado;
     if (nuevaPrioridad) payload.prioridad = nuevaPrioridad;
-    if (respuesta.trim()) payload.respuesta = respuesta.trim();
 
-    if (!payload.estado && !payload.prioridad && !payload.respuesta) {
-      toast.warning('Debe modificar al menos un campo.');
+    if (!payload.estado && !payload.prioridad) {
+      toast.warning('Seleccione un estado o prioridad a cambiar.');
       return;
     }
 
     setIsSaving(true);
     try {
-      await actualizarTicket(selected.id, payload);
+      const updated = await actualizarTicket(selected.id, payload);
+      setSelected(updated);
       setNuevoEstado('');
       setNuevaPrioridad('');
-      setRespuesta('');
+      toast.success('Ticket actualizado.');
       await loadTickets();
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleEnviarMensaje = async () => {
+    if (!selected || !mensajeHilo.trim()) return;
+
+    setEnviandoMensaje(true);
+    try {
+      const updated = await agregarRespuesta(selected.id, mensajeHilo.trim());
+      setSelected(updated);
+      setMensajeHilo('');
+      toast.success('Mensaje enviado.');
+    } catch (err) {
+      console.error('Error enviando mensaje:', err);
+      toast.error('Error al enviar el mensaje.');
+    } finally {
+      setEnviandoMensaje(false);
+    }
+  };
+
+  const handleKeyDownHilo = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleEnviarMensaje();
     }
   };
 
@@ -473,17 +614,17 @@ const GestionTickets: React.FC = () => {
               />
               <FilterSelect value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)}>
                 <option value="">Todos los estados</option>
-                <option value="abierto">Abierto</option>
-                <option value="en_proceso">En proceso</option>
-                <option value="resuelto">Resuelto</option>
-                <option value="cerrado">Cerrado</option>
+                <option value="ABIERTO">Abierto</option>
+                <option value="EN_PROCESO">En proceso</option>
+                <option value="RESUELTO">Resuelto</option>
+                <option value="CERRADO">Cerrado</option>
               </FilterSelect>
               <FilterSelect value={prioridadFiltro} onChange={(e) => setPrioridadFiltro(e.target.value)}>
                 <option value="">Todas las prioridades</option>
-                <option value="baja">Baja</option>
-                <option value="media">Media</option>
-                <option value="alta">Alta</option>
-                <option value="urgente">Urgente</option>
+                <option value="BAJA">Baja</option>
+                <option value="MEDIA">Media</option>
+                <option value="ALTA">Alta</option>
+                <option value="CRITICA">Crítica</option>
               </FilterSelect>
               <ResetButton
                 type="button"
@@ -563,41 +704,80 @@ const GestionTickets: React.FC = () => {
                 <DescText>{selected.descripcion}</DescText>
               </DescripcionPanel>
 
-              {selected.respuesta && (
-                <RespuestaPanel>
-                  <DescLabel>Respuesta</DescLabel>
-                  <DescText>{selected.respuesta}</DescText>
-                  {selected.fechaRespuesta && (
-                    <div style={{ fontSize: TYPOGRAPHY.fontSize.xs, color: COLORS.textLighter, marginTop: SPACING.xs }}>
-                      {formatDate(selected.fechaRespuesta)}
-                    </div>
+              {/* ── Hilo de conversación ── */}
+              <ConversacionPanel>
+                <ConversacionHeader>
+                  Conversación ({selected.respuestas?.length || 0} mensajes)
+                </ConversacionHeader>
+
+                <MensajesContainer>
+                  {(!selected.respuestas || selected.respuestas.length === 0) ? (
+                    <EmptyConversacion>
+                      No hay mensajes aún. Escriba un mensaje para iniciar la conversación.
+                    </EmptyConversacion>
+                  ) : (
+                    selected.respuestas.map((resp) => {
+                      const esPlatform = resp.autorTipo === 'PLATFORM';
+                      return (
+                        <MensajeBurbuja key={resp.id} $esPlatform={esPlatform}>
+                          <MensajeContenido $esPlatform={esPlatform}>
+                            {resp.mensaje}
+                          </MensajeContenido>
+                          <MensajeMeta $esPlatform={esPlatform}>
+                            <AutorTag $tipo={resp.autorTipo}>
+                              {esPlatform ? (resp.autorNombre || 'Soporte') : (resp.autorNombre || 'Tenant')}
+                            </AutorTag>
+                            <span>·</span>
+                            <span>{formatDate(resp.createdAt)}</span>
+                          </MensajeMeta>
+                        </MensajeBurbuja>
+                      );
+                    })
                   )}
-                </RespuestaPanel>
-              )}
+                </MensajesContainer>
+
+                {selected.estado === 'CERRADO' ? (
+                  <TicketCerradoMsg>
+                    Este ticket está cerrado. No se pueden enviar más mensajes.
+                  </TicketCerradoMsg>
+                ) : (
+                  <HiloInputArea>
+                    <HiloInput
+                      placeholder="Escribir mensaje... (Enter para enviar)"
+                      value={mensajeHilo}
+                      onChange={(e) => setMensajeHilo(e.target.value)}
+                      onKeyDown={handleKeyDownHilo}
+                      disabled={enviandoMensaje}
+                      rows={1}
+                    />
+                    <SendButton
+                      onClick={handleEnviarMensaje}
+                      disabled={enviandoMensaje || !mensajeHilo.trim()}
+                    >
+                      {enviandoMensaje ? 'Enviando...' : 'Enviar'}
+                    </SendButton>
+                  </HiloInputArea>
+                )}
+              </ConversacionPanel>
 
               <ActionsPanel>
-                <ActionsTitle>Acciones</ActionsTitle>
+                <ActionsTitle>Acciones administrativas</ActionsTitle>
                 <Row>
                   <Select value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>
                     <option value="">Cambiar estado...</option>
-                    <option value="abierto">Abierto</option>
-                    <option value="en_proceso">En Proceso</option>
-                    <option value="resuelto">Resuelto</option>
-                    <option value="cerrado">Cerrado</option>
+                    <option value="ABIERTO">Abierto</option>
+                    <option value="EN_PROCESO">En Proceso</option>
+                    <option value="RESUELTO">Resuelto</option>
+                    <option value="CERRADO">Cerrado</option>
                   </Select>
                   <Select value={nuevaPrioridad} onChange={e => setNuevaPrioridad(e.target.value)}>
                     <option value="">Cambiar prioridad...</option>
-                    <option value="baja">Baja</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
-                    <option value="urgente">Urgente</option>
+                    <option value="BAJA">Baja</option>
+                    <option value="MEDIA">Media</option>
+                    <option value="ALTA">Alta</option>
+                    <option value="CRITICA">Crítica</option>
                   </Select>
                 </Row>
-                <TextArea
-                  placeholder="Escribir respuesta..."
-                  value={respuesta}
-                  onChange={e => setRespuesta(e.target.value)}
-                />
                 <SubmitButton onClick={handleSubmitUpdate} disabled={isSaving}>
                   {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                 </SubmitButton>

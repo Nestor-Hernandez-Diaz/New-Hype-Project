@@ -43,20 +43,33 @@ export interface CuponCreatePayload {
 // ─── 2. OPERACIONES ─────────────────────────────────────────────────────────
 
 // 2.1 / 2.2 / 2.3 — Tickets
+export interface RespuestaTicket {
+  id: number;
+  ticketId: number;
+  autorTipo: 'TENANT' | 'PLATFORM';
+  autorId: number;
+  autorNombre?: string;
+  mensaje: string;
+  createdAt: string;
+}
+
 export interface Ticket {
   id: number;
   tenantId: number;
   tenantNombre: string;
-  usuarioPlataformaId: number;
-  atendidoPor: string;
+  usuarioId?: number;
+  usuarioNombre?: string;
+  usuarioPlataformaId?: number;
+  atendidoPor?: string;
   asunto: string;
   descripcion: string;
-  prioridad: 'baja' | 'media' | 'alta' | 'urgente';
-  estado: 'abierto' | 'en_proceso' | 'resuelto' | 'cerrado';
+  prioridad: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+  estado: 'ABIERTO' | 'EN_PROCESO' | 'RESUELTO' | 'CERRADO';
   respuesta: string | null;
   fechaRespuesta: string | null;
   createdAt: string;
   updatedAt: string;
+  respuestas?: RespuestaTicket[];
 }
 
 export interface TicketUpdatePayload {
