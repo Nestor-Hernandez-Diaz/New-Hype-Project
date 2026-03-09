@@ -75,6 +75,20 @@ public class EntidadComercialController {
         return ResponseEntity.ok(ApiResponse.ok("Entidad actualizada", response));
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar entidad (soft delete - desactivar)")
+    public ResponseEntity<ApiResponse<EntidadResponse>> eliminar(@PathVariable Long id) {
+        EntidadResponse response = entidadService.eliminar(id);
+        return ResponseEntity.ok(ApiResponse.ok("Entidad desactivada", response));
+    }
+
+    @PatchMapping("/{id}/estado")
+    @Operation(summary = "Cambiar estado de entidad (activar/desactivar)")
+    public ResponseEntity<ApiResponse<EntidadResponse>> cambiarEstado(@PathVariable Long id) {
+        EntidadResponse response = entidadService.cambiarEstado(id);
+        return ResponseEntity.ok(ApiResponse.ok("Estado actualizado", response));
+    }
+
     @GetMapping("/buscar-documento")
     @Operation(summary = "Buscar por tipo y número de documento")
     public ResponseEntity<ApiResponse<EntidadResponse>> buscarPorDocumento(

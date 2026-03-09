@@ -114,6 +114,28 @@ public class EntidadComercialService {
         return toResponse(entidad);
     }
 
+    @Transactional
+    public EntidadResponse eliminar(Long id) {
+        Long tenantId = TenantContext.getCurrentTenantId();
+        EntidadComercial entidad = entidadRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entidad comercial", id));
+
+        entidad.setEstado(false);
+        entidad = entidadRepository.save(entidad);
+        return toResponse(entidad);
+    }
+
+    @Transactional
+    public EntidadResponse cambiarEstado(Long id) {
+        Long tenantId = TenantContext.getCurrentTenantId();
+        EntidadComercial entidad = entidadRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entidad comercial", id));
+
+        entidad.setEstado(!entidad.getEstado());
+        entidad = entidadRepository.save(entidad);
+        return toResponse(entidad);
+    }
+
     @Transactional(readOnly = true)
     public Optional<EntidadResponse> buscarPorDocumento(String tipoDocumento, String numeroDocumento) {
         Long tenantId = TenantContext.getCurrentTenantId();
