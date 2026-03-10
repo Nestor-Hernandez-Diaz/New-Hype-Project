@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
-import LoginForm from '../components/auth/LoginForm';
 import { useAuth } from '../hooks/useAuth';
-import { getBasePath, getTenantId } from '../services/storefrontFetch';
+import { getBasePath } from '../services/storefrontFetch';
 
-export default function Login() {
+export default function RecoverAccount() {
   const navigate = useNavigate();
   const { login, register } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -41,30 +40,12 @@ export default function Login() {
         if (registerSuccess) {
           navigate(`${getBasePath()}/cuenta/perfil`);
         } else {
-          setError('Error al crear cuenta con Google. Intenta de nuevo.');
+          setError('Error al recuperar cuenta con Google. Intenta de nuevo.');
         }
       }
     } catch (err) {
-      console.error('[Login] Google OAuth error:', err);
-      setError('Error al procesar inicio de sesión con Google');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (email: string, password: string) => {
-    setError('');
-    setLoading(true);
-
-    try {
-      const success = await login(email, password);
-      if (success) {
-        navigate(`${getBasePath()}/cuenta/perfil`);
-      } else {
-        setError('Credenciales incorrectas. Por favor intenta de nuevo.');
-      }
-    } catch {
-      setError('Credenciales incorrectas. Por favor intenta de nuevo.');
+      console.error('[RecoverAccount] Google OAuth error:', err);
+      setError('Error al procesar recuperación con Google');
     } finally {
       setLoading(false);
     }
@@ -75,20 +56,33 @@ export default function Login() {
       <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="font-bebas text-4xl mb-2">INICIAR SESIÓN</h1>
+          <h1 className="font-bebas text-4xl mb-2">RECUPERAR ACCESO</h1>
           <p className="text-gray-600 text-sm">
-            Accede a tu cuenta de NEW HYPE
+            Si olvidaste tu contraseña, puedes acceder a tu cuenta usando Google
           </p>
         </div>
 
-        {/* Form */}
-        <LoginForm
-          onSubmit={handleSubmit}
-          loading={loading}
-          error={error}
-          onForgotPassword={() => navigate(`${getBasePath()}/cuenta/recuperar`)}
-          onRegister={() => navigate(`${getBasePath()}/cuenta/registro`)}
-        />
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
+            {error}
+          </div>
+        )}
+
+        {/* Google Login */}
+        <div className="mb-8">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Error al recuperar cuenta con Google')}
+            theme="outline"
+            size="large"
+            text="continue_with"
+            width="384"
+          />
+          <p className="text-xs text-gray-500 text-center mt-3">
+            Usaremos tu cuenta de Google para verificar tu identidad y darte acceso
+          </p>
+        </div>
 
         {/* Divider */}
         <div className="relative my-8">
@@ -100,24 +94,19 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Google Login */}
-        <div className="mb-6">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => setError('Error al iniciar sesión con Google')}
-            theme="outline"
-            size="large"
-            text="continue_with"
-            width="384"
-          />
-          <p className="text-xs text-gray-500 text-center mt-3">
-            ¿Olvidaste tu contraseña? Inicia sesión con Google para acceder a tu cuenta
+        {/* Back to Login */}
+        <div className="text-center space-y-4">
+          <p className="text-sm text-gray-600">
+            Si recuerdas tu contraseña,{' '}
+            <Link 
+              to={`${getBasePath()}/cuenta/login`}
+              className="font-semibold text-black hover:underline"
+            >
+              inicia sesión aquí
+            </Link>
           </p>
-        </div>
-
-        {/* Back to Store */}
-        <div className="text-center">
-          <Link to={getBasePath()} className="text-sm text-gray-600 hover:text-black">
+          
+          <Link to={getBasePath()} className="block text-sm text-gray-600 hover:text-black">
             ← Volver a la tienda
           </Link>
         </div>

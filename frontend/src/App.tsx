@@ -82,6 +82,7 @@ const StorefrontCatalog = lazy(() => import('./modules/storefront/pages/Catalog'
 const StorefrontProductDetail = lazy(() => import('./modules/storefront/pages/ProductDetail'));
 const StorefrontLogin = lazy(() => import('./modules/storefront/pages/Login'));
 const StorefrontRegister = lazy(() => import('./modules/storefront/pages/Register'));
+const StorefrontRecoverAccount = lazy(() => import('./modules/storefront/pages/RecoverAccount'));
 const StorefrontProfile = lazy(() => import('./modules/storefront/pages/Profile'));
 const StorefrontOrders = lazy(() => import('./modules/storefront/pages/Orders'));
 const StorefrontOrderDetail = lazy(() => import('./modules/storefront/pages/OrderDetail'));
@@ -143,6 +144,7 @@ function App() {
                     <Route path="devoluciones" element={<StorefrontReturnPolicy />} />
                     <Route path="cuenta/login" element={<StorefrontLogin />} />
                     <Route path="cuenta/registro" element={<StorefrontRegister />} />
+                    <Route path="cuenta/recuperar" element={<StorefrontRecoverAccount />} />
                     <Route path="cuenta/perfil" element={<StorefrontProfile />} />
                     <Route path="cuenta/pedidos" element={<StorefrontOrders />} />
                     <Route path="cuenta/pedidos/:id" element={<StorefrontOrderDetail />} />

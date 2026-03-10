@@ -1,9 +1,13 @@
 import { createRoot } from 'react-dom/client'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import App from './App.tsx'
 import './index.css'
 
 // Importar Font Awesome localmente
 import '@fortawesome/fontawesome-free/css/all.min.css'
+
+// Google OAuth Client ID
+const GOOGLE_CLIENT_ID = '742120950726-4t9bb72rhpomsrbks10r8mgdjrtunv3k.apps.googleusercontent.com'
 
 // Registrar service worker para cache agresivo
 if (
@@ -24,5 +28,7 @@ if (
 }
 
 createRoot(document.getElementById('root')!).render(
-  <App />
+  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <App />
+  </GoogleOAuthProvider>
 )
