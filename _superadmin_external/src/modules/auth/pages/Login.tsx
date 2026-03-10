@@ -172,7 +172,7 @@ const Login: React.FC = () => {
             <Input
               id="email"
               type="email"
-              placeholder="superadmin@newhype.com"
+              placeholder="superadmin@newhype.pe"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -202,8 +202,8 @@ const Login: React.FC = () => {
 
         <InfoBox>
           <strong>DEMO ACCESS</strong><br />
-          Email: superadmin@newhype.com<br />
-          Contraseña: super2026
+          Email: superadmin@newhype.pe<br />
+          Contraseña: SuperAdmin2026
         </InfoBox>
       </LoginCard>
     </LoginContainer>

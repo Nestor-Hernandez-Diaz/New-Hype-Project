@@ -2,15 +2,17 @@
 // API CONFIG
 // ============================================================================
 
-// CORS habilitado en el backend — conexión directa sin proxy
 export const API_BASE_URL = 'http://spring.informaticapp.com:5001/New-Hype-Project/api/v1/platform';
 
-export const BEARER_TOKEN = 'eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwic2NvcGUiOiJwbGF0Zm9ybSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzMwMjAyMTQsImV4cCI6MTc3MzEwNjYxNCwicm9sZSI6IlNVUEVSQURNSU4ifQ.M8-o5HviNm1IvxopeTlnN3PMN9LNmASSah2p_EUrH7l2sloYR4Bt78e2llutIijE';
+export const getHeaders = (): Record<string, string> => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  const tokenType = typeof window !== 'undefined' ? localStorage.getItem('authTokenType') || 'Bearer' : 'Bearer';
 
-export const getHeaders = (): Record<string, string> => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${BEARER_TOKEN}`,
-});
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `${tokenType} ${token}` } : {}),
+  };
+};
 
 // ── Fetch genérico con manejo de errores ────────────────────────────────────
 

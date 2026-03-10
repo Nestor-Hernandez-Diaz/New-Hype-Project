@@ -8,6 +8,7 @@ interface SuperadminUser {
   apellido: string;
   avatar?: string;
   rol: 'superadmin';
+  token?: string;
 }
 
 interface AuthContextType {
@@ -39,29 +40,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
+
     try {
-      // Simular llamada API (800ms delay)
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // MOCK: Validar credenciales hardcoded
-      if (email === 'superadmin@newhype.com' && password === 'super2026') {
-        const mockUser: SuperadminUser = {
-          id: 'sa-001',
-          email: 'superadmin@newhype.com',
-          nombre: 'Super',
-          apellido: 'Administrador',
-          rol: 'superadmin',
-        };
-        
-        setUser(mockUser);
-        localStorage.setItem('superadmin_user', JSON.stringify(mockUser));
+      const response = await fetch('http://spring.informaticapp.com:5001/New-Hype-Project/api/v1/platform/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailOrUsername: email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
         setIsLoading(false);
-        return true;
+        return false;
       }
-      
+
+      // Guardar token en localStorage
+      localStorage.setItem('authToken', data.data.accessToken);
+      localStorage.setItem('authTokenType', data.data.tokenType || 'Bearer');
+
+      const mockUser: SuperadminUser = {
+        id: String(data.data.userInfo?.id || 'sa-001'),
+        email: data.data.userInfo?.email || email,
+        nombre: data.data.userInfo?.nombre || 'Super',
+        apellido: data.data.userInfo?.apellido || 'Administrador',
+        rol: 'superadmin',
+        token: data.data.accessToken,
+      };
+
+      setUser(mockUser);
+      localStorage.setItem('superadmin_user', JSON.stringify(mockUser));
       setIsLoading(false);
-      return false;
+      return true;
     } catch (error) {
       setIsLoading(false);
       return false;
