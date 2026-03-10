@@ -80,8 +80,16 @@ export default function OrderDetail() {
       return [{ label: 'Cancelado', icon: <XCircle size={20} />, completed: true }];
     }
 
-    const stateOrder = ['PENDIENTE', 'CONFIRMADO', 'PREPARANDO', 'ENVIADO', 'ENTREGADO'];
-    const currentIdx = stateOrder.indexOf(estado);
+    // Mapeo de estados del backend a índices del timeline
+    const stateToIndex: Record<string, number> = {
+      'PENDIENTE': -1,      // Antes del primer paso
+      'CONFIRMADO': 0,      // Pedido Confirmado
+      'PREPARANDO': 1,      // En Preparación
+      'ENVIADO': 2,         // Enviado
+      'ENTREGADO': 3,       // Entregado
+    };
+
+    const currentIdx = stateToIndex[estado] ?? -1;
 
     return steps.map((step, idx) => ({
       ...step,
