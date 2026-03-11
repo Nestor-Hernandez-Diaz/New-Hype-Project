@@ -104,9 +104,33 @@ export default function Catalog() {
     // Si estamos filtrando por un genero, mostrar categorias como chips
     if (genero) {
       const generoId = parseInt(genero);
+      const generoObj = generos.find(g => g.id === generoId);
+      const generoNombre = generoObj ? generoObj.descripcion.toLowerCase() : '';
+      
+      // Filtrar categorías según el género
+      const categoriasFiltradas = categorias.filter(cat => {
+        const nombreCat = cat.nombre.toLowerCase();
+        
+        if (generoNombre.includes('hombre') || generoNombre.includes('masculino')) {
+          // Categorías de hombre: deben contener "hombre" o no contener "mujer"
+          return nombreCat.includes('hombre') || 
+                 (!nombreCat.includes('mujer') && !nombreCat.includes('femenino'));
+        } else if (generoNombre.includes('mujer') || generoNombre.includes('femenino')) {
+          // Categorías de mujer: deben contener "mujer" o palabras femeninas
+          return nombreCat.includes('mujer') || 
+                 nombreCat.includes('femenino') ||
+                 nombreCat.includes('blusa') ||
+                 nombreCat.includes('falda') ||
+                 nombreCat.includes('vestido');
+        } else {
+          // Para otros géneros (unisex, etc), mostrar todas
+          return true;
+        }
+      });
+      
       return [
         { label: 'Todos', key: 'todos', url: `${getBasePath()}/catalogo?genero=${generoId}` },
-        ...categorias.map(cat => ({
+        ...categoriasFiltradas.map(cat => ({
           label: cat.nombre,
           key: `cat:${cat.slug}`,
           url: `${getBasePath()}/catalogo?genero=${generoId}&categoria=${cat.slug}`

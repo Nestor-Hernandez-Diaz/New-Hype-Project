@@ -22,10 +22,11 @@ export default function Navbar() {
   const [dropdownAbierto, setDropdownAbierto] = useState<string | null>(null);
   const [generos, setGeneros] = useState<Genero[]>([]);
   const [categorias, setCategorias] = useState<CategoriaStorefront[]>([]);
+  const [categoriasPorGenero, setCategoriasPorGenero] = useState<Record<number, CategoriaStorefront[]>>({});
 
   const resumenCarrito = obtenerResumenCarrito();
 
-  // Cargar generos y categorias desde la BD
+  // Cargar generos, categorias y mapear productos por genero
   useEffect(() => {
     const cargarNavData = async () => {
       try {
@@ -35,6 +36,38 @@ export default function Navbar() {
         ]);
         setGeneros(catalogos.generos || []);
         setCategorias(cats || []);
+
+        // Filtrar categorías por género basándose en el nombre de la categoría
+        const mapaCategorias: Record<number, CategoriaStorefront[]> = {};
+        
+        for (const genero of catalogos.generos || []) {
+          const generoNombre = genero.descripcion.toLowerCase();
+          
+          // Filtrar categorías según el género
+          const categoriasFiltradas = (cats || []).filter(cat => {
+            const nombreCat = cat.nombre.toLowerCase();
+            
+            if (generoNombre.includes('hombre') || generoNombre.includes('masculino')) {
+              // Categorías de hombre: deben contener "hombre" o no contener "mujer"
+              return nombreCat.includes('hombre') || 
+                     (!nombreCat.includes('mujer') && !nombreCat.includes('femenino'));
+            } else if (generoNombre.includes('mujer') || generoNombre.includes('femenino')) {
+              // Categorías de mujer: deben contener "mujer" o palabras femeninas
+              return nombreCat.includes('mujer') || 
+                     nombreCat.includes('femenino') ||
+                     nombreCat.includes('blusa') ||
+                     nombreCat.includes('falda') ||
+                     nombreCat.includes('vestido');
+            } else {
+              // Para otros géneros (unisex, etc), mostrar todas
+              return true;
+            }
+          });
+          
+          mapaCategorias[genero.id] = categoriasFiltradas;
+        }
+        
+        setCategoriasPorGenero(mapaCategorias);
       } catch (error) {
         console.error('[Navbar] Error cargando datos de navegacion:', error);
       }
@@ -97,7 +130,7 @@ export default function Navbar() {
             {/* Generos dinamicos desde BD */}
             {generos.map((genero) => {
               const generoKey = genero.descripcion.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-              const generoCategorias = categorias;
+              const generoCategorias = categoriasPorGenero[genero.id] || [];
 
               return (
                 <NavDropdown

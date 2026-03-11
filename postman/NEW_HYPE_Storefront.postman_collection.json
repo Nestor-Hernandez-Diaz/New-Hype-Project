@@ -1,0 +1,310 @@
+{
+  "info": {
+    "name": "NEW HYPE - Storefront API",
+    "description": "API del Storefront (Cliente Final) - Endpoints públicos y privados",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://spring.informaticapp.com:5001/New-Hype-Project/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "tenant_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "📂 PÚBLICOS (Sin token)",
+      "item": [
+        {
+          "name": "01 - Ver Catálogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/storefront/catalogo?tenantId={{tenant_id}}&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "catalogo"],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{tenant_id}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "generoId",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "categoriaId",
+                  "value": "3",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "02 - Registrar Usuario Nuevo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.environment.set(\"token\", jsonData.data.accessToken);",
+                  "    console.log(\"Token guardado: \" + jsonData.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": {{tenant_id}},\n  \"email\": \"cliente{{$timestamp}}@test.com\",\n  \"password\": \"123456\",\n  \"nombre\": \"Alex\",\n  \"apellido\": \"Junior\",\n  \"telefono\": \"987654321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/storefront/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "03 - Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.environment.set(\"token\", jsonData.data.accessToken);",
+                  "    console.log(\"Token guardado: \" + jsonData.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": {{tenant_id}},\n  \"email\": \"cliente@test.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/storefront/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "04 - Detalle Producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/storefront/productos/polo-claudio-street-black?tenantId={{tenant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "productos", "polo-claudio-street-black"],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{tenant_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔒 PRIVADOS (Requieren token)",
+      "item": [
+        {
+          "name": "05 - Ver Mi Perfil",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/storefront/perfil",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "perfil"]
+            }
+          }
+        },
+        {
+          "name": "06 - Editar Perfil",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Alex Junior\",\n  \"apellido\": \"Claudio Chota\",\n  \"telefono\": \"999888777\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/storefront/perfil",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "perfil"]
+            }
+          }
+        },
+        {
+          "name": "07 - Crear Pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": {{tenant_id}},\n  \"detalles\": [\n    {\n      \"productoId\": 1,\n      \"tallaId\": 1,\n      \"colorId\": 1,\n      \"cantidad\": 2,\n      \"precioUnitario\": 86.90\n    }\n  ],\n  \"subtotal\": 173.80,\n  \"igv\": 31.28,\n  \"total\": 205.08,\n  \"direccionEnvio\": \"Retiro en tienda — Tienda\",\n  \"instrucciones\": \"\",\n  \"tipoEnvio\": \"RETIRO_TIENDA\",\n  \"metodoPagoId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/storefront/pedidos",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "pedidos"]
+            }
+          }
+        },
+        {
+          "name": "08 - Listar Pedidos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/storefront/pedidos?tenantId={{tenant_id}}&page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "pedidos"],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{tenant_id}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "09 - Detalle del Pedido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/storefront/pedidos/3?tenantId={{tenant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "pedidos", "3"],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{tenant_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "10 - Cancelar Pedido",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/storefront/pedidos/3/cancelar?tenantId={{tenant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["storefront", "pedidos", "3", "cancelar"],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{tenant_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
