@@ -172,16 +172,36 @@ function mapBackendMetodoPago(raw: any): MetodoPagoData {
   };
 }
 
+/** Map backend response to frontend EmpresaData */
+function mapBackendEmpresa(raw: any): EmpresaData {
+  return {
+    ...raw,
+    logo: raw.logoUrl || '',
+    sunatServidor: raw.sunatServidor?.toLowerCase() || 'homologacion',
+  };
+}
+
+/** Map frontend EmpresaData to backend DTO field names */
+function mapEmpresaToBackend(data: Partial<EmpresaData>): Record<string, unknown> {
+  const { logo, pais, codigoPostal, sunatServidor, ...rest } = data as any;
+  return {
+    ...rest,
+    logoUrl: logo,
+    sunatServidor: sunatServidor?.toUpperCase(),
+  };
+}
+
 const configuracionApi = {
   // Empresa
   getEmpresa: async (): Promise<EmpresaData> => {
-    const response = await apiService.get<EmpresaData>('/configuracion/empresa');
-    return response.data as EmpresaData;
+    const response = await apiService.get<any>('/configuracion/empresa');
+    return mapBackendEmpresa(response.data);
   },
 
   updateEmpresa: async (data: Partial<EmpresaData>): Promise<EmpresaData> => {
-    const response = await apiService.put<EmpresaData>('/configuracion/empresa', data);
-    return response.data as EmpresaData;
+    const backendData = mapEmpresaToBackend(data);
+    const response = await apiService.put<any>('/configuracion/empresa', backendData);
+    return mapBackendEmpresa(response.data);
   },
 
   // Series de Comprobantes (SUNAT)

@@ -54,7 +54,7 @@ public class ConfiguracionEmpresaService {
         if (request.getSunatUsuario() != null) config.setSunatUsuario(request.getSunatUsuario());
         if (request.getSunatClave() != null) config.setSunatClave(request.getSunatClave());
         if (request.getSunatServidor() != null) {
-            config.setSunatServidor(ServidorSunat.valueOf(request.getSunatServidor()));
+            config.setSunatServidor(ServidorSunat.valueOf(request.getSunatServidor().toUpperCase()));
         }
 
         config = configuracionEmpresaRepository.save(config);
