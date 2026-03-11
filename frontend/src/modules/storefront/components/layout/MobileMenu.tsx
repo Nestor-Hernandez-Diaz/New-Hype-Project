@@ -59,7 +59,7 @@ export default function MobileMenu({ isOpen, onClose, generos = [] }: MobileMenu
             {generos.map((genero) => (
               <MobileLink
                 key={genero.id}
-                onClick={() => handleNavigate(`/storefront/catalogo?genero=${genero.id}`)}
+                onClick={() => handleNavigate(`${getBasePath()}/catalogo?genero=${genero.id}`)}
               >
                 {genero.descripcion}
               </MobileLink>

@@ -104,7 +104,7 @@ export default function Navbar() {
                   key={genero.id}
                   label={genero.descripcion}
                   navigate={navigate}
-                  navigateTo={`/storefront/catalogo?genero=${genero.id}`}
+                  navigateTo={`${getBasePath()}/catalogo?genero=${genero.id}`}
                   isOpen={dropdownAbierto === generoKey}
                   onToggle={() => setDropdownAbierto(dropdownAbierto === generoKey ? null : generoKey)}
                 >
