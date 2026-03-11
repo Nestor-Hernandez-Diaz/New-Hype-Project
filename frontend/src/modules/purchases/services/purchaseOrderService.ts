@@ -49,6 +49,7 @@ function mapBackendItem(item: any): PurchaseOrderItem {
     precioUnitario: Number(item.precioUnitario) || 0,
     descuento: Number(item.descuento) || 0,
     subtotal: Number(item.subtotal) || 0,
+    incluyeIGV: (Number(item.igv) || 0) > 0,
     cantidad: cantidadOrdenada,
     observaciones: item.observaciones,
   };
@@ -109,6 +110,7 @@ function mapCreateRequest(data: CreatePurchaseOrderDto): any {
       cantidadOrdenada: item.cantidadOrdenada || item.cantidad || 1,
       precioUnitario: item.precioUnitario || 0,
       descuento: item.descuento || 0,
+      incluyeIGV: item.incluyeIGV === true,
       observaciones: item.observaciones || item.especificaciones,
     })),
   };
@@ -130,6 +132,7 @@ function mapUpdateRequest(data: UpdatePurchaseOrderDto): any {
       cantidadOrdenada: item.cantidadOrdenada || item.cantidad || 1,
       precioUnitario: item.precioUnitario || 0,
       descuento: item.descuento || 0,
+      incluyeIGV: item.incluyeIGV === true,
       observaciones: item.observaciones || item.especificaciones,
     })) : undefined,
   };

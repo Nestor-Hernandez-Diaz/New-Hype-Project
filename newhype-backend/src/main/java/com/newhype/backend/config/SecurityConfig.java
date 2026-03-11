@@ -58,7 +58,8 @@ public class SecurityConfig {
                     "/error",
                     "/*.html",
                     "/css/**",
-                    "/js/**"
+                    "/js/**",
+                    "/docs/**"
                 ).permitAll()
                 // Todo lo demas requiere JWT (incluye /auth/me)
                 .anyRequest().authenticated()

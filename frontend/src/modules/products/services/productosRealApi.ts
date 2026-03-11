@@ -260,6 +260,15 @@ export async function getProductos(
   const categoriaId = filtros?.categoriaId ?? f?.categoriaId ?? f?.categoria;
   if (categoriaId) params.append('categoriaId', String(categoriaId));
 
+  // Estado filter — backend does NOT support 'estado' query param,
+  // so when filtering by status we must fetch ALL products and filter client-side.
+  const estadoFilter = filtros?.estadoProducto ?? f?.estadoProducto;
+  if (estadoFilter) {
+    // Override pagination to fetch all
+    params.set('page', '0');
+    params.set('size', '200');
+  }
+
   const endpoint = `/productos?${params.toString()}`;
   const res: ApiResponse<BackendProducto[]> = await apiService.get(endpoint);
 
@@ -269,26 +278,35 @@ export async function getProductos(
     );
   }
 
-  const pag = fromBackendPage(res.pagination);
-
   let productos = res.data.map(mapBackendProducto);
 
-  // Client-side estado filter (backend GET /productos doesn't support estado param)
-  const estadoFilter = filtros?.estadoProducto ?? f?.estadoProducto;
   if (estadoFilter) {
     const wantActive = estadoFilter === EstadoProducto.ACTIVO;
     productos = productos.filter(p => p.activo === wantActive);
+
+    // Client-side pagination over the filtered results
+    const total = productos.length;
+    const start = (pagina - 1) * limite;
+    const paginatedProducts = productos.slice(start, start + limite);
+
+    return {
+      productos: paginatedProducts,
+      total,
+      pagina,
+      tamañoPagina: limite,
+      totalPaginas: Math.ceil(total / limite) || 1,
+    };
   }
+
+  const pag = fromBackendPage(res.pagination);
 
   // Return shape matching ProductosPaginados interface that the reducer expects
   return {
     productos,
-    total: estadoFilter ? productos.length : pag.total,
+    total: pag.total,
     pagina: pag.page,
     tamañoPagina: pag.limit,
-    totalPaginas: estadoFilter
-      ? Math.ceil(productos.length / pag.limit) || 1
-      : pag.pages,
+    totalPaginas: pag.pages,
   };
 }
 

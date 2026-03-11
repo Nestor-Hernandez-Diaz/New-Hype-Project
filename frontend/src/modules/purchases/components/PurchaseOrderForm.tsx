@@ -1084,11 +1084,11 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                           <CheckboxWrapper>
                             <input
                               type="checkbox"
-                              checked={item.incluyeIGV !== false}
+                              checked={item.incluyeIGV === true}
                               onChange={(e) => handleItemChange(index, 'incluyeIGV', e.target.checked)}
                               disabled={!isItemsEditable() || loading}
                             />
-                            <label>{item.incluyeIGV !== false ? 'Sí' : 'No'}</label>
+                            <label>{item.incluyeIGV === true ? 'Sí' : 'No'}</label>
                           </CheckboxWrapper>
                         </Td>
                         {!isViewMode && (
@@ -1196,8 +1196,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
               <span>{formatCurrency(calculateTotal())}</span>
             </SummaryRow>
             <small style={{ color: '#666', fontSize: '12px', marginTop: '8px', display: 'block' }}>
-              {formData.items.filter(i => i.incluyeIGV !== false).length} items con IGV, {' '}
-              {formData.items.filter(i => i.incluyeIGV === false).length} items sin IGV
+              {formData.items.filter(i => i.incluyeIGV === true).length} items con IGV, {' '}
+              {formData.items.filter(i => i.incluyeIGV !== true).length} items sin IGV
             </small>
           </Summary>
         </ItemsSection>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewHype ERP API - Documentación</title>
+    <link rel="shortcut icon" href="images/favicon.png" type="image/png">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="images/logo.png" alt="NewHype ERP" class="sidebar-logo" onerror="this.style.display='none'">
+        </div>
+        <button class="home-btn" onclick="location.hash=''">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Inicio
+        </button>
+        <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="searchInput" placeholder="Buscar endpoints...">
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main content -->
+    <main class="main-content">
+        <!-- Top bar mobile -->
+        <div class="topbar">
+            <button class="menu-toggle" id="menuToggle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            </button>
+            <span class="topbar-title">NewHype ERP API Docs</span>
+        </div>
+
+        <!-- Content area -->
+        <div class="content" id="content">
+            <!-- Welcome page -->
+            <div id="welcomePage">
+                <div class="welcome-header">
+                    <h1>Bienvenido a la Documentación de NewHype ERP API</h1>
+                    <p class="subtitle">Guía completa de referencia para la API REST Multi-Tenant</p>
+                </div>
+
+                <div class="intro-narrative">
+                    <h2>Introducción</h2>
+                    <p>
+                        <strong>NEW-HYPE</strong> es un sistema de planificación de recursos empresariales (ERP) diseñado 
+                        específicamente para tiendas de ropa y negocios del sector comercio minorista, su arquitectura multi-tenant (Multi-Negocios) 
+                        permite que múltiples sucursales operen de forma independiente bajo una misma plataforma, 
+                        optimizando la gestión de inventarios, ventas, clientes y operaciones administrativas.
+                    </p>
+                    <p>
+                        La presente documentación describe de manera detallada todos los endpoints disponibles en la 
+                        API REST de NEW-HYPE, construida con <strong>Spring Boot</strong> 
+                        La API está organizada en cuatro entornos principales: 
+                        <em>Negocios</em> (administración por sucursal), <em>StoreFront</em> (tienda online), 
+                        <em>Superadmin</em> (gestión de planes y negocios) y <em>Autenticación</em> (gestión de tokens y accesos).
+                    </p>
+                    <p>
+                        Cada endpoint incluye información sobre sus parámetros de entrada, cuerpo de la solicitud (request body), 
+                        formato de respuesta y ejemplos prácticos en formato JSON, Navegue por el menú lateral para explorar 
+                        los módulos disponibles o utilice el buscador para localizar endpoints específicos.
+                    </p>
+                    <p>
+                        Para consultas técnicas o soporte, puede contactar al equipo de desarrollo:
+                    </p>
+                    <ul class="contact-list">
+                        <li><strong>Soporte técnico:</strong> mariosoportes@gmail.com </li>
+                        <li><strong>Contacto general:</strong> 🇵🇪 +51 999 666 123 </li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3>Base URL</h3>
+                    <p>Todas las peticiones a la API deben realizarse utilizando la siguiente URL base. Cada endpoint documentado muestra su ruta relativa, la cual debe concatenarse a esta URL.</p>
+                    <code class="base-url">http://spring.informaticapp.com:5001/New-Hype-Project</code>
+                </div>
+
+                <div class="info-card">
+                    <h3>Autenticación</h3>
+                    <p>La mayoría de los endpoints requieren autenticación mediante un <strong>Bearer Token (JWT)</strong>. Este token debe incluirse en el header <code>Authorization</code> de cada petición protegida:</p>
+                    <div class="code-block">
+                        <pre><code>Authorization: Bearer &lt;tu_access_token&gt;</code></pre>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Obtener Token de Acceso</h3>
+                    <p>Para probar los endpoints protegidos, primero necesitas obtener un token de acceso. Puedes generar uno rápidamente desde la página de registro de la plataforma:</p>
+                    <a href="http://spring.informaticapp.com:5001/New-Hype-Project/register.html" target="_blank" rel="noopener noreferrer" class="register-link">Obtener Token de Acceso &rarr;</a>
+                </div>
+
+                <h2>Entornos</h2>
+                <div class="env-grid">
+                    <div class="env-card" data-env="negocios">
+                        <div class="env-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                        </div>
+                        <h3>Negocios</h3>
+                        <p>Entorno de administración por sucursal</p>
+                        <span class="env-count" id="countNegocios"></span>
+                    </div>
+                    <div class="env-card" data-env="storefront">
+                        <div class="env-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                        </div>
+                        <h3>StoreFront (Cliente)</h3>
+                        <p>Tienda online B2C para clientes finales</p>
+                        <span class="env-count" id="countStorefront"></span>
+                    </div>
+                    <div class="env-card" data-env="superadmin">
+                        <div class="env-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
+                        <h3>Superadmin</h3>
+                        <p>Gestión de planes, sucursales y pagos</p>
+                        <span class="env-count" id="countSuperadmin"></span>
+                    </div>
+                    <div class="env-card" data-env="auth">
+                        <div class="env-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                        <h3>Autenticación</h3>
+                        <p>Login, registro y tokens para los 3 entornos</p>
+                        <span class="env-count" id="countAuth"></span>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Formato de Respuesta</h3>
+                    <p>Todos los endpoints devuelven el siguiente formato estándar:</p>
+                    <div class="code-block">
+                        <pre><code>{
+  "success": true,
+  "message": "Operación exitosa",
+  "data": { ... },
+  "pagination": {
+    "page": 0,
+    "size": 20,
+    "totalElements": 150,
+    "totalPages": 8
+  }
+}</code></pre>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Endpoint detail page (hidden by default) -->
+            <div id="endpointPage" style="display: none;"></div>
+
+            <!-- Module page (hidden by default) -->
+            <div id="modulePage" style="display: none;"></div>
+
+            <!-- Footer -->
+            <footer class="site-footer">
+                <p>&copy; 2025 NewHype ERP &mdash; Todos los derechos reservados.</p>
+                <p class="footer-credits">Documentación de API desarrollada para el proyecto NEW-HYPE.</p>
+            </footer>
+        </div>
+    </main>
+
+    <script src="js/api-data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

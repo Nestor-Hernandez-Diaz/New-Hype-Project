@@ -112,3 +112,31 @@ cd frontend && npx tsc --noEmit
 1. **GitHub MCP**: Gestion de repositorio, issues, PRs
 2. **Filesystem MCP**: Lectura/Escritura en `C:/Dev`
 3. **Chrome DevTools MCP**: QA dinamico (Console logs, Network, DOM)
+4. **Postman MCP** (`mcp__postman__*`): Testing de API REST
+
+### Postman MCP — Contexto del Proyecto
+- **Workspace**: Las colecciones estan en `postman/` del repositorio
+- **Base URL Produccion**: `http://spring.informaticapp.com:5001/New-Hype-Project/api/v1`
+- **Autenticacion**: JWT Bearer Token — obtener via `POST /auth/register` o `POST /auth/login`
+- **Colecciones disponibles**:
+  - `NewHype_API_Completa` — Todos los endpoints del ERP
+  - `NewHype_Demo_FlujoPresentacion` — Flujo E2E: Register → Setup → Catalogo → Cliente → Caja → Venta → Kardex
+  - `NewHype_E2E_PruebaFinal` — Suite de pruebas completa
+- **Endpoints principales (por modulo)**:
+  - Auth: `POST /auth/register`, `POST /auth/login`, `GET /auth/check-email`
+  - Almacenes: `CRUD /almacenes`
+  - Config: `CRUD /configuracion/metodos-pago`, `/categorias`, `/colores`, `/generos`, `/marcas`, `/materiales`, `/series-comprobantes`, `/cajas-registradoras`
+  - Productos: `CRUD /productos`
+  - Entidades: `CRUD /entidades` (clientes/proveedores, filtrar con `?tipoEntidad=CLIENTE`)
+  - Caja: `POST /caja/sesiones` (abrir), cierre de sesion
+  - Ventas: `POST /ventas` (crear), `POST /ventas/{id}/confirmar-pago`, `GET /ventas/{id}`
+  - Inventario: `GET /inventario/stock`, `GET /inventario/kardex`
+  - Reportes: `GET /reportes/resumen`, `GET /reportes/ventas`
+- **Flujo de demo para presentacion**:
+  1. Register → obtener token JWT
+  2. Setup: crear almacen, metodo pago, serie comprobante, caja
+  3. Catalogo: crear categoria, color, genero, marca, material, producto
+  4. Cliente: crear entidad comercial tipo CLIENTE
+  5. Caja: abrir sesion de caja
+  6. Venta: crear venta PENDIENTE → confirmar pago → COMPLETADA
+  7. Verificar: stock descontado + kardex generado + reportes
