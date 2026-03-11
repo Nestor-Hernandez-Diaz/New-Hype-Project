@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../../../components/Layout';
 import { useNotification } from '../../../context/NotificationContext';
 import { soporteApi, type Ticket, type CrearTicketData } from '../services/soporteApi';
+import { formatDateToLocal } from '../../../utils/dateFormatter';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
 import {
   Button,
@@ -262,15 +263,6 @@ const ListaTickets: React.FC = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('es-PE', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  };
-
   const startIndex = currentPage * 15;
 
   return (
@@ -332,10 +324,10 @@ const ListaTickets: React.FC = () => {
                       </Td>
                       <Td>{ticket.atendidoPor || '-'}</Td>
                       <Td style={{ fontSize: TYPOGRAPHY.fontSize.xs }}>
-                        {formatDate(ticket.createdAt)}
+                        {formatDateToLocal(ticket.createdAt)}
                       </Td>
                       <Td style={{ fontSize: TYPOGRAPHY.fontSize.xs }}>
-                        {formatDate(ticket.updatedAt)}
+                        {formatDateToLocal(ticket.updatedAt)}
                       </Td>
                     </Tr>
                   ))}

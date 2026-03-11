@@ -9,6 +9,7 @@ import { useNotification } from '../../../context/NotificationContext';
 import { useModal } from '../../../context/ModalContext';
 import NuevaCompraModal from '../components/NuevaCompraModal';
 import { apiService } from '../../../utils/api';
+import { formatDateOnly } from '../../../utils/dateFormatter';
 
 import { getWarehouseLabel } from '../../inventory/constants/warehouses';
 import DetalleCompraModal from '../components/DetalleCompraModal';
@@ -18,7 +19,8 @@ const TableContainer = styled.div`
   background: ${COLORS.neutral.white};
   border-radius: ${BORDER_RADIUS.md};
   box-shadow: ${SHADOWS.sm};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const TableHeader = styled.div`
@@ -60,6 +62,7 @@ const DateInput = styled.input`
 
 const Table = styled.table`
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
 `;
 
@@ -427,7 +430,7 @@ const ListaCompras: React.FC = () => {
                   <Td>{p.codigoOrden}</Td>
                   <Td>{getProveedorName(p.proveedorId)}</Td>
                   <Td>{getWarehouseLabel(p.almacenId)}</Td>
-                  <Td>{new Date(p.fechaEmision).toLocaleDateString('es-PE')}</Td>
+                  <Td>{formatDateOnly(p.fechaEmision)}</Td>
                   <Td><StatusBadge status={p.estado}>{p.estado}</StatusBadge></Td>
                   <Td>{formatCurrency(p.subtotal)}</Td>
                   <Td>{formatCurrency(p.total)}</Td>

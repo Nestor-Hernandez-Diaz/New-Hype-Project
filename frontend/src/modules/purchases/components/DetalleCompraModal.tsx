@@ -5,6 +5,7 @@ import { apiService } from '../../../utils/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { getWarehouseLabel } from '../../inventory/constants/warehouses';
 import { useClients } from '../../clients/context/ClientContext';
+import { formatDateOnly } from '../../../utils/dateFormatter';
 
 const Container = styled.div`
   display: flex;
@@ -131,9 +132,9 @@ const DetalleCompraModal: React.FC<DetalleCompraModalProps> = ({ purchaseId, onC
             <strong>{purchase.codigoOrden}</strong>
             <div>Proveedor: {proveedorNombre(purchase.proveedorId)}</div>
             <div>Almacén: {getWarehouseLabel(purchase.almacenId)}</div>
-            <div>Fecha Emisión: {new Date(purchase.fechaEmision).toLocaleDateString('es-PE')}</div>
+            <div>Fecha Emisión: {formatDateOnly(purchase.fechaEmision)}</div>
             <div>Estado: {purchase.estado}</div>
-            {purchase.fechaEntregaEstimada && <div>Entrega Estimada: {new Date(purchase.fechaEntregaEstimada).toLocaleDateString('es-PE')}</div>}
+            {purchase.fechaEntregaEstimada && <div>Entrega Estimada: {formatDateOnly(purchase.fechaEntregaEstimada)}</div>}
             {purchase.tipoComprobante && <div>Comprobante: {purchase.tipoComprobante}</div>}
             {purchase.formaPago && <div>Forma de Pago: {purchase.formaPago}</div>}
             {purchase.observaciones && <div>Observaciones: {purchase.observaciones}</div>}

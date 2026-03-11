@@ -24,18 +24,13 @@ import {
   EmptyTitle,
   EmptyText
 } from '../../../components/shared';
+import { formatDateToLocal } from '../../../utils/dateFormatter';
 
 // Helpers
 const formatDateInput = (d: Date) => d.toISOString().slice(0, 10);
 const formatCurrency = (num: number | undefined | null) => {
   if (num === undefined || num === null || isNaN(Number(num))) return 'S/ 0.00';
   return `S/ ${Number(num).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
-const formatDateTime = (dateStr: string | null | undefined) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' +
-         d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 };
 
 // ============================================================================
@@ -97,7 +92,8 @@ const TabsContainer = styled.div`
   background: ${COLORS.white};
   border-radius: ${BORDER_RADIUS.large};
   border: 1px solid ${COLORS.border};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const TabsHeader = styled.div`
@@ -220,7 +216,7 @@ const ReporteCaja: React.FC = () => {
       '=================================================================',
       'Caja\tUsuario\tApertura\tCierre\tMonto Apertura\tMonto Cierre\tVentas\tDiferencia\tEstado',
       ...(reporteData.sesiones || []).map((s: any) =>
-        `${s.cajaNombre || '-'}\t${s.usuarioNombre || '-'}\t${formatDateTime(s.fechaApertura)}\t${formatDateTime(s.fechaCierre)}\t${formatCurrency(s.montoApertura)}\t${formatCurrency(s.montoCierre)}\t${formatCurrency(s.totalVentas)}\t${formatCurrency(s.diferencia)}\t${s.estado || '-'}`
+        `${s.cajaNombre || '-'}\t${s.usuarioNombre || '-'}\t${formatDateToLocal(s.fechaApertura)}\t${formatDateToLocal(s.fechaCierre)}\t${formatCurrency(s.montoApertura)}\t${formatCurrency(s.montoCierre)}\t${formatCurrency(s.totalVentas)}\t${formatCurrency(s.diferencia)}\t${s.estado || '-'}`
       ),
       '',
       '=================================================================',
@@ -362,8 +358,8 @@ const ReporteCaja: React.FC = () => {
                             <Tr key={idx}>
                               <Td style={{ fontWeight: 600 }}>{s.cajaNombre || '-'}</Td>
                               <Td>{s.usuarioNombre || '-'}</Td>
-                              <Td>{formatDateTime(s.fechaApertura)}</Td>
-                              <Td>{formatDateTime(s.fechaCierre)}</Td>
+                              <Td>{formatDateToLocal(s.fechaApertura)}</Td>
+                              <Td>{formatDateToLocal(s.fechaCierre)}</Td>
                               <Td>{formatCurrency(s.montoApertura)}</Td>
                               <Td>{formatCurrency(s.montoCierre)}</Td>
                               <Td style={{ color: COLOR_SCALES.success[600], fontWeight: 600 }}>

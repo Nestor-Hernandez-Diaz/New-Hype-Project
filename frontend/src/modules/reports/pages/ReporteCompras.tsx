@@ -96,7 +96,8 @@ const TabsContainer = styled.div`
   background: ${COLORS.white};
   border-radius: ${BORDER_RADIUS.large};
   border: 1px solid ${COLORS.border};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const TabsHeader = styled.div`

@@ -6,6 +6,7 @@ import type { TipoMovimientoCaja } from '@monorepo/shared-types';
 import { useNotification } from '../../../context/NotificationContext';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
 import { Button as SharedButton } from '../../../components/shared/Button';
+import { formatDateToLocal } from '../../../utils/dateFormatter';
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -139,6 +140,7 @@ const MovementButtons = styled.div`
 
 const MovementsTable = styled.table`
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
   margin-top: 16px;
 
@@ -604,16 +606,6 @@ const GestionCaja: React.FC = () => {
 
   // ==================== UTILITIES ====================
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('es-PE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const formatCurrency = (amount: number | string) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     return `S/ ${numAmount.toFixed(2)}`;
@@ -719,7 +711,7 @@ const GestionCaja: React.FC = () => {
               <CashStatusView>
                 <p>
                   Caja abierta desde:{' '}
-                  <strong>{formatDate(activeCashSession.fechaApertura)}</strong>
+                  <strong>{formatDateToLocal(activeCashSession.fechaApertura)}</strong>
                 </p>
                 <p>
                   Usuario: <strong>
@@ -794,7 +786,7 @@ const GestionCaja: React.FC = () => {
                               ? `${movement.usuario.firstName} ${movement.usuario.lastName}`
                               : 'N/A'}
                           </td>
-                          <td>{formatDate(movement.createdAt)}</td>
+                          <td>{formatDateToLocal(movement.createdAt)}</td>
                           <td>
                             <DeleteButton
                               onClick={() => {

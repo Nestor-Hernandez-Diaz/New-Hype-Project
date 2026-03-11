@@ -10,7 +10,8 @@ const TableContainer = styled.div`
   background: ${COLORS.neutral.white};
   border-radius: ${BORDER_RADIUS.lg};
   border: 1px solid ${COLORS.neutral[200]};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const Table = styled.table.attrs({

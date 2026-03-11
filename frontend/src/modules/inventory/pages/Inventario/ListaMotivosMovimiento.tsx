@@ -116,12 +116,14 @@ const FilterButtonGroup = styled.div`
 const TableContainer = styled.div`
   background: ${COLORS.background};
   border-radius: ${BORDER_RADIUS.lg};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid ${COLORS.neutral[200]};
 `;
 
 const Table = styled.table`
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
 `;
 

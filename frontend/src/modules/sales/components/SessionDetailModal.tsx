@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useSales } from '../context/SalesContext';
 import type { CashSession } from '../context/SalesContext';
 import { useNotification } from '../../../context/NotificationContext';
+import { formatDateToLocal } from '../../../utils/dateFormatter';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, Z_INDEX } from '../../../styles/theme';
 import { Button as SharedButton } from '../../../components/shared/Button';
 
@@ -37,17 +38,6 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({ sessionI
 
   const formatCurrency = (amount: number) => {
     return `S/ ${amount.toFixed(2)}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('es-PE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const getDifferenceClass = (difference?: number) => {
@@ -103,11 +93,11 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({ sessionI
               </InfoItem>
               <InfoItem>
                 <InfoLabel>Fecha Apertura:</InfoLabel>
-                <InfoValue>{formatDate(session.fechaApertura)}</InfoValue>
+                <InfoValue>{formatDateToLocal(session.fechaApertura)}</InfoValue>
               </InfoItem>
               <InfoItem>
                 <InfoLabel>Fecha Cierre:</InfoLabel>
-                <InfoValue>{formatDate(session.fechaCierre || session.updatedAt)}</InfoValue>
+                <InfoValue>{formatDateToLocal(session.fechaCierre || session.updatedAt)}</InfoValue>
               </InfoItem>
               {session.observaciones && (
                 <InfoItem style={{ gridColumn: '1 / -1' }}>
@@ -178,7 +168,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({ sessionI
                 <tbody>
                   {cashMovements.map((movement) => (
                     <Tr key={movement.id}>
-                      <Td>{formatDate(movement.createdAt)}</Td>
+                      <Td>{formatDateToLocal(movement.createdAt)}</Td>
                       <Td>
                         <TypeBadge type={movement.tipo}>
                           {movement.tipo === 'INGRESO' ? 'Ingreso' : 'Egreso'}

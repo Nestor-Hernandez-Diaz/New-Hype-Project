@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS, COLOR_SCALES } from '../../../styles/theme';
+import { formatDateOnly } from '../../../utils/dateFormatter';
 import { 
   Button,
   Table as SharedTable,
@@ -423,14 +424,6 @@ const PurchaseReceiptList: React.FC<PurchaseReceiptListProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-  };
-
   // Stats Cards
   const stats = useMemo(() => {
     const pendientes = receipts.filter(r => r.estado === 'PENDIENTE').length;
@@ -593,7 +586,7 @@ const PurchaseReceiptList: React.FC<PurchaseReceiptListProps> = ({
               {receipts.map((receipt) => (
                 <SharedTr key={receipt.id}>
                   <SharedTd data-label="Código">{receipt.codigo}</SharedTd>
-                  <SharedTd data-label="Fecha">{formatDate(receipt.fechaRecepcion)}</SharedTd>
+                  <SharedTd data-label="Fecha">{formatDateOnly(receipt.fechaRecepcion)}</SharedTd>
                   <SharedTd data-label="Orden Compra">
                     {receipt.ordenCompra?.codigo ? (
                       <OrderLink href={`#orden-${receipt.ordenCompraId}`}>

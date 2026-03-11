@@ -11,6 +11,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
+import { formatDateToLocal } from '../../../utils/dateFormatter';
 import { Button as SharedButton } from '../../../components/shared';
 import { purchaseOrderService } from '../services';
 import type { PurchaseOrder, PurchaseOrderStatus } from '../types/purchases.types';
@@ -247,16 +248,6 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-PE', {
       style: 'currency',
@@ -299,7 +290,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
       <Header>
         <HeaderLeft>
           <Title>Orden de Compra {order.codigo}</Title>
-          <Subtitle>Creada el {formatDate(order.createdAt)}</Subtitle>
+          <Subtitle>Creada el {formatDateToLocal(order.createdAt)}</Subtitle>
         </HeaderLeft>
         <StatusBadge $status={order.estado}>
           {PURCHASE_ORDER_STATUS_LABELS[order.estado]}

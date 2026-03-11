@@ -12,6 +12,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
+import { formatDateOnly } from '../../../utils/dateFormatter';
 import { 
   Button,
   Input as SharedInput, 
@@ -495,14 +496,6 @@ const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-PE', {
       style: 'currency',
@@ -675,7 +668,7 @@ const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({
               {orders.map((order) => (
                 <SharedTr key={order.id}>
                   <SharedTd data-label="Código">{order.codigo}</SharedTd>
-                  <SharedTd data-label="Fecha">{formatDate(order.fechaEmision)}</SharedTd>
+                  <SharedTd data-label="Fecha">{formatDateOnly(order.fechaEmision)}</SharedTd>
                   <SharedTd data-label="Proveedor">
                     {order.proveedor?.razonSocial || 'N/A'}
                   </SharedTd>

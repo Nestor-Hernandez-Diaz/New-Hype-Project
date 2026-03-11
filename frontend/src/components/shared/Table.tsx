@@ -26,7 +26,8 @@ export const TableContainer = styled.div`
   background: ${COLORS.white};
   border-radius: ${BORDER_RADIUS.large};
   border: 1px solid ${COLORS.border};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 // ============================================================================
@@ -35,6 +36,7 @@ export const TableContainer = styled.div`
 
 export const Table = styled.table`
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
   font-family: ${TYPOGRAPHY.fontFamily};
 `;
@@ -80,6 +82,7 @@ export const Th = styled.th`
   border-bottom: 1px solid ${COLORS.border};
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 `;
 
 // ============================================================================

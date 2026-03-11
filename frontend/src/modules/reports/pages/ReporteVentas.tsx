@@ -23,10 +23,10 @@ import {
   EmptyTitle,
   EmptyText
 } from '../../../components/shared';
+import { formatDateOnly } from '../../../utils/dateFormatter';
 
 // Helpers
 const formatDateInput = (d: Date) => d.toISOString().slice(0, 10);
-const formatDMY = (dateStr: string) => new Date(dateStr).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const formatCurrency = (num: number | undefined | null) => {
   if (num === undefined || num === null || isNaN(Number(num))) return 'S/ 0.00';
   return `S/ ${Number(num).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -91,7 +91,8 @@ const TabsContainer = styled.div`
   background: ${COLORS.white};
   border-radius: ${BORDER_RADIUS.large};
   border: 1px solid ${COLORS.border};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const TabsHeader = styled.div`
@@ -266,7 +267,7 @@ const ReporteVentas: React.FC = () => {
       '=================================================================',
       'Fecha\tCantidad de Ventas\tTotal del Dia',
       ...(reporteData.ventasPorDia || []).map((v: any) =>
-        `${formatDMY(v.fecha)}\t${v.cantidad}\t${formatCurrency(v.total)}`
+        `${formatDateOnly(v.fecha)}\t${v.cantidad}\t${formatCurrency(v.total)}`
       ),
       '',
       '=================================================================',
@@ -440,7 +441,7 @@ const ReporteVentas: React.FC = () => {
                         <Tbody>
                           {reporteData.ventasPorDia.map((v: any, idx: number) => (
                             <Tr key={idx}>
-                              <Td>{formatDMY(v.fecha)}</Td>
+                              <Td>{formatDateOnly(v.fecha)}</Td>
                               <Td>{v.cantidad}</Td>
                               <Td>{formatCurrency(v.total)}</Td>
                             </Tr>

@@ -4,6 +4,7 @@ import Layout from '../../../components/Layout';
 import { useNotification } from '../../../context/NotificationContext';
 import { auditoriaApi, type AuditLog } from '../services/auditoriaApi';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../../../styles/theme';
+import { formatDateToLocal } from '../../../utils/dateFormatter';
 import {
   Button,
   Input,
@@ -248,18 +249,6 @@ const AuditoriaLogs: React.FC = () => {
     setCurrentPage(1); // Reset to first page when changing page size
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString('es-PE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  };
-
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
@@ -424,7 +413,7 @@ const AuditoriaLogs: React.FC = () => {
                 <Tbody>
                   {logs.map(log => (
                     <Tr key={log.id}>
-                      <Td>{formatTimestamp(log.timestamp)}</Td>
+                      <Td>{formatDateToLocal(log.timestamp)}</Td>
                       <Td>{log.user}</Td>
                       <Td>
                         <StatusBadge variant={getActionVariant(log.action)}>

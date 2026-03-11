@@ -8,6 +8,7 @@ import { useConfiguracion } from '../../configuration/context/ConfiguracionConte
 import { useNotification } from '../../../context/NotificationContext';
 import { ModalNotaCredito } from '../components/ModalNotaCredito';
 import { cambiarEstadoPedido } from '../services/ventasRealApi';
+import { formatDateOnly, formatTimeOnly } from '../../../utils/dateFormatter';
 
 // ✅ Helper para obtener el nombre del motivo de NC (simplificado a 2 motivos)
 const getCreditNoteReasonLabel = (reason: string): string => {
@@ -202,6 +203,7 @@ const StatusBadge = styled.span<{ status: string }>`
 
 const Table = styled.table`
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
   margin-top: ${SPACING.lg};
 `;
@@ -470,24 +472,6 @@ const DetalleVenta: React.FC = () => {
     return `S/ ${num.toFixed(2)}`;
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('es-PE', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
   if (loading) {
     return (
       <Layout title="Detalle de Venta">
@@ -578,7 +562,7 @@ const DetalleVenta: React.FC = () => {
             </InfoItem>
             <InfoItem>
               <InfoLabel>Fecha de Emisión</InfoLabel>
-              <InfoValue>{formatDate(sale.fechaEmision)} - {formatTime(sale.fechaEmision)}</InfoValue>
+              <InfoValue>{formatDateOnly(sale.fechaEmision)} - {formatTimeOnly(sale.fechaEmision)}</InfoValue>
             </InfoItem>
             <InfoItem>
               <InfoLabel>Método(s) de Pago</InfoLabel>
@@ -878,7 +862,7 @@ const DetalleVenta: React.FC = () => {
               {sale.fechaPago && (
                 <InfoItem>
                   <InfoLabel>Fecha de Pago</InfoLabel>
-                  <InfoValue>{formatDate(sale.fechaPago)} - {formatTime(sale.fechaPago)}</InfoValue>
+                  <InfoValue>{formatDateOnly(sale.fechaPago)} - {formatTimeOnly(sale.fechaPago)}</InfoValue>
                 </InfoItem>
               )}
             </InfoGrid>
@@ -926,7 +910,7 @@ const DetalleVenta: React.FC = () => {
                   </InfoItem>
                   <InfoItem>
                     <InfoLabel>Fecha Emisión</InfoLabel>
-                    <InfoValue>{formatDate(nc.fechaEmision)} - {formatTime(nc.fechaEmision)}</InfoValue>
+                    <InfoValue>{formatDateOnly(nc.fechaEmision)} - {formatTimeOnly(nc.fechaEmision)}</InfoValue>
                   </InfoItem>
                   <InfoItem>
                     <InfoLabel>Motivo</InfoLabel>

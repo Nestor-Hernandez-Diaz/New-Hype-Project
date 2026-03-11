@@ -16,6 +16,7 @@ import {
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../auth/context/AuthContext';
 import { media } from '../../../styles/breakpoints';
+import { formatDateToLocal } from '../../../utils/dateFormatter';
 
 // ==================== TIPOS ====================
 
@@ -402,16 +403,6 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const hasQuantityDifference = (expectedQty: number, receivedQty: number): boolean => {
     return expectedQty !== receivedQty;
   };
@@ -450,7 +441,7 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
       <Header>
         <HeaderLeft>
           <Title>Recepción {receipt.codigo}</Title>
-          <Subtitle>Creada el {formatDate(receipt.createdAt)}</Subtitle>
+          <Subtitle>Creada el {formatDateToLocal(receipt.createdAt)}</Subtitle>
         </HeaderLeft>
         <StatusBadge $status={receipt.estado}>
           {PURCHASE_RECEIPT_STATUS_LABELS[receipt.estado]}
@@ -482,7 +473,7 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
       {/* Alertas de estado */}
       {receipt.estado === 'CONFIRMADA' && (
         <AlertBox $type="success">
-          ✅ Esta recepción ha sido confirmada. El inventario fue actualizado el {formatDate(receipt.updatedAt)}.
+          ✅ Esta recepción ha sido confirmada. El inventario fue actualizado el {formatDateToLocal(receipt.updatedAt)}.
         </AlertBox>
       )}
       {receipt.estado === 'CANCELADA' && (
@@ -501,7 +492,7 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
           </InfoItem>
           <InfoItem>
             <InfoLabel>Fecha de Recepción</InfoLabel>
-            <InfoValue>{formatDate(receipt.fechaRecepcion)}</InfoValue>
+            <InfoValue>{formatDateToLocal(receipt.fechaRecepcion)}</InfoValue>
           </InfoItem>
           <InfoItem>
             <InfoLabel>Orden de Compra</InfoLabel>
@@ -533,7 +524,7 @@ const PurchaseReceiptDetail: React.FC<PurchaseReceiptDetailProps> = ({
           </InfoItem>
           <InfoItem>
             <InfoLabel>Última Actualización</InfoLabel>
-            <InfoValue>{formatDate(receipt.updatedAt)}</InfoValue>
+            <InfoValue>{formatDateToLocal(receipt.updatedAt)}</InfoValue>
           </InfoItem>
         </InfoGrid>
 

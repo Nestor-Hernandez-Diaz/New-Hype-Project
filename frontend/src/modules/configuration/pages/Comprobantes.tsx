@@ -50,7 +50,8 @@ const TableCard = styled.div`
   background: ${COLORS.neutral.white};
   border-radius: ${BORDER_RADIUS.lg};
   box-shadow: ${SHADOWS.sm};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const ActionButton = styled.button<{ $variant?: 'primary' | 'danger' }>`

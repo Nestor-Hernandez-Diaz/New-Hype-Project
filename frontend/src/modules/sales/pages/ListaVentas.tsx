@@ -7,6 +7,7 @@ import { useNotification } from '../../../context/NotificationContext';
 import { useClients } from '../../clients/context/ClientContext';
 import { ModalNotaCredito } from '../components/ModalNotaCredito';
 import type { Venta, PagoVenta } from '@monorepo/shared-types';
+import { formatDateOnly, formatTimeOnly } from '../../../utils/dateFormatter';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
 import { 
   Button as SharedButton,
@@ -107,7 +108,8 @@ const TableContainer = styled.div`
   background: ${COLORS.neutral.white};
   border-radius: ${BORDER_RADIUS.lg};
   box-shadow: ${SHADOWS.sm};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const PageSizeSelect = styled.select`
@@ -466,21 +468,6 @@ const ListaVentas: React.FC = () => {
       style: 'currency',
       currency: 'PEN'
     }).format(amount);
-  };
-
-  const formatDate = (dateString: string | Date) => {
-    return new Date(dateString).toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-  };
-
-  const formatTime = (dateString: string | Date) => {
-    return new Date(dateString).toLocaleTimeString('es-PE', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   const getStatusText = (status: string) => {
@@ -893,9 +880,9 @@ const ListaVentas: React.FC = () => {
                         </VoucherBadge>
                       </SharedTd>
                       <SharedTd>
-                        <div>{formatDate(sale.fechaEmision)}</div>
+                        <div>{formatDateOnly(sale.fechaEmision)}</div>
                         <div style={{ fontSize: '0.75rem', color: COLORS.text.secondary }}>
-                          {formatTime(sale.fechaEmision)}
+                          {formatTimeOnly(sale.fechaEmision)}
                         </div>
                       </SharedTd>
                       <SharedTd>

@@ -5,6 +5,7 @@ import { useSales } from '../context/SalesContext';
 import type { CashSession } from '../context/SalesContext';
 import { useNotification } from '../../../context/NotificationContext';
 import { SessionDetailModal } from '../components';
+import { formatDateToLocal } from '../../../utils/dateFormatter';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
 import { 
   Button,
@@ -108,17 +109,6 @@ const HistorialCaja: React.FC = () => {
 
   const formatCurrency = (amount: number) => {
     return `S/ ${amount.toFixed(2)}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('es-PE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const getDifferenceClass = (difference?: number) => {
@@ -277,7 +267,7 @@ const HistorialCaja: React.FC = () => {
                 <Tbody>
                   {paginatedSessions.map((session) => (
                     <Tr key={session.id}>
-                      <Td>{formatDate(session.fechaCierre || session.updatedAt)}</Td>
+                      <Td>{formatDateToLocal(session.fechaCierre || session.updatedAt)}</Td>
                       <Td>
                         {session.user 
                           ? `${session.user.firstName} ${session.user.lastName}`

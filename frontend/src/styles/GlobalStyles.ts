@@ -68,20 +68,14 @@ export const MainHeader = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 
   ${media.tablet} {
     padding: 15px 20px;
-    flex-wrap: wrap;
-    gap: 10px;
   }
 
   ${media.mobile} {
     padding: 10px 15px;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
   }
 
   h1 {
@@ -89,13 +83,18 @@ export const MainHeader = styled.header`
     font-weight: 700;
     color: #333;
     margin: 0;
-    
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
     ${media.tablet} {
-      font-size: 24px;
+      font-size: 22px;
     }
-    
+
     ${media.mobile} {
-      font-size: 20px;
+      font-size: 18px;
     }
   }
 `;

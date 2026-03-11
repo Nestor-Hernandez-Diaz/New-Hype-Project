@@ -1,12 +1,27 @@
 /**
+ * Normaliza un string de fecha del backend para que sea interpretado como UTC.
+ * El backend envía fechas sin sufijo 'Z' (ej: "2026-03-11T04:41:18"),
+ * lo cual JavaScript interpreta como hora local del navegador.
+ * Esta función agrega 'Z' para forzar interpretación UTC.
+ */
+function parseAsUTC(dateString: string | Date): Date {
+  if (dateString instanceof Date) return dateString;
+  // Si el string no tiene indicador de timezone (Z, +, -), agregar Z para interpretar como UTC
+  if (typeof dateString === 'string' && !dateString.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(dateString)) {
+    return new Date(dateString + 'Z');
+  }
+  return new Date(dateString);
+}
+
+/**
  * Formatea una fecha UTC a hora local de Perú (UTC-5)
  * @param dateString - Fecha en formato ISO string desde backend
  * @returns Fecha formateada en formato DD/MM/YYYY HH:mm:ss
  */
 export function formatDateToLocal(dateString: string | Date): string {
   if (!dateString) return '-';
-  
-  const date = new Date(dateString);
+
+  const date = parseAsUTC(dateString);
   
   // Verificar si la fecha es válida
   if (isNaN(date.getTime())) return '-';
@@ -42,8 +57,8 @@ export function formatDateToLocal(dateString: string | Date): string {
  */
 export function formatDateOnly(dateString: string | Date): string {
   if (!dateString) return '-';
-  
-  const date = new Date(dateString);
+
+  const date = parseAsUTC(dateString);
   if (isNaN(date.getTime())) return '-';
   
   const options: Intl.DateTimeFormatOptions = {
@@ -68,8 +83,8 @@ export function formatDateOnly(dateString: string | Date): string {
  */
 export function formatTimeOnly(dateString: string | Date): string {
   if (!dateString) return '-';
-  
-  const date = new Date(dateString);
+
+  const date = parseAsUTC(dateString);
   if (isNaN(date.getTime())) return '-';
   
   const options: Intl.DateTimeFormatOptions = {

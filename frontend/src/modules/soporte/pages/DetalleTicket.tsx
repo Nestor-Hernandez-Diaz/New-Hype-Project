@@ -6,6 +6,7 @@ import { useNotification } from '../../../context/NotificationContext';
 import { soporteApi, type Ticket, type RespuestaTicket } from '../services/soporteApi';
 import { COLORS, COLOR_SCALES, SPACING, BORDER_RADIUS, TYPOGRAPHY, TRANSITIONS } from '../../../styles/theme';
 import { Button, StatusBadge } from '../../../components/shared';
+import { formatDateToLocal } from '../../../utils/dateFormatter';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -337,15 +338,6 @@ const DetalleTicket: React.FC = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('es-PE', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  };
-
   const isCerrado = ticket?.estado === 'CERRADO';
 
   if (loading) {
@@ -396,7 +388,7 @@ const DetalleTicket: React.FC = () => {
               </PrioridadBadge>
             </MetaItem>
             <MetaItem>
-              <strong>Creado:</strong> {formatDate(ticket.createdAt)}
+              <strong>Creado:</strong> {formatDateToLocal(ticket.createdAt)}
             </MetaItem>
             {ticket.atendidoPor && (
               <MetaItem>
@@ -432,7 +424,7 @@ const DetalleTicket: React.FC = () => {
                         {esMio ? (resp.autorNombre || 'Tú') : (resp.autorNombre || 'Soporte')}
                       </AutorTag>
                       <span>·</span>
-                      <span>{formatDate(resp.createdAt)}</span>
+                      <span>{formatDateToLocal(resp.createdAt)}</span>
                     </MensajeMeta>
                   </MensajeBurbuja>
                 );

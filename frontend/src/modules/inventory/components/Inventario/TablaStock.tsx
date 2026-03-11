@@ -17,12 +17,14 @@ import {
 } from '../../../../components/shared';
 import type { StockItem, PaginationData } from '../../../../types/inventario';
 import { getWarehouseLabel } from '../../constants/warehouses';
+import { formatDateToLocal } from '../../../../utils/dateFormatter';
 
 const TableContainer = styled.div`
   background: ${COLORS.background};
   border-radius: ${BORDER_RADIUS.lg};
   box-shadow: ${SHADOWS.sm};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 // Helper para obtener variant del StatusBadge según estado de stock
@@ -95,16 +97,6 @@ const TablaStock: React.FC<TablaStockProps> = ({
   onPageChange,
   onPageSizeChange
 }) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   const getStatusLabel = (status: 'NORMAL' | 'BAJO' | 'CRITICO') => {
     switch (status) {
       case 'NORMAL': return 'Normal';

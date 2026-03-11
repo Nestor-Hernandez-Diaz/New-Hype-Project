@@ -23,6 +23,7 @@ import {
   StatLabel
 } from '../../../components/shared';
 import Layout from '../../../components/Layout';
+import { formatDateOnly } from '../../../utils/dateFormatter';
 import { useQuotes } from '../context/QuotesContext';
 import type { Quote, QuoteStatus } from '../context/QuotesContext';
 import { useSales } from '../context/SalesContext';
@@ -106,7 +107,8 @@ const TableContainer = styled.div`
   background: ${COLORS.neutral.white};
   border-radius: ${BORDER_RADIUS.lg};
   box-shadow: ${SHADOWS.sm};
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const PageSizeSelect = styled.select`
@@ -471,12 +473,6 @@ const Cotizaciones: React.FC = () => {
     }
   };
 
-  // Formatear fecha
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  };
-
   // Formatear moneda
   const formatCurrency = (amount: number | string) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -611,8 +607,8 @@ const Cotizaciones: React.FC = () => {
                   <SharedTr key={quote.id}>
                     <SharedTd><strong>{quote.codigoCotizacion}</strong></SharedTd>
                     <SharedTd>{getClientName(quote)}</SharedTd>
-                    <SharedTd>{formatDate(quote.fechaEmision)}</SharedTd>
-                    <SharedTd>{formatDate(quote.fechaVencimiento)}</SharedTd>
+                    <SharedTd>{formatDateOnly(quote.fechaEmision)}</SharedTd>
+                    <SharedTd>{formatDateOnly(quote.fechaVencimiento)}</SharedTd>
                     <SharedTd><strong>{formatCurrency(quote.total)}</strong></SharedTd>
                     <SharedTd>
                       <StatusBadge $status={quote.estado}>{quote.estado}</StatusBadge>
@@ -777,11 +773,11 @@ const Cotizaciones: React.FC = () => {
                     </DetailItem>
                     <DetailItem>
                       <DetailLabel>Fecha Emisión</DetailLabel>
-                      <DetailValue>{formatDate(selectedQuote.fechaEmision)}</DetailValue>
+                      <DetailValue>{formatDateOnly(selectedQuote.fechaEmision)}</DetailValue>
                     </DetailItem>
                     <DetailItem>
                       <DetailLabel>Fecha Vencimiento</DetailLabel>
-                      <DetailValue>{formatDate(selectedQuote.fechaVencimiento)}</DetailValue>
+                      <DetailValue>{formatDateOnly(selectedQuote.fechaVencimiento)}</DetailValue>
                     </DetailItem>
                     <DetailItem>
                       <DetailLabel>Días de Validez</DetailLabel>
@@ -855,7 +851,7 @@ const Cotizaciones: React.FC = () => {
                       <DetailItem key={sale.id}>
                         <DetailLabel>Venta:</DetailLabel>
                         <DetailValue>
-                          {sale.codigoVenta} - {formatCurrency(sale.total)} - {formatDate(sale.createdAt)}
+                          {sale.codigoVenta} - {formatCurrency(sale.total)} - {formatDateOnly(sale.createdAt)}
                         </DetailValue>
                       </DetailItem>
                     ))}

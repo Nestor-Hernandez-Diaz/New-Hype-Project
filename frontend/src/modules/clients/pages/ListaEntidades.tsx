@@ -88,6 +88,7 @@ const FilterLabel = styled.label`
 
 const Table = styled.table`
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
   margin-top: ${SPACING.xl};
 
