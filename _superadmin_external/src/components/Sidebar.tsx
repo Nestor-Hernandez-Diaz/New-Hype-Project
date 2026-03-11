@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import SidebarContent from './SidebarContent';
 
-const SidebarContainer = styled.aside`
+const SidebarContainer = styled.aside<{ $mobileOpen?: boolean }>`
   width: 260px;
   background: #000000;
   color: #ffffff;
@@ -16,7 +16,27 @@ const SidebarContainer = styled.aside`
   top: 0;
   
   @media (max-width: 768px) {
-    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    transform: ${props => props.$mobileOpen ? 'translateX(0)' : 'translateX(-100%)'};
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+`;
+
+const Overlay = styled.div<{ $visible: boolean }>`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: ${props => props.$visible ? 1 : 0};
+    pointer-events: ${props => props.$visible ? 'auto' : 'none'};
+    transition: opacity 0.3s ease;
   }
 `;
 
@@ -55,19 +75,24 @@ const TitleLink = styled(Link)`
 
 interface SidebarProps {
   className?: string;
+  mobileOpen?: boolean;
+  onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ className }) => {
+const Sidebar: React.FC<SidebarProps> = ({ className, mobileOpen, onClose }) => {
   return (
-    <SidebarContainer className={className}>
-      <SidebarHeader>
-        <TitleLink to="/dashboard">
-          <h2>New Hype</h2>
-          <p>Admin Control Panel</p>
-        </TitleLink>
-      </SidebarHeader>
-      <SidebarContent />
-    </SidebarContainer>
+    <>
+      <Overlay $visible={!!mobileOpen} onClick={onClose} />
+      <SidebarContainer className={className} $mobileOpen={mobileOpen}>
+        <SidebarHeader>
+          <TitleLink to="/dashboard" onClick={onClose}>
+            <h2>New Hype</h2>
+            <p>Admin Control Panel</p>
+          </TitleLink>
+        </SidebarHeader>
+        <SidebarContent onItemClick={onClose} />
+      </SidebarContainer>
+    </>
   );
 };
 

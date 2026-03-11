@@ -12,6 +12,18 @@ const StatsGrid = styled.div`
   grid-template-columns: repeat(5, 1fr);
   gap: ${SPACING.xl};
   margin-bottom: ${SPACING['3xl']};
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const StatCard = styled.div`

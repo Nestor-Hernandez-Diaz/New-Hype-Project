@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import Sidebar from './Sidebar';
 import UserInfo from './UserInfo';
@@ -28,6 +28,7 @@ const MainHeader = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 
   @media (max-width: 768px) {
     padding: 15px 20px;
@@ -54,6 +55,41 @@ const MainHeader = styled.header`
   }
 `;
 
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const HamburgerButton = styled.button`
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  color: #0a0a0a;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
+
 const ContentBody = styled.div`
   flex: 1;
   padding: 30px;
@@ -76,12 +112,19 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, title, className }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <DashboardContainer className={className}>
-      <Sidebar />
+      <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <MainContent>
         <MainHeader>
-          <h1>{title}</h1>
+          <HeaderLeft>
+            <HamburgerButton onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">
+              <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            </HamburgerButton>
+            <h1>{title}</h1>
+          </HeaderLeft>
           <UserInfo />
         </MainHeader>
         <ContentBody>

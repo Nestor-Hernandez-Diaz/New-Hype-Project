@@ -41,6 +41,10 @@ const FilterInput = styled.input`
   min-width: 160px;
   transition: ${TRANSITION};
 
+  @media (max-width: 480px) {
+    min-width: 100%;
+  }
+
   &:focus {
     outline: none;
     border-color: ${COLORS.primary};

@@ -16,6 +16,8 @@ const PageHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${SPACING['2xl']};
+  flex-wrap: wrap;
+  gap: ${SPACING.md};
 `;
 
 const StatsRow = styled.div`

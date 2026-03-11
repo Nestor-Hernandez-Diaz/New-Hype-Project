@@ -93,6 +93,11 @@ const FilterChip = styled.button<{ $active?: boolean }>`
 const SearchWrapper = styled.div`
   position: relative;
   min-width: 280px;
+  flex: 1;
+
+  @media (max-width: 480px) {
+    min-width: 100%;
+  }
 `;
 
 const SearchIcon = styled.div`
@@ -196,6 +201,8 @@ const TenantSub = styled.span`
 `;
 
 const PlanBadge = styled.span`
+  display: inline-block;
+  min-width: 120px;
   padding: ${SPACING.xs} ${SPACING.md};
   border-radius: ${RADIUS.xl};
   font-size: ${TYPOGRAPHY.fontSize.xs};
@@ -204,6 +211,8 @@ const PlanBadge = styled.span`
   color: ${COLORS.text};
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  text-align: center;
+  white-space: nowrap;
 `;
 
 const EmptyState = styled.div`
