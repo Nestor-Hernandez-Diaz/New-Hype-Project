@@ -411,18 +411,56 @@ const Login: React.FC = () => {
             </PasswordInputWrapper>
           </div>
           {error && (
-            <div style={{ 
-              color: '#dc3545', 
-              fontSize: '14px', 
-              marginBottom: '15px',
-              textAlign: 'center',
-              padding: '12px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '8px'
-            }}>
-              {error}
-            </div>
+            error.startsWith('CUENTA_SUSPENDIDA:') ? (
+              <div style={{ 
+                marginBottom: '20px',
+                padding: '16px 20px',
+                backgroundColor: '#fef2f2',
+                border: '2px solid #dc3545',
+                borderRadius: '12px',
+                textAlign: 'center',
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '8px', 
+                  marginBottom: '8px',
+                  color: '#dc3545',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                }}>
+                  ⛔ Cuenta Suspendida
+                </div>
+                <div style={{ 
+                  color: '#721c24', 
+                  fontSize: '14px', 
+                  lineHeight: 1.5,
+                }}>
+                  <strong>Motivo:</strong> {error.replace('CUENTA_SUSPENDIDA:', '')}
+                </div>
+                <div style={{ 
+                  color: '#95a5a6', 
+                  fontSize: '12px', 
+                  marginTop: '8px',
+                }}>
+                  Contacte al administrador de la plataforma para más información.
+                </div>
+              </div>
+            ) : (
+              <div style={{ 
+                color: '#dc3545', 
+                fontSize: '14px', 
+                marginBottom: '15px',
+                textAlign: 'center',
+                padding: '12px',
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px'
+              }}>
+                {error}
+              </div>
+            )
           )}
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Ingresando...' : 'Ingresar'}

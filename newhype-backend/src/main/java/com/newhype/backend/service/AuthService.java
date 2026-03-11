@@ -83,6 +83,15 @@ public class AuthService {
         Tenant tenant = tenantRepository.findById(usuario.getTenantId())
                 .orElseThrow(() -> new BadCredentialsException("Tenant no encontrado"));
 
+        if (tenant.getEstado() == Tenant.EstadoTenant.SUSPENDIDA) {
+            String motivo = tenant.getMotivoSuspension() != null ? tenant.getMotivoSuspension() : "Sin motivo especificado";
+            throw new BadCredentialsException("CUENTA_SUSPENDIDA:" + motivo);
+        }
+
+        if (tenant.getEstado() == Tenant.EstadoTenant.ELIMINADA) {
+            throw new BadCredentialsException("Esta cuenta ha sido eliminada. Contacte soporte.");
+        }
+
         String rolNombre = "USER";
         Rol rol = rolRepository.findById(usuario.getRolId()).orElse(null);
         if (rol != null) rolNombre = rol.getNombre();
