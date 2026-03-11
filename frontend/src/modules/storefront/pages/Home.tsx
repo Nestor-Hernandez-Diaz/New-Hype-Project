@@ -1,10 +1,4 @@
-/**
- * 🏠 PÁGINA DE INICIO (HOME)
- * 
- * Landing page del storefront con hero, categorías y productos destacados.
- */
-
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../context/StorefrontContext';
 import ProductGrid from '../components/product/ProductGrid';
@@ -12,9 +6,15 @@ import { esProductoNuevo , getBasePath } from '../services/storefrontApi';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import { Truck, RefreshCw, Lock, MessageCircle } from 'lucide-react';
 
+// GIF para el efecto hover en el hero — reemplaza con tu URL de GIF
+const GIF_MUJER = 'https://i.pinimg.com/originals/20/27/49/2027490131f0517a4d547951bc175c48.gif';
+const GIF_HOMBRE = 'https://media.tenor.com/Bx2O91PuyWYAAAAM/good-morning-i-love-you.gif';
+
 export default function Home() {
   const { state, cargarProductos } = useStorefront();
   const navigate = useNavigate();
+  const [mujerHovered, setMujerHovered] = useState(false);
+  const [hombreHovered, setHombreHovered] = useState(false);
   
   // Refs para animaciones de scroll
   const featuresRef = useScrollAnimation<HTMLElement>();
@@ -39,11 +39,22 @@ export default function Home() {
         {/* Lado Izquierdo - Mujer */}
         <div
           onClick={() => navigate(`${getBasePath()}/catalogo?genero=1`)}
+          onMouseEnter={() => setMujerHovered(true)}
+          onMouseLeave={() => setMujerHovered(false)}
           className="relative w-1/2 bg-cover bg-center cursor-pointer group overflow-hidden"
           style={{
             backgroundImage: "url('https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=1400&fit=crop')"
           }}
         >
+          {/* GIF overlay en hover */}
+          {GIF_MUJER && (
+            <img
+              src={GIF_MUJER}
+              alt=""
+              aria-hidden
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${mujerHovered ? 'opacity-100' : 'opacity-0'}`}
+            />
+          )}
           <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-all duration-500" />
           <div className="absolute inset-0 flex items-center justify-center text-white z-10">
             <div className="text-center animate-fade-in-up">
@@ -59,11 +70,22 @@ export default function Home() {
         {/* Lado Derecho - Hombre */}
         <div
           onClick={() => navigate(`${getBasePath()}/catalogo?genero=2`)}
+          onMouseEnter={() => setHombreHovered(true)}
+          onMouseLeave={() => setHombreHovered(false)}
           className="relative w-1/2 bg-cover bg-center cursor-pointer group overflow-hidden"
           style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1488161628813-04466f0cc7d4?w=1200&h=1400&fit=crop')"
+            backgroundImage: "url('https://hips.hearstapps.com/hmg-prod/images/3065-edition-campaign-landscape-300ppi-4-1646900576.jpg?crop=0.7069555302166477xw:1xh;center,top&resize=640:*')"
           }}
         >
+          {/* GIF overlay en hover */}
+          {GIF_HOMBRE && (
+            <img
+              src={GIF_HOMBRE}
+              alt=""
+              aria-hidden
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${hombreHovered ? 'opacity-100' : 'opacity-0'}`}
+            />
+          )}
           <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-all duration-500" />
           <div className="absolute inset-0 flex items-center justify-center text-white z-10">
             <div className="text-center animate-fade-in-up animation-delay-200">
@@ -109,7 +131,7 @@ export default function Home() {
             onClick={() => navigate(`${getBasePath()}/catalogo?genero=1`)}
           />
           <CategoryCard
-            imagen="https://images.unsplash.com/photo-1488161628813-04466f0cc7d4?w=600&h=800&fit=crop"
+            imagen="https://hips.hearstapps.com/hmg-prod/images/3065-edition-campaign-landscape-300ppi-4-1646900576.jpg?crop=0.7069555302166477xw:1xh;center,top&resize=640:*"
             nombre="Hombre"
             cantidad="95+ productos"
             onClick={() => navigate(`${getBasePath()}/catalogo?genero=2`)}
