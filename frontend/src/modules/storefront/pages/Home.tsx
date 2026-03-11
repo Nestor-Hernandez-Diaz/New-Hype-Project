@@ -5,6 +5,7 @@ import ProductGrid from '../components/product/ProductGrid';
 import { esProductoNuevo , getBasePath } from '../services/storefrontApi';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import { Truck, RefreshCw, Lock, MessageCircle } from 'lucide-react';
+import varonPortada from '../../../assets/images/VaronPortada.jpeg';
 
 // GIF para el efecto hover en el hero — reemplaza con tu URL de GIF
 const GIF_MUJER = 'https://i.pinimg.com/originals/20/27/49/2027490131f0517a4d547951bc175c48.gif';
@@ -74,7 +75,7 @@ export default function Home() {
           onMouseLeave={() => setHombreHovered(false)}
           className="relative w-1/2 bg-cover bg-center cursor-pointer group overflow-hidden"
           style={{
-            backgroundImage: "url('https://hips.hearstapps.com/hmg-prod/images/3065-edition-campaign-landscape-300ppi-4-1646900576.jpg?crop=0.7069555302166477xw:1xh;center,top&resize=640:*')"
+            backgroundImage: `url('${varonPortada}')`
           }}
         >
           {/* GIF overlay en hover */}
@@ -131,7 +132,7 @@ export default function Home() {
             onClick={() => navigate(`${getBasePath()}/catalogo?genero=1`)}
           />
           <CategoryCard
-            imagen="https://hips.hearstapps.com/hmg-prod/images/3065-edition-campaign-landscape-300ppi-4-1646900576.jpg?crop=0.7069555302166477xw:1xh;center,top&resize=640:*"
+            imagen={varonPortada}
             nombre="Hombre"
             cantidad="95+ productos"
             onClick={() => navigate(`${getBasePath()}/catalogo?genero=2`)}
