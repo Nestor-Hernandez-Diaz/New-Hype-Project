@@ -265,6 +265,57 @@ const Button = styled.button`
   }
 `;
 
+const FooterInfo = styled.div`
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid transparent;
+
+    &:hover {
+      border-bottom-color: rgba(255, 255, 255, 0.6);
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  ${media.mobile} {
+    bottom: 14px;
+    padding: 10px 20px;
+    gap: 16px;
+    border-radius: 12px;
+    
+    span {
+      font-size: 12px;
+    }
+  }
+`;
+
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -378,6 +429,10 @@ const Login: React.FC = () => {
           </Button>
         </LoginForm>
       </LoginBox>
+      <FooterInfo>
+        <span>✉ <a href="mailto:mariosoporte@gmail.com">mariosoporte@gmail.com</a></span>
+        <span>📞 <a href="tel:+51999666321">+51 999 666 321</a></span>
+      </FooterInfo>
     </LoginContainer>
   );
 };
