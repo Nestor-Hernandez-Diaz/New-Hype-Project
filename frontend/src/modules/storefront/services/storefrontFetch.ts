@@ -105,6 +105,16 @@ export async function storefrontFetch<T>(
   }
 
   if (!res.ok) {
+    // Token expirado o inválido → limpiar sesión y redirigir al login
+    if (res.status === 401 || res.status === 403) {
+      clearSfToken();
+      localStorage.removeItem('nh_usuario_storefront');
+      // Redirigir al login del storefront (usa basePath ya configurado)
+      const loginUrl = `${_basePath}/cuenta/login`;
+      if (typeof window !== 'undefined' && !window.location.pathname.endsWith('/cuenta/login')) {
+        window.location.href = loginUrl;
+      }
+    }
     throw new Error(json.message || `Error ${res.status}`);
   }
 

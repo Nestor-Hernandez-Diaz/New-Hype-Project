@@ -97,11 +97,21 @@ export function useAuth(): UseAuthReturn {
 
     if (tokenGuardado && usuarioGuardado) {
       try {
-        const usuarioParsed = JSON.parse(usuarioGuardado) as UsuarioStorefront;
-        setToken(tokenGuardado);
-        setUsuario(usuarioParsed);
-        // Sync with storefrontFetch helper
-        setSfToken(tokenGuardado);
+        // Verificar expiracion del JWT sin libreria externa
+        const payload = JSON.parse(atob(tokenGuardado.split('.')[1]));
+        const ahora = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < ahora) {
+          // Token expirado — limpiar sesion
+          localStorage.removeItem(STORAGE_KEYS.TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.USUARIO);
+          clearSfToken();
+        } else {
+          const usuarioParsed = JSON.parse(usuarioGuardado) as UsuarioStorefront;
+          setToken(tokenGuardado);
+          setUsuario(usuarioParsed);
+          // Sync with storefrontFetch helper
+          setSfToken(tokenGuardado);
+        }
       } catch (error) {
         console.error('[useAuth] Error loading session:', error);
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
