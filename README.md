@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/1141088325.svg)](https://doi.org/10.5281/zenodo.21895543)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21895543-blue?logo=doi)](https://doi.org/10.5281/zenodo.21895543)
 # New Hype ERP
 
 Sistema ERP SaaS multi-tenant para **tiendas de ropa y accesorios**, desarrollado con arquitectura moderna React + Spring Boot.
